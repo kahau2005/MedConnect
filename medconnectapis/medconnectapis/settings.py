@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import cloudinary
 import os
+import pymysql
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-0_y7%c!9eb!11*y)$*_k+_osa=6i04+=awcx!t(gvo=ij9xr#!'
+SECRET_KEY = "django-insecure-0_y7%c!9eb!11*y)$*_k+_osa=6i04+=awcx!t(gvo=ij9xr#!"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -104,6 +105,8 @@ cloudinary.config(
     api_key=os.getenv("CLOUDINARY_API_KEY"),
     api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )
+pymysql.version_info = (2, 2, 7)
+pymysql.install_as_MySQLdb()
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
