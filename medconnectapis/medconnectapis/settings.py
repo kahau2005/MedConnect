@@ -83,6 +83,7 @@ TEMPLATES = [
     },
 ]
 
+
 WSGI_APPLICATION = "medconnectapis.wsgi.application"
 
 # Database

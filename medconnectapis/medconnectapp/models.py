@@ -43,6 +43,7 @@ class User(AbstractUser):
 class Specialty(models.Model):
     id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=100)
+    image = models.URLField(max_length=200, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     image = CloudinaryField(null=True)
 
