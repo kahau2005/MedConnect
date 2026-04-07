@@ -1,4 +1,6 @@
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import models
+from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
 
 
@@ -24,17 +26,15 @@ class DiseaseCategory(models.Model):
     name = models.CharField(max_length=100)
 
 
-class User(AbstractUser, models.Model):
-    id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=100)
-    password = models.CharField(max_length=100)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+class User(AbstractUser):
+    date_joined = None
+    last_login = None
+    is_staff = models.BooleanField(default=False, editable=False)
     role = models.CharField(
         max_length=10, choices=UserRole.choices, default=UserRole.PATIENT
     )
     active = models.BooleanField(default=True)
-    avatar = models.URLField(max_length=200, blank=True, null=True)
+    avatar = CloudinaryField(null=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.get_role_display()})"
@@ -45,6 +45,7 @@ class Specialty(models.Model):
     name = models.CharField(max_length=100)
     image = models.URLField(max_length=200, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+    image = CloudinaryField(null=True)
 
     def __str__(self):
         return self.name
