@@ -1,15 +1,47 @@
 from rest_framework import generics, parsers, permissions, status, viewsets
-from rest_framework.decorators import action
 from rest_framework.response import Response
+from .models import Specialty, User, Medicine, MedicineCategory, PatientProfile
+from .serializers import (
+    SpecialtySerializer,
+    UserSerializer,
+    SimpleUserSerializer,
+    MedicineSerializer,
+    MedicineCategorySerializer,
+    DetailMedicineSerializer,
+    PatientSerializer,
+)
+from rest_framework.decorators import action
 
-from .models import Disease, DiseaseCategory, Specialty, User
-from .serializers import SimpleUserSerializer, SpecialtySerializer, UserSerializer
+from .models import Service
+from .serializers import ServiceSerializer, DetailServiceSerializer
 
 
-class SpecialtyViewSet(viewsets.ModelViewSet):
+class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Specialty.objects.all()
     serializer_class = SpecialtySerializer
-    # permission_classes = [permissions.IsAuthenticated]
+
+
+class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
+    queryset = Service.objects.all().filter(active=True)
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return DetailServiceSerializer
+        return ServiceSerializer
+
+
+class MedicineViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return DetailMedicineSerializer
+        return MedicineSerializer
+
+    queryset = Medicine.objects.all().filter(active=True)
+
+
+class MedicineCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = MedicineCategory.objects.all()
+    serializer_class = MedicineCategorySerializer
 
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
@@ -30,3 +62,17 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
             s.is_valid(raise_exception=True)
             u = s.save()
         return Response(UserSerializer(u).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"], url_path="current-user/patient-profile")
+    def get_patient_profile(self, request, pk):
+        user = request.user
+
+        try:
+            profile = PatientProfile.objects.filter(user=user)
+            serializer = PatientSerializer(profile)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except PatientProfile.DoesNotExist:
+            return Response(
+                {"detail": "Người dùng chưa có hồ sơ bệnh nhân."},
+                status=status.HTTP_404_NOT_FOUND,
+            )

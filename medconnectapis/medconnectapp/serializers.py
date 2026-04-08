@@ -1,12 +1,16 @@
 from rest_framework.serializers import ModelSerializer
-from .models import Specialty, User
+from .models import Specialty, User, Medicine, MedicineCategory, PatientProfile
+from .models import Specialty, Service
 
 
 class SpecialtySerializer(ModelSerializer):
     class Meta:
         model = Specialty
         fields = "__all__"
-
+class PatientSerializer(ModelSerializer):
+    class Meta:
+        model = PatientProfile
+        fields = "__all__"
 
 class SimpleUserSerializer(ModelSerializer):
     class Meta:
@@ -31,3 +35,28 @@ class UserSerializer(SimpleUserSerializer):
         user.set_password(user.password)
         user.save()
         return user
+
+class ServiceSerializer(ModelSerializer):
+    class Meta:
+        model = Service
+        fields = ["name", "price", "description"]
+
+class DetailServiceSerializer(ModelSerializer):
+    class Meta:
+        model = Service
+        fields = "__all__"
+
+class MedicineSerializer(ModelSerializer):
+    class Meta:
+        model = Medicine
+        fields = ["id","name", "stock", "unit_price"]
+
+class DetailMedicineSerializer(ModelSerializer):
+    class Meta:
+        model = Medicine
+        fields = "__all__"
+
+class MedicineCategorySerializer(ModelSerializer):
+    class Meta:
+        model = MedicineCategory
+        fields = "__all__"
