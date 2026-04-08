@@ -4,23 +4,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('medconnectapp', '0003_remove_user_name_alter_specialty_image_and_more'),
+        ("medconnectapp", "0003_remove_user_name_alter_specialty_image_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='user',
-            name='date_joined',
+            model_name="user",
+            name="date_joined",
         ),
         migrations.RemoveField(
-            model_name='user',
-            name='last_login',
+            model_name="user",
+            name="last_login",
         ),
         migrations.AlterField(
-            model_name='user',
-            name='is_staff',
+            model_name="user",
+            name="is_staff",
             field=models.BooleanField(default=False, editable=False),
         ),
     ]
