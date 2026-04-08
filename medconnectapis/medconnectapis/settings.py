@@ -10,10 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
-import cloudinary
 import os
+from pathlib import Path
+
+import cloudinary
 import pymysql
+from dotenv import load_dotenv
 
 from medconnectapp.apps import MedconnectappConfig
 
@@ -99,11 +101,15 @@ DATABASES = {
     }
 }
 AUTH_USER_MODEL = "medconnectapp.User"
+
+env_path = os.path.join(BASE_DIR, ".env")
+load_dotenv(env_path)
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
     api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )
+
 pymysql.version_info = (2, 2, 7)
 pymysql.install_as_MySQLdb()
 # Password validation
