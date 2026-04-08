@@ -1,5 +1,7 @@
 from rest_framework import generics, parsers, permissions, status, viewsets
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
 from .models import Specialty, User, Medicine, MedicineCategory, PatientProfile
 from .serializers import (
     SpecialtySerializer,
@@ -8,7 +10,8 @@ from .serializers import (
     MedicineSerializer,
     MedicineCategorySerializer,
     DetailMedicineSerializer,
-    PatientSerializer,
+    DetailPatientProfileSerializer,
+    PatientProfileSerializer,
 )
 from rest_framework.decorators import action
 
@@ -36,12 +39,18 @@ class MedicineViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveA
             return DetailMedicineSerializer
         return MedicineSerializer
 
-    queryset = Medicine.objects.all().filter(active=True)
+    queryset = Medicine.objects.filter(active=True)
 
 
 class MedicineCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
-    queryset = MedicineCategory.objects.all()
+    queryset = MedicineCategory.objects.filter(active=True)
     serializer_class = MedicineCategorySerializer
+
+
+class PatientProfileViewSet(viewsets.ViewSet, generics.CreateAPIView):
+    queryset = PatientProfile.objects.filter(active=True)
+    serializer_class = PatientProfileSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
@@ -69,7 +78,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
         try:
             profile = PatientProfile.objects.filter(user=user)
-            serializer = PatientSerializer(profile)
+            serializer = DetailPatientProfileSerializer(profile)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except PatientProfile.DoesNotExist:
             return Response(
