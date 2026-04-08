@@ -77,6 +77,13 @@ class Doctor(models.Model):
         return f"Bác sĩ {self.user.first_name} {self.user.last_name}"
 
 
+class DoctorWeeklySchedule(BaseModel):
+    doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT)
+    day_of_week = models.IntegerField(null=False, default=5)
+    start_time = models.TimeField(null=False)
+    end_time = models.TimeField(null=False)
+
+
 class Disease(BaseModel):
     name = models.CharField(max_length=100)
     disease_category = models.ForeignKey(DiseaseCategory, on_delete=models.PROTECT)
