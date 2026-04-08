@@ -4,46 +4,61 @@ from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
 
 
-class UserRole(models.TextChoices):
-    DOCTOR = "DOC", "Doctor"
-    PATIENT = "PAT", "Patient"
-    ADMIN = "ADMIN", "Admin"
+class BaseModel(models.Model):
+    class Meta:
+        abstract = True
+
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
-class AppointmentStatus(models.TextChoices):
-    SCHEDULED = "SCHEDULED", "Scheduled"
-    COMPLETED = "COMPLETED", "Completed"
-    CANCELED = "CANCELED", "Canceled"
-
-
-class PrescriptionStatus(models.TextChoices):
-    ACTIVE = "ACTIVE", "Active"
-    INACTIVE = "INACTIVE", "Inactive"
-
-
-class DiseaseCategory(models.Model):
-    id = models.IntegerField(primary_key=True)
+class DiseaseCategory(BaseModel):
     name = models.CharField(max_length=100)
 
 
-class User(AbstractUser):
+class User(AbstractUser, BaseModel):
+    class UserRole(models.TextChoices):
+        DOCTOR = "DOCTOR", "Bác sĩ"
+        PATIENT = "PATIENT", "Bệnh nhân"
+        ADMIN = "ADMIN", "Admin"
+
     date_joined = None
     last_login = None
     is_staff = models.BooleanField(default=False, editable=False)
     role = models.CharField(
         max_length=10, choices=UserRole.choices, default=UserRole.PATIENT
     )
-    active = models.BooleanField(default=True)
     avatar = CloudinaryField(null=True)
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.get_role_display()})"
+        return self.first_name + self.last_name
 
 
-class Specialty(models.Model):
-    id = models.IntegerField(primary_key=True)
+class PatientProfile(BaseModel):
+    class Gender(models.TextChoices):
+        MALE = "MALE", "Nam"
+        FEMALE = "FEMALE", "Nữ"
+
+    class BloodType(models.TextChoices):
+        A = "A", "A"
+        B = "B", "B"
+        AB = "AB", "AB"
+        O = "O", "O"
+
+    user = models.OneToOneField(User, on_delete=models.PROTECT, primary_key=True)
+    gender = models.CharField(max_length=10, choices=Gender.choices)
+    dob = models.DateTimeField(null=False)
+    weight = models.FloatField(null=False)
+    height = models.IntegerField(null=False)
+    allergies = models.TextField(null=True)
+    chronic_diseases = models.TextField(null=True)
+    blood_type = models.CharField(max_length=2, choices=BloodType.choices, null=True)
+    address = models.TextField(null=True)
+
+
+class Specialty(BaseModel):
     name = models.CharField(max_length=100)
-    image = models.URLField(max_length=200, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     image = CloudinaryField(null=True)
 
@@ -52,30 +67,32 @@ class Specialty(models.Model):
 
 
 class Doctor(models.Model):
-    id = models.IntegerField(primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE)
+    user = models.OneToOneField(
+        User, on_delete=models.PROTECT, primary_key=True, related_name="doctor_profile"
+    )
+    specialty = models.ForeignKey(Specialty, on_delete=models.PROTECT)
 
     def __str__(self):
-        return (
-            f"Dr. {self.user.first_name} {self.user.last_name} - {self.specialty.name}"
-        )
+        return f"Bác sĩ {self.user.first_name} {self.user.last_name}"
 
 
-class Disease(models.Model):
-    id = models.IntegerField(primary_key=True)
+class Disease(BaseModel):
     name = models.CharField(max_length=100)
-    disease_category = models.ForeignKey(DiseaseCategory, on_delete=models.CASCADE)
+    disease_category = models.ForeignKey(DiseaseCategory, on_delete=models.PROTECT)
 
     def __str__(self):
         return self.name
 
 
-class Appointment(models.Model):
-    id = models.IntegerField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+class Appointment(BaseModel):
+    class AppointmentStatus(models.TextChoices):
+        SCHEDULED = "SCHEDULED", "Đã đặt lịch"
+        COMPLETED = "COMPLETED", "Đã khám"
+        CANCELED = "CANCELED", "Đã hủy"
+
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
     doctor = models.ForeignKey(
-        Doctor, on_delete=models.CASCADE, related_name="doctor_appointments"
+        Doctor, on_delete=models.PROTECT, related_name="doctor_appointments"
     )
     status = models.CharField(
         max_length=20,
@@ -87,59 +104,48 @@ class Appointment(models.Model):
     symptoms = models.TextField(blank=True, null=True)
     diagnosis = models.TextField(blank=True, null=True)
     note = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Appointment for {self.user} with {self.doctor} on {self.start}"
 
 
-class Prescription(models.Model):
-    id = models.IntegerField(primary_key=True)
-    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
-    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
+class Prescription(BaseModel):
+    class PrescriptionStatus(models.TextChoices):
+        PENDING = "PENDING", "Chờ xử lý"
+        PAID = "PAID", "Đã thanh toán"
+        DISPENSED = "DISPENSED", "Đã phát thuốc"
+
+    appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT)
     status = models.CharField(
         max_length=20,
         choices=PrescriptionStatus.choices,
-        default=PrescriptionStatus.ACTIVE,
+        default=PrescriptionStatus.PENDING,
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    note = models.TextField(blank=True, null=True)
-
-    def __str__(self):
-        return f"Prescription for {self.appointment} by {self.doctor}"
 
 
-class PrescriptionDetail(models.Model):
-    id = models.IntegerField(primary_key=True)
+class PrescriptionDetail(BaseModel):
+    class Instruction(models.TextChoices):
+        BEFORE_MEAL = "BEFORE_MEAL", "Trước bữa ăn"
+        AFTER_MEAL = "AFTER_MEAL", "Sau bữa ăn"
+
     prescription = models.ForeignKey(
-        Prescription, on_delete=models.CASCADE, related_name="details"
+        Prescription, on_delete=models.PROTECT, related_name="details"
     )
     quantity = models.IntegerField()
-    dose = models.CharField(max_length=100)
-    frequency = models.CharField(max_length=100)
-    duration_day = models.CharField(max_length=100)
+    dose = models.IntegerField(null=False, default=1)
+    frequency = models.IntegerField(null=False, default=1)
+    duration_day = models.IntegerField(null=False, default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    instruction = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.quantity} x {self.dose} for {self.prescription}"
+    instruction = models.TextField(null=True, choices=Instruction.choices)
 
 
-class MedicineCategory(models.Model):
-    id = models.IntegerField(primary_key=True)
+class MedicineCategory(BaseModel):
     name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
 
 
-class Medicine(models.Model):
-    id = models.IntegerField(primary_key=True)
+class Medicine(BaseModel):
     name = models.CharField(max_length=100)
-    category = models.ForeignKey(MedicineCategory, on_delete=models.CASCADE)
+    category = models.ForeignKey(MedicineCategory, on_delete=models.PROTECT)
     stock = models.IntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=50)
@@ -149,44 +155,41 @@ class Medicine(models.Model):
         return self.name
 
 
-class ServiceCategory(models.Model):
-    id = models.IntegerField(primary_key=True)
+class ServiceCategory(BaseModel):
     name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
 
 
-class Service(models.Model):
-    id = models.IntegerField(primary_key=True)
+class Service(BaseModel):
     name = models.CharField(max_length=100)
-    category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE)
+    category = models.ForeignKey(ServiceCategory, on_delete=models.PROTECT)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField(blank=True, null=True)
-    active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
 
 
-class AppointmentService(models.Model):
-    id = models.IntegerField(primary_key=True)
+class AppointmentService(BaseModel):
     appointment = models.ForeignKey(
-        Appointment, on_delete=models.CASCADE, related_name="services"
+        Appointment, on_delete=models.PROTECT, related_name="services"
     )
-    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    service = models.ForeignKey(Service, on_delete=models.PROTECT)
     quantity = models.IntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
-    def __str__(self):
-        return f"{self.quantity} x {self.service.name} for {self.appointment}"
 
+class Payment(BaseModel):
+    class PaymentStatus(models.TextChoices):
+        PENDING = "PENDING", "Đang đợi thanh toán"
+        PAID = "PAID", "Đã thanh toán"
 
-class Payment(models.Model):
-    id = models.IntegerField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
-    service_fee = models.DecimalField(max_digits=10, decimal_places=2)
-
-    def __str__(self):
-        return f"Payment for {self.appointment} by {self.user}"
+    appointment = models.OneToOneField(
+        Appointment, on_delete=models.PROTECT, related_name="payment"
+    )
+    status = models.TextField(
+        max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
+    )
+    total_amount = models.DecimalField(null=False, max_digits=10, decimal_places=2)

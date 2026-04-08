@@ -1,9 +1,9 @@
-from django.utils.safestring import mark_safe
-
-from medconnectapp.models import ServiceCategory, Specialty
+from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.contrib import admin
-from ckeditor_uploader.widgets import CKEditorUploadingWidget
+from django.utils.safestring import mark_safe
+
+from medconnectapp.models import PatientProfile, ServiceCategory, Specialty, User
 
 
 class MyAdminSite(admin.AdminSite):
@@ -28,10 +28,12 @@ class MySpecialtyAdmin(admin.ModelAdmin):
 
     def image_view(self, lesson):
         if lesson.image:
-            return mark_safe(f'<img src={lesson.image.url} width=200')
+            return mark_safe(f"<img src={lesson.image.url} width=200")
         return None
 
 
 admin_site = MyAdminSite()
 
 admin_site.register(Specialty, MySpecialtyAdmin)
+admin_site.register(User, admin.ModelAdmin)
+admin_site.register(PatientProfile, admin.ModelAdmin)
