@@ -1,16 +1,37 @@
+from rest_framework.fields import HiddenField, CurrentUserDefault
 from rest_framework.serializers import ModelSerializer
 from .models import Specialty, User, Medicine, MedicineCategory, PatientProfile
-from .models import Specialty, Service
+from .models import Service
 
 
 class SpecialtySerializer(ModelSerializer):
     class Meta:
         model = Specialty
         fields = "__all__"
-class PatientSerializer(ModelSerializer):
+
+
+class PatientProfileSerializer(ModelSerializer):
+    user = HiddenField(default=CurrentUserDefault())
+    class Meta:
+        model = PatientProfile
+        fields = [
+            "user",
+            "gender",
+            "dob",
+            "weight",
+            "height",
+            "allergies",
+            "chronic_diseases",
+            "blood_type",
+            "address",
+        ]
+
+
+class DetailPatientProfileSerializer(ModelSerializer):
     class Meta:
         model = PatientProfile
         fields = "__all__"
+
 
 class SimpleUserSerializer(ModelSerializer):
     class Meta:
@@ -36,25 +57,30 @@ class UserSerializer(SimpleUserSerializer):
         user.save()
         return user
 
+
 class ServiceSerializer(ModelSerializer):
     class Meta:
         model = Service
         fields = ["name", "price", "description"]
+
 
 class DetailServiceSerializer(ModelSerializer):
     class Meta:
         model = Service
         fields = "__all__"
 
+
 class MedicineSerializer(ModelSerializer):
     class Meta:
         model = Medicine
-        fields = ["id","name", "stock", "unit_price"]
+        fields = ["id", "name", "stock", "unit_price"]
+
 
 class DetailMedicineSerializer(ModelSerializer):
     class Meta:
         model = Medicine
         fields = "__all__"
+
 
 class MedicineCategorySerializer(ModelSerializer):
     class Meta:
