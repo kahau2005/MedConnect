@@ -4,8 +4,9 @@ from . import views
 
 router = routers.DefaultRouter()
 router.register("specialties", views.SpecialtyViewSet)
-router.register("services-categories", views.ServiceCategoryViewSet, "service-categories")
 router.register("services", views.ServiceViewSet, "services")
+router.register("medicines", views.MedicineViewSet, "medicines")
+router.register("medicine-categories", views.MedicineCategoryViewSet, "medicine-categories")
 
 urlpatterns = [
     path("", include(router.urls)),
