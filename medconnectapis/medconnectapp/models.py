@@ -9,7 +9,7 @@ class BaseModel(models.Model):
         abstract = True
 
     active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
@@ -29,6 +29,7 @@ class User(AbstractUser, BaseModel):
     role = models.CharField(
         max_length=10, choices=UserRole.choices, default=UserRole.PATIENT
     )
+    phone = models.TextField(max_length=10, null=False)
     avatar = CloudinaryField(null=True)
 
     def __str__(self):
