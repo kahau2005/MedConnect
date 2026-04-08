@@ -72,6 +72,7 @@ class Doctor(models.Model):
         User, on_delete=models.PROTECT, primary_key=True, related_name="doctor_profile"
     )
     specialty = models.ForeignKey(Specialty, on_delete=models.PROTECT)
+    backgroun = models.TextField(null=True)
 
     def __str__(self):
         return f"Bác sĩ {self.user.first_name} {self.user.last_name}"

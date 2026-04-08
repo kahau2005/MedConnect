@@ -17,8 +17,12 @@ from .serializers import ServiceSerializer, DetailServiceSerializer
 
 
 class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
-    queryset = Specialty.objects.all()
+    queryset = Specialty.objects.filter(active=True)
     serializer_class = SpecialtySerializer
+
+    @action(methods=["get"], detail=True)
+    def get_doctors():
+        pass
 
 
 class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
