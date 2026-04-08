@@ -1,4 +1,3 @@
-from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import models
 from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
@@ -49,7 +48,7 @@ class PatientProfile(BaseModel):
 
     user = models.OneToOneField(User, on_delete=models.PROTECT, primary_key=True)
     gender = models.CharField(max_length=10, choices=Gender.choices)
-    dob = models.DateTimeField(null=False)
+    dob = models.DateField(null=False)
     weight = models.FloatField(null=False)
     height = models.IntegerField(null=False)
     allergies = models.TextField(null=True)

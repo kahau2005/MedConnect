@@ -9,6 +9,7 @@ from .models import (
     Service,
     Doctor,
 )
+from rest_framework.fields import HiddenField, CurrentUserDefault
 
 
 class SpecialtySerializer(ModelSerializer):
@@ -17,7 +18,25 @@ class SpecialtySerializer(ModelSerializer):
         fields = "__all__"
 
 
-class PatientSerializer(ModelSerializer):
+class PatientProfileSerializer(ModelSerializer):
+    user = HiddenField(default=CurrentUserDefault())
+
+    class Meta:
+        model = PatientProfile
+        fields = [
+            "user",
+            "gender",
+            "dob",
+            "weight",
+            "height",
+            "allergies",
+            "chronic_diseases",
+            "blood_type",
+            "address",
+        ]
+
+
+class DetailPatientProfileSerializer(ModelSerializer):
     class Meta:
         model = PatientProfile
         fields = "__all__"
