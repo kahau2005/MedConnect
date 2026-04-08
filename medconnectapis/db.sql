@@ -21,7 +21,7 @@ SET @@SESSION.SQL_LOG_BIN= 0;
 -- GTID state at the beginning of the backup 
 --
 
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '00546850-b2fe-11f0-8147-f26f4349a4ff:1-4900';
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '00546850-b2fe-11f0-8147-f26f4349a4ff:1-4905';
 
 --
 -- Table structure for table `auth_group`
@@ -211,6 +211,7 @@ CREATE TABLE `django_session` (
 
 LOCK TABLES `django_session` WRITE;
 /*!40000 ALTER TABLE `django_session` DISABLE KEYS */;
+INSERT INTO `django_session` VALUES ('n2fmh3t90la6oh01z6yudfcm56jeau3p','.eJxVjMsOwiAQAP9lz4aALLD06L3fQJZHpWpoUtqT8d9Nkx70OjOZNwTetxr2XtYwZxjAwuWXRU7P0g6RH9zui0hL29Y5iiMRp-1iXHJ53c72b1C5VxhAT0qiLWyQiA1qmqQnTIjWecwxeUPkXS6slNOJpfY-KXKWrhoxM8LnC7tPNqc:1wAOjO:VNdxHzTTNoo70RYAmXKmU-wME8RIzeR0rkKJNEmX5p8','2026-04-22 08:57:50.470712');
 /*!40000 ALTER TABLE `django_session` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -675,7 +676,7 @@ CREATE TABLE `medconnectapp_user` (
   `phone` longtext NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -684,7 +685,7 @@ CREATE TABLE `medconnectapp_user` (
 
 LOCK TABLES `medconnectapp_user` WRITE;
 /*!40000 ALTER TABLE `medconnectapp_user` DISABLE KEYS */;
-INSERT INTO `medconnectapp_user` VALUES (1,'pbkdf2_sha256$260000$abc123def456$hash_demo_1',1,'admin','Admin','System','admin@medconnectapp.com',1,1,'2026-04-08 08:32:43.621057','2026-04-08 15:16:50.000000',1,'ADMIN',NULL,'0123456789'),(2,'pbkdf2_sha256$260000$abc123def456$hash_demo_2',0,'bsnguyen','Minh','Nguyễn','bs.nguyen@medconnectapp.com',1,1,'2026-04-08 08:32:43.621057','2026-04-08 15:16:50.000000',0,'DOCTOR',NULL,'0123456789'),(3,'pbkdf2_sha256$260000$abc123def456$hash_demo_3',0,'bstran','Lan','Trần','bs.tran@medconnectapp.com',1,1,'2026-04-08 08:32:43.621057','2026-04-08 15:16:50.000000',0,'DOCTOR',NULL,'0123456789'),(4,'pbkdf2_sha256$260000$abc123def456$hash_demo_4',0,'bnanh','Anh','Lê','anh.le@patient.com',1,1,'2026-04-08 08:32:43.621057','2026-04-08 15:16:50.000000',0,'PATIENT',NULL,'0123456789'),(5,'pbkdf2_sha256$260000$abc123def456$hash_demo_5',0,'bnbinh','Bình','Phạm','binh.pham@patient.com',1,1,'2026-04-08 08:32:43.621057','2026-04-08 15:16:50.000000',0,'PATIENT',NULL,'0123456789');
+INSERT INTO `medconnectapp_user` VALUES (2,'pbkdf2_sha256$260000$abc123def456$hash_demo_2',0,'bsnguyen','Minh','Nguyễn','bs.nguyen@medconnectapp.com',1,1,'2026-04-08 08:32:43.621057','2026-04-08 15:16:50.000000',0,'DOCTOR',NULL,'0123456789'),(3,'pbkdf2_sha256$260000$abc123def456$hash_demo_3',0,'bstran','Lan','Trần','bs.tran@medconnectapp.com',1,1,'2026-04-08 08:32:43.621057','2026-04-08 15:16:50.000000',0,'DOCTOR',NULL,'0123456789'),(4,'pbkdf2_sha256$260000$abc123def456$hash_demo_4',0,'bnanh','Anh','Lê','anh.le@patient.com',1,1,'2026-04-08 08:32:43.621057','2026-04-08 15:16:50.000000',0,'PATIENT',NULL,'0123456789'),(5,'pbkdf2_sha256$260000$abc123def456$hash_demo_5',0,'bnbinh','Bình','Phạm','binh.pham@patient.com',1,1,'2026-04-08 08:32:43.621057','2026-04-08 15:16:50.000000',0,'PATIENT',NULL,'0123456789'),(6,'pbkdf2_sha256$1200000$1norTGlNCkRaLbNAPXvAAL$Dj0rk9RmSeK1iEsHQrUsD/tVAg6+fqaK4XZ0xYcQ//4=',1,'admin','','','',1,1,'2026-04-08 08:57:38.614523','2026-04-08 08:57:38.614547',1,'PATIENT',NULL,'');
 /*!40000 ALTER TABLE `medconnectapp_user` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -813,7 +814,7 @@ CREATE TABLE `oauth2_provider_application` (
   KEY `oauth2_provider_appl_user_id_79829054_fk_medconnec` (`user_id`),
   KEY `oauth2_provider_application_client_secret_53133678` (`client_secret`),
   CONSTRAINT `oauth2_provider_appl_user_id_79829054_fk_medconnec` FOREIGN KEY (`user_id`) REFERENCES `medconnectapp_user` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -822,6 +823,7 @@ CREATE TABLE `oauth2_provider_application` (
 
 LOCK TABLES `oauth2_provider_application` WRITE;
 /*!40000 ALTER TABLE `oauth2_provider_application` DISABLE KEYS */;
+INSERT INTO `oauth2_provider_application` VALUES (1,'yJxTgE0Wxt2S93EMH6ehU1fEdyZV9y1d35RpLQij','','confidential','password','pbkdf2_sha256$1200000$ZVUQAkkIRblu5CfzlR40LK$W5LYbByZiXsFPXv1UOh/RFKkqRkyBvDOCkK64hly+GE=','MedConnectApp',6,0,'2026-04-08 09:07:28.252868','2026-04-08 09:07:28.252901','','',1,'');
 /*!40000 ALTER TABLE `oauth2_provider_application` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -981,4 +983,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-08 15:36:59
+-- Dump completed on 2026-04-08 16:08:17

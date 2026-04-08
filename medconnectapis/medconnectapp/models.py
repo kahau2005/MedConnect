@@ -156,16 +156,8 @@ class Medicine(BaseModel):
         return self.name
 
 
-class ServiceCategory(BaseModel):
-    name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.name
-
-
 class Service(BaseModel):
     name = models.CharField(max_length=100)
-    category = models.ForeignKey(ServiceCategory, on_delete=models.PROTECT)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField(blank=True, null=True)
 
