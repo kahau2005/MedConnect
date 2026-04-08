@@ -5,44 +5,49 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('medconnectapp', '0002_specialty_image'),
+        ("medconnectapp", "0002_specialty_image"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='user',
-            name='name',
+            model_name="user",
+            name="name",
         ),
         migrations.AlterField(
-            model_name='specialty',
-            name='image',
+            model_name="specialty",
+            name="image",
             field=cloudinary.models.CloudinaryField(max_length=255, null=True),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='avatar',
+            model_name="user",
+            name="avatar",
             field=cloudinary.models.CloudinaryField(max_length=255, null=True),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='first_name',
-            field=models.CharField(blank=True, max_length=150, verbose_name='first name'),
+            model_name="user",
+            name="first_name",
+            field=models.CharField(
+                blank=True, max_length=150, verbose_name="first name"
+            ),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='id',
-            field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+            model_name="user",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='last_name',
-            field=models.CharField(blank=True, max_length=150, verbose_name='last name'),
+            model_name="user",
+            name="last_name",
+            field=models.CharField(
+                blank=True, max_length=150, verbose_name="last name"
+            ),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='password',
-            field=models.CharField(max_length=128, verbose_name='password'),
+            model_name="user",
+            name="password",
+            field=models.CharField(max_length=128, verbose_name="password"),
         ),
     ]

@@ -9,175 +9,357 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('auth', '0012_alter_user_first_name_max_length'),
+        ("auth", "0012_alter_user_first_name_max_length"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='DiseaseCategory',
+            name="DiseaseCategory",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100)),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=100)),
             ],
         ),
         migrations.CreateModel(
-            name='MedicineCategory',
+            name="MedicineCategory",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100)),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=100)),
             ],
         ),
         migrations.CreateModel(
-            name='Service',
+            name="Service",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100)),
-                ('price', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('active', models.BooleanField(default=True)),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=100)),
+                ("price", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("description", models.TextField(blank=True, null=True)),
+                ("active", models.BooleanField(default=True)),
             ],
         ),
         migrations.CreateModel(
-            name='ServiceCategory',
+            name="ServiceCategory",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100)),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=100)),
             ],
         ),
         migrations.CreateModel(
-            name='Specialty',
+            name="Specialty",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100)),
-                ('description', models.TextField(blank=True, null=True)),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=100)),
+                ("description", models.TextField(blank=True, null=True)),
             ],
         ),
         migrations.CreateModel(
-            name='User',
+            name="User",
             fields=[
-                ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
-                ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
-                ('username', models.CharField(error_messages={'unique': 'A user with that username already exists.'}, help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.', max_length=150, unique=True, validators=[django.contrib.auth.validators.UnicodeUsernameValidator()], verbose_name='username')),
-                ('email', models.EmailField(blank=True, max_length=254, verbose_name='email address')),
-                ('is_staff', models.BooleanField(default=False, help_text='Designates whether the user can log into this admin site.', verbose_name='staff status')),
-                ('is_active', models.BooleanField(default=True, help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.', verbose_name='active')),
-                ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100)),
-                ('password', models.CharField(max_length=100)),
-                ('first_name', models.CharField(max_length=100)),
-                ('last_name', models.CharField(max_length=100)),
-                ('role', models.CharField(choices=[('DOC', 'Doctor'), ('PAT', 'Patient'), ('ADMIN', 'Admin')], default='PAT', max_length=10)),
-                ('active', models.BooleanField(default=True)),
-                ('avatar', models.URLField(blank=True, null=True)),
-                ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
-                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
+                (
+                    "last_login",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="last login"
+                    ),
+                ),
+                (
+                    "is_superuser",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates that this user has all permissions without explicitly assigning them.",
+                        verbose_name="superuser status",
+                    ),
+                ),
+                (
+                    "username",
+                    models.CharField(
+                        error_messages={
+                            "unique": "A user with that username already exists."
+                        },
+                        help_text="Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.",
+                        max_length=150,
+                        unique=True,
+                        validators=[
+                            django.contrib.auth.validators.UnicodeUsernameValidator()
+                        ],
+                        verbose_name="username",
+                    ),
+                ),
+                (
+                    "email",
+                    models.EmailField(
+                        blank=True, max_length=254, verbose_name="email address"
+                    ),
+                ),
+                (
+                    "is_staff",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates whether the user can log into this admin site.",
+                        verbose_name="staff status",
+                    ),
+                ),
+                (
+                    "is_active",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Designates whether this user should be treated as active. Unselect this instead of deleting accounts.",
+                        verbose_name="active",
+                    ),
+                ),
+                (
+                    "date_joined",
+                    models.DateTimeField(
+                        default=django.utils.timezone.now, verbose_name="date joined"
+                    ),
+                ),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=100)),
+                ("password", models.CharField(max_length=100)),
+                ("first_name", models.CharField(max_length=100)),
+                ("last_name", models.CharField(max_length=100)),
+                (
+                    "role",
+                    models.CharField(
+                        choices=[
+                            ("DOC", "Doctor"),
+                            ("PAT", "Patient"),
+                            ("ADMIN", "Admin"),
+                        ],
+                        default="PAT",
+                        max_length=10,
+                    ),
+                ),
+                ("active", models.BooleanField(default=True)),
+                ("avatar", models.URLField(blank=True, null=True)),
+                (
+                    "groups",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="The groups this user belongs to. A user will get all permissions granted to each of their groups.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.group",
+                        verbose_name="groups",
+                    ),
+                ),
+                (
+                    "user_permissions",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="Specific permissions for this user.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.permission",
+                        verbose_name="user permissions",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'user',
-                'verbose_name_plural': 'users',
-                'abstract': False,
+                "verbose_name": "user",
+                "verbose_name_plural": "users",
+                "abstract": False,
             },
             managers=[
-                ('objects', django.contrib.auth.models.UserManager()),
+                ("objects", django.contrib.auth.models.UserManager()),
             ],
         ),
         migrations.CreateModel(
-            name='Disease',
+            name="Disease",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100)),
-                ('disease_category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='medconnectapp.diseasecategory')),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=100)),
+                (
+                    "disease_category",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="medconnectapp.diseasecategory",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Doctor',
+            name="Doctor",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-                ('specialty', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='medconnectapp.specialty')),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "specialty",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="medconnectapp.specialty",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Appointment',
+            name="Appointment",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('status', models.CharField(choices=[('SCHEDULED', 'Scheduled'), ('COMPLETED', 'Completed'), ('CANCELED', 'Canceled')], default='SCHEDULED', max_length=20)),
-                ('start', models.DateTimeField()),
-                ('reason', models.TextField(blank=True, null=True)),
-                ('symptoms', models.TextField(blank=True, null=True)),
-                ('diagnosis', models.TextField(blank=True, null=True)),
-                ('note', models.TextField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-                ('doctor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='doctor_appointments', to='medconnectapp.doctor')),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("SCHEDULED", "Scheduled"),
+                            ("COMPLETED", "Completed"),
+                            ("CANCELED", "Canceled"),
+                        ],
+                        default="SCHEDULED",
+                        max_length=20,
+                    ),
+                ),
+                ("start", models.DateTimeField()),
+                ("reason", models.TextField(blank=True, null=True)),
+                ("symptoms", models.TextField(blank=True, null=True)),
+                ("diagnosis", models.TextField(blank=True, null=True)),
+                ("note", models.TextField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "doctor",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="doctor_appointments",
+                        to="medconnectapp.doctor",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Medicine',
+            name="Medicine",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=100)),
-                ('stock', models.IntegerField()),
-                ('unit_price', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('unit', models.CharField(max_length=50)),
-                ('expired', models.DateField()),
-                ('category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='medconnectapp.medicinecategory')),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=100)),
+                ("stock", models.IntegerField()),
+                ("unit_price", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("unit", models.CharField(max_length=50)),
+                ("expired", models.DateField()),
+                (
+                    "category",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="medconnectapp.medicinecategory",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Payment',
+            name="Payment",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('service_fee', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('appointment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='medconnectapp.appointment')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("service_fee", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "appointment",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="medconnectapp.appointment",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Prescription',
+            name="Prescription",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('status', models.CharField(choices=[('ACTIVE', 'Active'), ('INACTIVE', 'Inactive')], default='ACTIVE', max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('note', models.TextField(blank=True, null=True)),
-                ('appointment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='medconnectapp.appointment')),
-                ('doctor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='medconnectapp.doctor')),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[("ACTIVE", "Active"), ("INACTIVE", "Inactive")],
+                        default="ACTIVE",
+                        max_length=20,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("note", models.TextField(blank=True, null=True)),
+                (
+                    "appointment",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="medconnectapp.appointment",
+                    ),
+                ),
+                (
+                    "doctor",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="medconnectapp.doctor",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='PrescriptionDetail',
+            name="PrescriptionDetail",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('quantity', models.IntegerField()),
-                ('dose', models.CharField(max_length=100)),
-                ('frequency', models.CharField(max_length=100)),
-                ('duration_day', models.CharField(max_length=100)),
-                ('unit_price', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('instruction', models.TextField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('prescription', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='details', to='medconnectapp.prescription')),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("quantity", models.IntegerField()),
+                ("dose", models.CharField(max_length=100)),
+                ("frequency", models.CharField(max_length=100)),
+                ("duration_day", models.CharField(max_length=100)),
+                ("unit_price", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("instruction", models.TextField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "prescription",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="details",
+                        to="medconnectapp.prescription",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='AppointmentService',
+            name="AppointmentService",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('quantity', models.IntegerField()),
-                ('unit_price', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('appointment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='services', to='medconnectapp.appointment')),
-                ('service', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='medconnectapp.service')),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("quantity", models.IntegerField()),
+                ("unit_price", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "appointment",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="services",
+                        to="medconnectapp.appointment",
+                    ),
+                ),
+                (
+                    "service",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="medconnectapp.service",
+                    ),
+                ),
             ],
         ),
         migrations.AddField(
-            model_name='service',
-            name='category',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='medconnectapp.servicecategory'),
+            model_name="service",
+            name="category",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                to="medconnectapp.servicecategory",
+            ),
         ),
     ]
