@@ -10,6 +10,7 @@ from .models import (
     PatientProfile,
     DiseaseCategory,
     Disease,
+    Appointment,
 )
 from .serializers import (
     SpecialtySerializer,
@@ -22,11 +23,19 @@ from .serializers import (
     PatientProfileSerializer,
     DiseaseCategorySerializer,
     DiseaseSerializer,
+    AppointmentSerializer,
 )
 from rest_framework.decorators import action
 
 from .models import Service
 from .serializers import ServiceSerializer, DetailServiceSerializer
+
+
+class AppointmentViewSet(
+    viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView
+):
+    queryset = Appointment.objects.filter(active=True)
+    serializer_class = AppointmentSerializer
 
 
 class DiseaseCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -92,12 +101,12 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
             u = s.save()
         return Response(UserSerializer(u).data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["get"], url_path="current-user/patient-profile")
-    def get_patient_profile(self, request, pk):
+    @action(detail=False, methods=["get"], url_path="current-user/patient-profile")
+    def get_patient_profile(self, request):
         user = request.user
 
         try:
-            profile = PatientProfile.objects.filter(user=user)
+            profile = PatientProfile.objects.get(user=user)
             serializer = DetailPatientProfileSerializer(profile)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except PatientProfile.DoesNotExist:

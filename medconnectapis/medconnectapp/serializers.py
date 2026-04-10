@@ -8,8 +8,15 @@ from .models import (
     PatientProfile,
     DiseaseCategory,
     Disease,
+    Appointment,
 )
 from .models import Service
+
+
+class AppointmentSerializer(ModelSerializer):
+    class Meta:
+        model = Appointment
+        fields = "__all__"
 
 
 class DiseaseCategorySerializer(ModelSerializer):
