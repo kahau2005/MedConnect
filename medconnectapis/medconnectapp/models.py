@@ -135,6 +135,7 @@ class PrescriptionDetail(BaseModel):
     prescription = models.ForeignKey(
         Prescription, on_delete=models.PROTECT, related_name="details"
     )
+    medicine = models.ForeignKey("Medicine", on_delete=models.PROTECT, null=True)
     quantity = models.IntegerField()
     dose = models.IntegerField(null=False, default=1)
     frequency = models.IntegerField(null=False, default=1)

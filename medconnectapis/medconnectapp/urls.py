@@ -3,17 +3,18 @@ from django.urls import path, include
 from . import views
 
 router = routers.DefaultRouter()
-router.register("appointments", views.AppointmentViewSet, "appointments")
+router.register("prescriptions", views.PrescriptionViewSet, "prescription")
+router.register("appointments", views.AppointmentViewSet, "appointment")
 router.register(
     "disease-categories", views.DiseaseCategoryViewSet, "disease-categories"
 )
-router.register("diseases", views.DiseaseViewSet, "diseases")
+router.register("diseases", views.DiseaseViewSet, "disease")
 router.register("specialties", views.SpecialtyViewSet, "specialty")
 router.register("users", views.UserViewSet, "user")
-router.register("services", views.ServiceViewSet, "services")
-router.register("medicines", views.MedicineViewSet, "medicines")
+router.register("services", views.ServiceViewSet, "service")
+router.register("medicines", views.MedicineViewSet, "medicine")
 router.register(
-    "medicine-categories", views.MedicineCategoryViewSet, "medicine-categories"
+    "medicine-categories", views.MedicineCategoryViewSet, "medicine-category"
 )
 router.register("patient-profile", views.PatientProfileViewSet, "patient-profile")
 urlpatterns = [

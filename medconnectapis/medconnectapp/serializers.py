@@ -11,12 +11,51 @@ from .models import (
     Appointment,
     Service,
     Doctor,
+    Prescription,
+    PrescriptionDetail,
 )
 from rest_framework.fields import HiddenField, CurrentUserDefault
 
 
+class PrescriptionSerializer(ModelSerializer):
+    class Meta:
+
+        model = Prescription
+        fields = "__all__"
+        read_only_fields = [
+            "id",
+            "appointment",
+            "active",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class PrescriptionDetailSerializer(ModelSerializer):
+    class Meta:
+        model = PrescriptionDetail
+        fields = "__all__"
+        extra_kwargs = {
+            "prescription": {"read_only": True},
+        }
+
+
 class AppointmentSerializer(ModelSerializer):
     class Meta:
+        extra_kwargs = {"user": {"read_only": True}}
+        model = Appointment
+        fields = ["id", "user", "doctor", "status", "start"]
+
+    def validate_status(self, value):
+        if self.instance:
+            if value != Appointment.AppointmentStatus.CANCELED.value:
+                raise serializers.ValidationError("Invalid status")
+        return value
+
+
+class DetailAppointmentSerializer(ModelSerializer):
+    class Meta:
+        extra_kwargs = {"user": {"read_only": True}}
         model = Appointment
         fields = "__all__"
 
