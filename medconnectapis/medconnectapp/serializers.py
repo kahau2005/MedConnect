@@ -6,10 +6,24 @@ from .models import (
     Medicine,
     MedicineCategory,
     PatientProfile,
+    DiseaseCategory,
+    Disease,
     Service,
     Doctor,
 )
 from rest_framework.fields import HiddenField, CurrentUserDefault
+
+
+class DiseaseCategorySerializer(ModelSerializer):
+    class Meta:
+        model = DiseaseCategory
+        fields = "__all__"
+
+
+class DiseaseSerializer(ModelSerializer):
+    class Meta:
+        model = Disease
+        fields = "__all__"
 
 
 class SpecialtySerializer(ModelSerializer):

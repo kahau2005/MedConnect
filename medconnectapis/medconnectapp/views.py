@@ -2,7 +2,15 @@ from rest_framework import generics, parsers, permissions, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Specialty, User, Medicine, MedicineCategory, PatientProfile
+from .models import (
+    Specialty,
+    User,
+    Medicine,
+    MedicineCategory,
+    PatientProfile,
+    DiseaseCategory,
+    Disease,
+)
 from .serializers import (
     SpecialtySerializer,
     UserSerializer,
@@ -12,11 +20,23 @@ from .serializers import (
     DetailMedicineSerializer,
     DetailPatientProfileSerializer,
     PatientProfileSerializer,
+    DiseaseCategorySerializer,
+    DiseaseSerializer,
 )
 from rest_framework.decorators import action
 
 from .models import Service
 from .serializers import ServiceSerializer, DetailServiceSerializer
+
+
+class DiseaseCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = DiseaseCategory.objects.filter(active=True)
+    serializer_class = DiseaseCategorySerializer
+
+
+class DiseaseViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Disease.objects.filter(active=True)
+    serializer_class = DiseaseSerializer
 
 
 class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -29,7 +49,7 @@ class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
 
 
 class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
-    queryset = Service.objects.all().filter(active=True)
+    queryset = Service.objects.filter(active=True)
 
     def get_serializer_class(self):
         if self.action == "retrieve":
