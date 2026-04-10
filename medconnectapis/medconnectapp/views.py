@@ -1,8 +1,11 @@
+import datetime
+
+from django.utils import timezone
 from rest_framework import generics, parsers, permissions, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from . import serializers
+from . import serializers, perms
 from .models import (
     Specialty,
     User,
@@ -81,7 +84,7 @@ class PatientProfileViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
-    queryset = User.objects.filter(active=True)
+    queryset = User.objects.filter(is_active=True)
     serializer_class = UserSerializer
     parser_classes = [parsers.MultiPartParser]
 
@@ -112,3 +115,22 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 {"detail": "Người dùng chưa có hồ sơ bệnh nhân."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+
+class DoctorViewSet(viewsets.ViewSet):
+    @action(
+        methods=["get"],
+        url_path="current-user/schedules",
+        detail=False,
+        permission_classes=[perms.IsDoctor],
+    )
+    def get_schedules(self, request):
+        doctor = request.user.doctor_profile
+        schedules = doctor.doctorschedule_set.filter(
+            start_time__date=timezone.localdate()
+        )
+        return Response(serializers.DoctorScheduleSerializer(schedules, many=True).data)
+
+
+class ReportViewSet(viewsets.ViewSet):
+    pass

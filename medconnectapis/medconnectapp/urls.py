@@ -15,6 +15,7 @@ router.register(
     "medicine-categories", views.MedicineCategoryViewSet, "medicine-categories"
 )
 router.register("patient-profile", views.PatientProfileViewSet, "patient-profile")
+router.register("doctors", views.DoctorViewSet, "doctor")
 urlpatterns = [
     path("", include(router.urls)),
 ]
