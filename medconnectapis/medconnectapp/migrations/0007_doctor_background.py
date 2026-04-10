@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('medconnectapp', '0006_rename_doctorweekschedule_doctorweeklyschedule'),
+        ("medconnectapp", "0006_rename_doctorweekschedule_doctorweeklyschedule"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='doctor',
-            name='backgroun',
+            model_name="doctor",
+            name="background",
             field=models.TextField(null=True),
         ),
     ]

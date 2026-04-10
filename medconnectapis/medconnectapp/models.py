@@ -71,7 +71,7 @@ class Doctor(models.Model):
         User, on_delete=models.PROTECT, primary_key=True, related_name="doctor_profile"
     )
     specialty = models.ForeignKey(Specialty, on_delete=models.PROTECT)
-    backgroun = models.TextField(null=True)
+    background = models.TextField(null=True)
 
     def __str__(self):
         return f"Bác sĩ {self.user.first_name} {self.user.last_name}"
@@ -79,9 +79,8 @@ class Doctor(models.Model):
 
 class DoctorWeeklySchedule(BaseModel):
     doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT)
-    day_of_week = models.IntegerField(null=False, default=5)
-    start_time = models.TimeField(null=False)
-    end_time = models.TimeField(null=False)
+    start_time = models.DateTimeField(null=False)
+    duration = models.IntegerField(default=1)
 
 
 class Disease(BaseModel):
