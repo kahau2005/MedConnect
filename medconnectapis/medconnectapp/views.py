@@ -1,42 +1,43 @@
-import datetime
-
+from django.db.models import Case, Count, Value, When
+from django.db.models.fields import CharField
+from django.db.models.functions import ExtractYear, Now
 from django.utils import timezone
 from rest_framework import generics, parsers, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from . import serializers, perms
+from . import perms, serializers
 from .models import (
-    Specialty,
-    User,
+    Appointment,
+    Disease,
+    DiseaseCategory,
     Medicine,
     MedicineCategory,
     PatientProfile,
-    DiseaseCategory,
-    Disease,
-    Appointment,
     Prescription,
+    Service,
+    Specialty,
+    User,
 )
 from .serializers import (
-    SpecialtySerializer,
-    UserSerializer,
-    SimpleUserSerializer,
-    MedicineSerializer,
-    MedicineCategorySerializer,
-    DetailMedicineSerializer,
-    DetailPatientProfileSerializer,
-    PatientProfileSerializer,
-    DiseaseCategorySerializer,
-    DiseaseSerializer,
     AppointmentSerializer,
     DetailAppointmentSerializer,
-    PrescriptionSerializer,
+    DetailMedicineSerializer,
+    DetailPatientProfileSerializer,
+    DetailServiceSerializer,
+    DiseaseCategorySerializer,
+    DiseaseSerializer,
+    MedicineCategorySerializer,
+    MedicineSerializer,
+    PatientProfileSerializer,
     PrescriptionDetailSerializer,
+    PrescriptionSerializer,
+    ServiceSerializer,
+    SimpleUserSerializer,
+    SpecialtySerializer,
+    UserSerializer,
 )
-from rest_framework.decorators import action
-
-from .models import Service
-from .serializers import ServiceSerializer, DetailServiceSerializer
 
 
 class PrescriptionViewSet(viewsets.ViewSet):
@@ -247,4 +248,60 @@ class DoctorViewSet(viewsets.ViewSet):
 
 
 class ReportViewSet(viewsets.ViewSet):
-    pass
+    @action(
+        methods=["get"],
+        url_path="patients",
+        detail=False,
+        permission_classes=[perms.IsAdmin],
+    )
+    def report_patients(self, request):
+        age_expression = ExtractYear(Now()) - ExtractYear("dob")
+        age_groups = (
+            PatientProfile.objects.filter(active=True)
+            .annotate(age=age_expression)
+            .annotate(
+                age_group=(
+                    Case(
+                        When(age__lt=18, then=Value("Trẻ em (< 18)")),
+                        When(
+                            age__gte=18, age__lte=30, then=Value("Thanh niên (18 - 30)")
+                        ),
+                        When(
+                            age__gt=30, age__lte=60, then=Value("Trung niên (30 - 60)")
+                        ),
+                        When(age__gt=60, then=Value("Cao tuổi (> 60)")),
+                        output_field=CharField(),
+                    )
+                )
+            )
+            .values("age_group")
+            .annotate(total=Count("user_id"))
+            .order_by("age_group")
+        )
+        gender_distribution = (
+            PatientProfile.objects.filter(active=True)
+            .values("gender")
+            .annotate(total=Count("user_id"))
+            .order_by("gender")
+        )
+        specialty_distribution = (
+            Appointment.objects.filter(active=True)
+            .values("doctor__specialty_id", "doctor__specialty__name")
+            .annotate(total=Count("user_id", distinct=True))
+            .order_by("doctor__specialty__name")
+        )
+
+        res = {
+            "by_age_groups": list(age_groups),
+            "by_genders": list(gender_distribution),
+            "by_specialties": [
+                {
+                    "specialty_id": row["doctor__specialty_id"],
+                    "specialty_name": row["doctor__specialty__name"],
+                    "total": row["total"],
+                }
+                for row in specialty_distribution
+            ],
+        }
+        serializer = serializers.ReportPatientSerializer(res)
+        return Response(serializer.data, status=status.HTTP_200_OK)
