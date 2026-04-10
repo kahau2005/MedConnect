@@ -12,16 +12,13 @@ class BaseModel(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class DiseaseCategory(BaseModel):
-    name = models.CharField(max_length=100)
-
-
 class User(AbstractUser, BaseModel):
     class UserRole(models.TextChoices):
         DOCTOR = "DOCTOR", "Bác sĩ"
         PATIENT = "PATIENT", "Bệnh nhân"
         ADMIN = "ADMIN", "Admin"
 
+    active = None
     date_joined = None
     last_login = None
     is_staff = models.BooleanField(default=False, editable=False)
@@ -32,7 +29,7 @@ class User(AbstractUser, BaseModel):
     avatar = CloudinaryField(null=True)
 
     def __str__(self):
-        return self.first_name + self.last_name
+        return f"{self.first_name} {self.last_name}"
 
 
 class PatientProfile(BaseModel):
@@ -77,10 +74,14 @@ class Doctor(models.Model):
         return f"Bác sĩ {self.user.first_name} {self.user.last_name}"
 
 
-class DoctorWeeklySchedule(BaseModel):
+class DoctorSchedule(BaseModel):
     doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT)
     start_time = models.DateTimeField(null=False)
-    duration = models.IntegerField(default=1)
+    hours = models.IntegerField(default=1)
+
+
+class DiseaseCategory(BaseModel):
+    name = models.CharField(max_length=100)
 
 
 class Disease(BaseModel):
