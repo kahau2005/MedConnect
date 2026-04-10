@@ -14,6 +14,8 @@ from .models import (
     PatientProfile,
     DiseaseCategory,
     Disease,
+    Appointment,
+    Prescription,
 )
 from .serializers import (
     SpecialtySerializer,
@@ -26,11 +28,123 @@ from .serializers import (
     PatientProfileSerializer,
     DiseaseCategorySerializer,
     DiseaseSerializer,
+    AppointmentSerializer,
+    DetailAppointmentSerializer,
+    PrescriptionSerializer,
+    PrescriptionDetailSerializer,
 )
 from rest_framework.decorators import action
 
 from .models import Service
 from .serializers import ServiceSerializer, DetailServiceSerializer
+
+
+class PrescriptionViewSet(viewsets.ViewSet):
+    queryset = Prescription.objects.all()
+
+    def get_serializer_class(self):
+        if self.action in ["create_details"]:
+            return PrescriptionDetailSerializer
+        return PrescriptionSerializer
+
+    def partial_update(self, request, pk):
+        self.permission_classes = [perms.AppointmentDoctor]
+        prescription = self.queryset.get(pk=pk)
+        serializers = PrescriptionSerializer(
+            prescription, data=request.data, partial=True
+        )
+        serializers.is_valid(raise_exception=True)
+        serializers.save()
+        return Response(serializers.data, status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="details",
+        permission_classes=[perms.AppointmentDoctor],
+    )
+    def create_detail(self, request, pk):
+        prescription = self.queryset.get(pk=pk)
+
+        serializers = PrescriptionDetailSerializer(data=request.data, many=True)
+        serializers.is_valid(raise_exception=True)
+        serializers.save(prescription=prescription)
+        return Response(serializers.data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="details/(?P<detail_pk>[^/.]+)",
+        permission_classes=[perms.AppointmentDoctor],
+    )
+    def update_partial_detail(self, request, pk, detail_pk):
+        prescription = self.queryset.get(pk=pk)
+        if not prescription:
+            return Response(
+                {"msg": "Prescription not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        detail = prescription.details.filter(pk=detail_pk).first()
+        if not detail:
+            return Response(
+                {"msg": "Prescription detail not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = PrescriptionDetailSerializer(
+            detail, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AppointmentViewSet(
+    viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView
+):
+    queryset = Appointment.objects.filter(active=True)
+
+    def get_serializer_class(self):
+        if self.action in ["retrieve"]:
+            return DetailAppointmentSerializer
+
+        if self.action in ["get_prescription"]:
+            return PrescriptionSerializer
+
+        return AppointmentSerializer
+
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, pk):
+        appointment = self.get_object()
+        serializer = self.get_serializer(appointment, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+        detail=True,
+        methods=["get", "post"],
+        url_path="prescriptions",
+        permission_classes=[IsAuthenticated],
+    )
+    def get_prescription(self, request, pk):
+        appointment = self.get_object()
+
+        if self.request.method == "GET":
+            prescription = appointment.prescription_set.all()
+            return Response(
+                serializers.PrescriptionSerializer(prescription, many=True).data,
+                status=status.HTTP_200_OK,
+            )
+
+        data = request.data
+        s = self.get_serializer(data=data)
+        s.is_valid(raise_exception=True)
+        s.save(appointment=appointment)
+        return Response(s.data, status=status.HTTP_201_CREATED)
 
 
 class DiseaseCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -102,12 +216,12 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
             u = s.save()
         return Response(UserSerializer(u).data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["get"], url_path="current-user/patient-profile")
-    def get_patient_profile(self, request, pk):
+    @action(detail=False, methods=["get"], url_path="current-user/patient-profile")
+    def get_patient_profile(self, request):
         user = request.user
 
         try:
-            profile = PatientProfile.objects.filter(user=user)
+            profile = PatientProfile.objects.get(user=user)
             serializer = DetailPatientProfileSerializer(profile)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except PatientProfile.DoesNotExist:

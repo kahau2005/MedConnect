@@ -9,3 +9,12 @@ class IsDoctor(permissions.IsAuthenticated):
             super().has_permission(request, view)
             and request.user.role == User.UserRole.DOCTOR
         )
+
+
+class AppointmentDoctor(permissions.IsAuthenticated):
+    def has_object_permission(self, request, view, appointment):
+        return (
+            super().has_permission(request, view)
+            and request.user.role == User.UserRole.DOCTOR
+            and request.user == appointment.doctor
+        )
