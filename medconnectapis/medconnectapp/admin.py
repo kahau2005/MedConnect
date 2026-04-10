@@ -3,7 +3,7 @@ from django import forms
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 
-from medconnectapp.models import PatientProfile, Specialty, User
+from medconnectapp.models import Doctor, PatientProfile, Specialty, User
 
 
 class MyAdminSite(admin.AdminSite):
@@ -36,4 +36,5 @@ admin_site = MyAdminSite()
 
 admin_site.register(Specialty, MySpecialtyAdmin)
 admin_site.register(User, admin.ModelAdmin)
+admin_site.register(Doctor, admin.ModelAdmin)
 admin_site.register(PatientProfile, admin.ModelAdmin)

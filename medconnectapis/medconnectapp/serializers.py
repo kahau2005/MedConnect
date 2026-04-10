@@ -1,4 +1,4 @@
-from rest_framework.fields import HiddenField, CurrentUserDefault
+from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from .models import (
     Specialty,
@@ -8,8 +8,10 @@ from .models import (
     PatientProfile,
     DiseaseCategory,
     Disease,
+    Service,
+    Doctor,
 )
-from .models import Service
+from rest_framework.fields import HiddenField, CurrentUserDefault
 
 
 class DiseaseCategorySerializer(ModelSerializer):
@@ -107,3 +109,14 @@ class MedicineCategorySerializer(ModelSerializer):
     class Meta:
         model = MedicineCategory
         fields = "__all__"
+
+
+class DoctorSerializer(ModelSerializer):
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    avatar = serializers.ImageField(source="user.avatar", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+
+    class Meta:
+        model = Doctor
+        fields = ["user_id", "first_name", "last_name", "email", "avatar"]
