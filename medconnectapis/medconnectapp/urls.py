@@ -3,6 +3,10 @@ from django.urls import path, include
 from . import views
 
 router = routers.DefaultRouter()
+router.register(
+    "disease-categories", views.DiseaseCategoryViewSet, "disease-categories"
+)
+router.register("diseases", views.DiseaseViewSet, "diseases")
 router.register("specialties", views.SpecialtyViewSet, "specialty")
 router.register("users", views.UserViewSet, "user")
 router.register("services", views.ServiceViewSet, "services")
