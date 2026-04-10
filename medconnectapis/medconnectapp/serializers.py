@@ -10,6 +10,7 @@ from .models import (
     Disease,
     Service,
     Doctor,
+    DoctorSchedule,
 )
 from rest_framework.fields import HiddenField, CurrentUserDefault
 
@@ -120,3 +121,9 @@ class DoctorSerializer(ModelSerializer):
     class Meta:
         model = Doctor
         fields = ["user_id", "first_name", "last_name", "email", "avatar"]
+
+
+class DoctorScheduleSerializer(ModelSerializer):
+    class Meta:
+        model = DoctorSchedule
+        fields = "__all__"
