@@ -2,6 +2,7 @@ from rest_framework import generics, parsers, permissions, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from . import serializers
 from .models import (
     Specialty,
     User,
@@ -43,9 +44,11 @@ class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Specialty.objects.filter(active=True)
     serializer_class = SpecialtySerializer
 
-    @action(methods=["get"], detail=True)
-    def get_doctors():
-        pass
+    @action(methods=["get"], url_path="doctors", detail=True)
+    def get_doctors(self, request, pk=None):
+        specialty = self.get_object()
+        doctors = specialty.doctor_set.all()
+        return Response(serializers.DoctorSerializer(doctors, many=True).data)
 
 
 class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
