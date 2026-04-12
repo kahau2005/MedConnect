@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from . import perms, serializers
+from . import perms, serializers, utils
 from .models import (
     Appointment,
     Disease,
@@ -167,6 +167,29 @@ class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
         specialty = self.get_object()
         doctors = specialty.doctor_set.all()
         return Response(serializers.DoctorSerializer(doctors, many=True).data)
+
+    @action(
+        methods=["post"],
+        url_path="recommend",
+        detail=False,
+        permission_classes=[IsAuthenticated],
+    )
+    def recommend(self, request):
+        symptoms = request.data.get("symptoms")
+        if not symptoms:
+            return Response(
+                {"err_msg": "Vui lòng cung cấp triệu chứng"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        specialty = utils.get_recommend_specialty(symptoms=symptoms)
+        if specialty:
+            return Response(
+                SpecialtySerializer(specialty).data, status=status.HTTP_200_OK
+            )
+        return Response(
+            {"err_msg": "Không tìm thấy chuyên khoa phù hợp!"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
 
 class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):

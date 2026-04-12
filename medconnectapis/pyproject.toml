@@ -18,6 +18,7 @@ dependencies = [
     "djangorestframework==3.16.1",
     "djangorestframework-stubs==3.16.8",
     "drf-yasg==1.21.15",
+    "google-genai>=1.72.0",
     "idna==3.11",
     "inflection==0.5.1",
     "jwcrypto==1.5.6",
