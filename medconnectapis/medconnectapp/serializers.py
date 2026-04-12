@@ -20,7 +20,6 @@ from rest_framework.fields import HiddenField, CurrentUserDefault
 
 class PrescriptionSerializer(ModelSerializer):
     class Meta:
-
         model = Prescription
         fields = "__all__"
         read_only_fields = [
@@ -173,3 +172,25 @@ class DoctorScheduleSerializer(ModelSerializer):
     class Meta:
         model = DoctorSchedule
         fields = "__all__"
+
+
+class PatientAgeGroupSerializer(serializers.Serializer):
+    age_group = serializers.CharField()
+    total = serializers.IntegerField()
+
+
+class PatientGenderSerializer(serializers.Serializer):
+    gender = serializers.CharField()
+    total = serializers.IntegerField()
+
+
+class PatientSpecialtySerializer(serializers.Serializer):
+    specialty_id = serializers.IntegerField()
+    specialty_name = serializers.CharField()
+    total = serializers.IntegerField()
+
+
+class ReportPatientSerializer(serializers.Serializer):
+    by_age_groups = PatientAgeGroupSerializer(many=True)
+    by_genders = PatientGenderSerializer(many=True)
+    by_specialties = PatientSpecialtySerializer(many=True)
