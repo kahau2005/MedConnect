@@ -1,0 +1,95 @@
+[project]
+name = "medconnect"
+version = "1.0"
+dependencies = [
+    "asgiref==3.11.1",
+    "certifi==2026.2.25",
+    "cffi==2.0.0",
+    "charset-normalizer==3.4.6",
+    "cloudinary==1.44.1",
+    "cryptography==46.0.5",
+    "django==6.0.3",
+    "django-ckeditor==6.7.3",
+    "django-filter==25.2",
+    "django-js-asset==3.1.2",
+    "django-oauth-toolkit==3.2.0",
+    "django-stubs==6.0.0",
+    "django-stubs-ext==6.0.0",
+    "djangorestframework==3.16.1",
+    "djangorestframework-stubs==3.16.8",
+    "drf-yasg==1.21.15",
+    "google-genai>=1.72.0",
+    "idna==3.11",
+    "inflection==0.5.1",
+    "jwcrypto==1.5.6",
+    "markdown==3.10.2",
+    "mysqlclient==2.2.8",
+    "oauthlib==3.3.1",
+    "packaging==26.0",
+    "pycparser==3.0",
+    "pymysql==1.1.2",
+    "python-dotenv==1.2.2",
+    "pytz==2026.1.post1",
+    "pyyaml==6.0.3",
+    "requests==2.33.1",
+    "ruff==0.15.8",
+    "six==1.17.0",
+    "sqlparse==0.5.5",
+    "types-pyyaml==6.0.12.20250915",
+    "typing-extensions==4.15.0",
+    "tzdata==2025.3",
+    "uritemplate==4.2.0",
+    "urllib3==2.6.3",
+]
+
+[tool.ruff]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+line-length = 88
+indent-width = 4
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []
+
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+docstring-code-format = false
+docstring-code-line-length = "dynamic"
