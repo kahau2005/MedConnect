@@ -107,6 +107,7 @@ class PrescriptionViewSet(viewsets.ViewSet):
 
 class AppointmentViewSet(viewsets.GenericViewSet):
     queryset = Appointment.objects.filter(active=True)
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action in ["list_prescriptions"]:
@@ -123,9 +124,7 @@ class AppointmentViewSet(viewsets.GenericViewSet):
                 return [perms.AppointmentDoctor()]
         elif self.action in ["partial_update"]:
             return [perms.AppointmentOwner()]
-        elif self.action in ["payment_return_view"]:
-            return [AllowAny()]
-        return [IsAuthenticated()]
+        return super().get_permissions()
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -199,7 +198,12 @@ class AppointmentViewSet(viewsets.GenericViewSet):
 
         return render(request, "payment_form.html")
 
-    @action(detail=False, methods=["get"], url_path="payment/vnpay_return")
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="payment/vnpay_return",
+        permission_classes=[AllowAny],
+    )
     def payment_return_view(self, request):
         inputData = request.GET
         if inputData:
