@@ -42,14 +42,24 @@ class PrescriptionDetailSerializer(ModelSerializer):
 
 class AppointmentSerializer(ModelSerializer):
     class Meta:
-        extra_kwargs = {"user": {"read_only": True}}
+        extra_kwargs = {
+            "user": {"read_only": True},
+            "doctor": {"read_only": True},
+            "start": {"read_only": True},
+        }
         model = Appointment
         fields = ["id", "user", "doctor", "status", "start"]
 
     def validate_status(self, value):
         if self.instance:
+            if self.instance.value != Appointment.AppointmentStatus.SCHEDULED:
+                raise serializers.ValidationError(
+                    "Chỉ có thể cập nhật lịch khám ở trạng thái SCHEDULED"
+                )
             if value != Appointment.AppointmentStatus.CANCELED.value:
-                raise serializers.ValidationError("Invalid status")
+                raise serializers.ValidationError(
+                    "Chỉ được chuyển sang trạng thái CANCELED"
+                )
         return value
 
 

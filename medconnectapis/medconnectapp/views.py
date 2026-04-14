@@ -12,6 +12,7 @@ from .models import (
     Appointment,
     Disease,
     DiseaseCategory,
+    Doctor,
     Medicine,
     MedicineCategory,
     PatientProfile,
@@ -28,6 +29,7 @@ from .serializers import (
     DetailServiceSerializer,
     DiseaseCategorySerializer,
     DiseaseSerializer,
+    DoctorSerializer,
     MedicineCategorySerializer,
     MedicineSerializer,
     PatientProfileSerializer,
@@ -82,12 +84,12 @@ class PrescriptionViewSet(viewsets.ViewSet):
         prescription = self.queryset.get(pk=pk)
         if not prescription:
             return Response(
-                {"msg": "Prescription not found."}, status=status.HTTP_404_NOT_FOUND
+                {"msg": "Không tìm thấy đơn thuốc"}, status=status.HTTP_404_NOT_FOUND
             )
         detail = prescription.details.filter(pk=detail_pk).first()
         if not detail:
             return Response(
-                {"msg": "Prescription detail not found."},
+                {"msg": "Không tìm thấy chi tiết đơn thuốc"},
                 status=status.HTTP_404_NOT_FOUND,
             )
         serializer = PrescriptionDetailSerializer(
@@ -98,19 +100,23 @@ class PrescriptionViewSet(viewsets.ViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class AppointmentViewSet(
-    viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView
-):
+class AppointmentViewSet(viewsets.GenericViewSet):
     queryset = Appointment.objects.filter(active=True)
 
     def get_serializer_class(self):
-        if self.action in ["retrieve"]:
-            return DetailAppointmentSerializer
-
-        if self.action in ["get_prescription"]:
+        if self.action in ["list_prescriptions"]:
             return PrescriptionSerializer
-
         return AppointmentSerializer
+
+    def get_permissions(self):
+        if self.action in ["list_prescriptions"]:
+            if self.request.method == "GET":
+                return [perms.AppointmentOwnerOrDoctor()]
+            elif self.request.method == "POST":
+                return [perms.AppointmentDoctor()]
+        elif self.action in ["partial_update"]:
+            return [perms.AppointmentOwner()]
+        return [IsAuthenticated]
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -129,13 +135,13 @@ class AppointmentViewSet(
         detail=True,
         methods=["get", "post"],
         url_path="prescriptions",
-        permission_classes=[IsAuthenticated],
+        permission_classes=[perms.AppointmentOwnerOrDoctor],
     )
-    def get_prescription(self, request, pk):
+    def list_prescriptions(self, request, pk):
         appointment = self.get_object()
 
         if self.request.method == "GET":
-            prescription = appointment.prescription_set.all()
+            prescription = appointment.prescription_set.filter(active=True)
             return Response(
                 serializers.PrescriptionSerializer(prescription, many=True).data,
                 status=status.HTTP_200_OK,
@@ -151,11 +157,13 @@ class AppointmentViewSet(
 class DiseaseCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = DiseaseCategory.objects.filter(active=True)
     serializer_class = DiseaseCategorySerializer
+    permission_classes = [perms.IsDoctorOrAdmin]
 
 
 class DiseaseViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Disease.objects.filter(active=True)
     serializer_class = DiseaseSerializer
+    permission_classes = [perms.IsDoctorOrAdmin]
 
 
 class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -250,12 +258,43 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except PatientProfile.DoesNotExist:
             return Response(
-                {"detail": "Người dùng chưa có hồ sơ bệnh nhân."},
+                {"err_msg": "Người dùng chưa có hồ sơ bệnh nhân."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="current-user/appointments",
+        permission_classes=[IsAuthenticated],
+    )
+    def list_appointments(self, request):
+        appointments = Appointment.objects.filter(user=request.user, active=True)
+        return Response(AppointmentSerializer(appointments, many=True).data)
 
-class DoctorViewSet(viewsets.ViewSet):
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="current-user/appointments/(?P<appointment_pk>[^/.]+)",
+    )
+    def retrieve_appointment(self, request, appointment_pk):
+        appointment = request.user.appointment_set.filter(
+            pk=appointment_pk,
+            active=True,
+        ).first()
+
+        if not appointment:
+            return Response(
+                {"err_msg": "Không tìm thấy lịch khám"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(DetailAppointmentSerializer(appointment).data)
+
+
+class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
+    queryset = Doctor.objects.filter(user__is_active=True)
+    serializer_class = DoctorSerializer
+
     @action(
         methods=["get"],
         url_path="current-user/schedules",
@@ -268,6 +307,25 @@ class DoctorViewSet(viewsets.ViewSet):
             start_time__date=timezone.localdate()
         )
         return Response(serializers.DoctorScheduleSerializer(schedules, many=True).data)
+
+    @action(
+        methods=["get"],
+        url_path="current-user/appointments",
+        detail=False,
+        permission_classes=[perms.IsDoctor],
+    )
+    def get_appointments(self, request):
+        today = timezone.localdate()
+        doctor = request.user.doctor_profile
+        appointments = Appointment.objects.filter(
+            doctor=doctor,
+            start__date=today,
+            status__in=[
+                Appointment.AppointmentStatus.SCHEDULED,
+                Appointment.AppointmentStatus.COMPLETED,
+            ],
+        ).order_by("start")
+        return Response(serializers.AppointmentSerializer(appointments, many=True).data)
 
 
 class ReportViewSet(viewsets.ViewSet):
