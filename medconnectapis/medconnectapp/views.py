@@ -4,16 +4,14 @@ from datetime import datetime
 from django.db.models import Case, Count, Value, When
 from django.db.models.fields import CharField
 from django.db.models.functions import ExtractYear, Now
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.utils import timezone
 from rest_framework import generics, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-
-from . import serializers, perms, utils
+from . import perms, serializers, utils
 from .models import (
     Appointment,
     Disease,
@@ -29,6 +27,7 @@ from .models import (
 )
 from .serializers import (
     AppointmentSerializer,
+    AppointmentUpdateSerializer,
     DetailAppointmentSerializer,
     DetailMedicineSerializer,
     DetailPatientProfileSerializer,
@@ -108,10 +107,13 @@ class PrescriptionViewSet(viewsets.ViewSet):
 
 class AppointmentViewSet(viewsets.GenericViewSet):
     queryset = Appointment.objects.filter(active=True)
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action in ["list_prescriptions"]:
             return PrescriptionSerializer
+        if self.action in ["partial_update"]:
+            return AppointmentUpdateSerializer
         return AppointmentSerializer
 
     def get_permissions(self):
@@ -122,9 +124,7 @@ class AppointmentViewSet(viewsets.GenericViewSet):
                 return [perms.AppointmentDoctor()]
         elif self.action in ["partial_update"]:
             return [perms.AppointmentOwner()]
-        elif self.action in ["payment_return_view"]:
-            return [AllowAny()]
-        return [IsAuthenticated()]
+        return super().get_permissions()
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -198,7 +198,12 @@ class AppointmentViewSet(viewsets.GenericViewSet):
 
         return render(request, "payment_form.html")
 
-    @action(detail=False, methods=["get"], url_path="payment/vnpay_return")
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="payment/vnpay_return",
+        permission_classes=[AllowAny],
+    )
     def payment_return_view(self, request):
         inputData = request.GET
         if inputData:
