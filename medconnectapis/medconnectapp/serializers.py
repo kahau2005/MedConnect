@@ -43,7 +43,15 @@ class PrescriptionDetailSerializer(ModelSerializer):
 
 class AppointmentSerializer(ModelSerializer):
     class Meta:
+<<<<<<< Updated upstream
         extra_kwargs = {"user": {"read_only": True}}
+=======
+        extra_kwargs = {
+            "user": {"read_only": True},
+            # "doctor": {"read_only": True},
+            # "start": {"read_only": True},
+        }
+>>>>>>> Stashed changes
         model = Appointment
         fields = ["id", "user", "doctor", "status", "start"]
 
