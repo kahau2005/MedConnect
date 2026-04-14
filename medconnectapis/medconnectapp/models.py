@@ -78,6 +78,7 @@ class DoctorSchedule(BaseModel):
     doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT)
     start_time = models.DateTimeField(null=False)
     hours = models.IntegerField(default=1)
+    duration = models.IntegerField(default=15)
 
 
 class DiseaseCategory(BaseModel):
@@ -112,6 +113,27 @@ class Appointment(BaseModel):
     symptoms = models.TextField(blank=True, null=True)
     diagnosis = models.TextField(blank=True, null=True)
     note = models.TextField(blank=True, null=True)
+    active_start = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["doctor", "active_start"],
+                name="unique_appointment_doctor_active_start",
+            ),
+            models.UniqueConstraint(
+                fields=["user", "active_start"],
+                name="unique_appointment_user_active_start",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.status == Appointment.AppointmentStatus.CANCELED:
+            self.active_start = None
+            self.active = False
+        else:
+            self.active_start = self.start
+        super().save(*args, **kwargs)
 
 
 class Prescription(BaseModel):

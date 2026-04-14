@@ -20,7 +20,6 @@ from rest_framework.fields import HiddenField, CurrentUserDefault
 
 class PrescriptionSerializer(ModelSerializer):
     class Meta:
-
         model = Prescription
         fields = "__all__"
         read_only_fields = [
@@ -43,22 +42,20 @@ class PrescriptionDetailSerializer(ModelSerializer):
 
 class AppointmentSerializer(ModelSerializer):
     class Meta:
-<<<<<<< Updated upstream
         extra_kwargs = {"user": {"read_only": True}}
-=======
-        extra_kwargs = {
-            "user": {"read_only": True},
-            # "doctor": {"read_only": True},
-            # "start": {"read_only": True},
-        }
->>>>>>> Stashed changes
         model = Appointment
         fields = ["id", "user", "doctor", "status", "start"]
 
     def validate_status(self, value):
         if self.instance:
+            if self.instance.value != Appointment.AppointmentStatus.SCHEDULED:
+                raise serializers.ValidationError(
+                    "Chỉ có thể cập nhật lịch khám ở trạng thái SCHEDULED"
+                )
             if value != Appointment.AppointmentStatus.CANCELED.value:
-                raise serializers.ValidationError("Invalid status")
+                raise serializers.ValidationError(
+                    "Chỉ được chuyển sang trạng thái CANCELED"
+                )
         return value
 
 
@@ -181,3 +178,25 @@ class DoctorScheduleSerializer(ModelSerializer):
     class Meta:
         model = DoctorSchedule
         fields = "__all__"
+
+
+class PatientAgeGroupSerializer(serializers.Serializer):
+    age_group = serializers.CharField()
+    total = serializers.IntegerField()
+
+
+class PatientGenderSerializer(serializers.Serializer):
+    gender = serializers.CharField()
+    total = serializers.IntegerField()
+
+
+class PatientSpecialtySerializer(serializers.Serializer):
+    specialty_id = serializers.IntegerField()
+    specialty_name = serializers.CharField()
+    total = serializers.IntegerField()
+
+
+class ReportPatientSerializer(serializers.Serializer):
+    by_age_groups = PatientAgeGroupSerializer(many=True)
+    by_genders = PatientGenderSerializer(many=True)
+    by_specialties = PatientSpecialtySerializer(many=True)
