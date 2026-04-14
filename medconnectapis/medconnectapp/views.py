@@ -1,13 +1,19 @@
+import os
+from datetime import datetime
+
 from django.db.models import Case, Count, Value, When
 from django.db.models.fields import CharField
 from django.db.models.functions import ExtractYear, Now
+from django.shortcuts import redirect, render
 from django.utils import timezone
 from rest_framework import generics, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from . import perms, serializers, utils
+
+from . import serializers, perms, utils
 from .models import (
     Appointment,
     Disease,
@@ -116,7 +122,9 @@ class AppointmentViewSet(viewsets.GenericViewSet):
                 return [perms.AppointmentDoctor()]
         elif self.action in ["partial_update"]:
             return [perms.AppointmentOwner()]
-        return [IsAuthenticated]
+        elif self.action in ["payment_return_view"]:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -152,6 +160,84 @@ class AppointmentViewSet(viewsets.GenericViewSet):
         s.is_valid(raise_exception=True)
         s.save(appointment=appointment)
         return Response(s.data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="payment",
+        permission_classes=[perms.AppointmentOwner],
+    )
+    def payment_view(self, request, pk=None):
+        appointment = self.get_object()
+        if request.method == "POST":
+            order_id = str(appointment.id)
+            amount = 100000
+            order_desc = "Thanh toan don hang 12345"
+            ipaddr = utils.get_client_ip(request)
+
+            vnp = utils.VNPay()
+            vnp.requestData["vnp_Version"] = "2.1.0"
+            vnp.requestData["vnp_Command"] = "pay"
+            vnp.requestData["vnp_TmnCode"] = os.getenv("VNPAY_TMN_CODE")
+            vnp.requestData["vnp_Amount"] = str(int(amount) * 100)
+            vnp.requestData["vnp_CurrCode"] = "VND"
+            vnp.requestData["vnp_TxnRef"] = order_id
+            vnp.requestData["vnp_OrderInfo"] = order_desc
+            vnp.requestData["vnp_OrderType"] = "billpayment"
+            vnp.requestData["vnp_Locale"] = "vn"
+            vnp.requestData["vnp_CreateDate"] = datetime.now().strftime("%Y%m%d%H%M%S")
+            vnp.requestData["vnp_IpAddr"] = ipaddr
+            vnp.requestData["vnp_ReturnUrl"] = os.getenv("VNPAY_RETURN_URL")
+
+            vnpay_payment_url = vnp.get_payment_url(
+                os.getenv("VNPAY_PAYMENT_URL"), os.getenv("VNPAY_HASH_SECRET")
+            )
+            return Response(
+                {"payment_url": vnpay_payment_url}, status=status.HTTP_200_OK
+            )
+
+        return render(request, "payment_form.html")
+
+    @action(detail=False, methods=["get"], url_path="payment/vnpay_return")
+    def payment_return_view(self, request):
+        inputData = request.GET
+        if inputData:
+            vnp = utils.VNPay()
+            vnp.responseData = inputData.dict()
+            order_id = inputData.get("vnp_TxnRef")
+            amount = int(inputData.get("vnp_Amount")) / 100
+            order_desc = inputData.get("vnp_OrderInfo")
+            vnp_ResponseCode = inputData.get("vnp_ResponseCode")
+
+            if vnp.validate_response(os.getenv("VNPAY_HASH_SECRET")):
+                if vnp_ResponseCode == "00":
+                    return Response(
+                        {
+                            "order_id": order_id,
+                            "amount": amount,
+                            "msg": "Thanh toán thành công",
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+
+                else:
+                    return Response(
+                        {
+                            "order_id": order_id,
+                            "amount": amount,
+                            "msg": "Thanh toán thất bại",
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            else:
+                return Response(
+                    {"msg": "Sai chữ ký bảo mật!"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
+        return Response(
+            {"msg": "Không có dữ liệu trả về"}, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class DiseaseCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):

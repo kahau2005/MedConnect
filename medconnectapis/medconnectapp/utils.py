@@ -4,6 +4,10 @@ from google import genai
 
 from medconnectapp.models import Specialty
 
+import hashlib
+import hmac
+import urllib.parse
+
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
@@ -40,3 +44,71 @@ def get_recommend_specialty(symptoms):
         return recommended_specialty
     except Exception as ex:
         print(f"Lỗi gọi API: {ex}")
+
+
+class VNPay:
+    def __init__(self):
+        self.requestData = {}
+        self.responseData = {}
+
+    def get_mac(self, secret_key, data):
+        # Thuật toán tạo mã băm HMAC-SHA512 của VNPay
+        hashValue = hmac.new(
+            secret_key.encode("utf-8"), data.encode("utf-8"), hashlib.sha512
+        ).hexdigest()
+        return hashValue
+
+    def get_payment_url(self, vnpay_payment_url, secret_key):
+        inputData = sorted(self.requestData.items())
+        queryString = ""
+        hasData = ""
+        seq = 0
+
+        for key, val in inputData:
+            if seq == 1:
+                queryString = (
+                    queryString + "&" + key + "=" + urllib.parse.quote_plus(str(val))
+                )
+                hasData = (
+                    hasData + "&" + str(key) + "=" + urllib.parse.quote_plus(str(val))
+                )
+            else:
+                seq = 1
+                queryString = key + "=" + urllib.parse.quote_plus(str(val))
+                hasData = str(key) + "=" + urllib.parse.quote_plus(str(val))
+
+        secureHash = self.get_mac(secret_key, hasData)
+        return vnpay_payment_url + "?" + queryString + "&vnp_SecureHash=" + secureHash
+
+    def validate_response(self, secret_key):
+        vnp_SecureHash = self.responseData.pop("vnp_SecureHash", None)
+        self.responseData.pop("vnp_SecureHashType", None)
+
+        inputData = sorted(self.responseData.items())
+        hasData = ""
+        seq = 0
+        for key, val in inputData:
+            if str(key).startswith("vnp_"):
+                if seq == 1:
+                    hasData = (
+                        hasData
+                        + "&"
+                        + str(key)
+                        + "="
+                        + urllib.parse.quote_plus(str(val))
+                    )
+                else:
+                    seq = 1
+                    hasData = str(key) + "=" + urllib.parse.quote_plus(str(val))
+
+        hashValue = self.get_mac(secret_key, hasData)
+        return vnp_SecureHash == hashValue
+
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(",")[0]
+    else:
+        ip = request.META.get("REMOTE_ADDR")
+    return ip
