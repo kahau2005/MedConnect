@@ -39,6 +39,7 @@ from .serializers import (
     SimpleUserSerializer,
     SpecialtySerializer,
     UserSerializer,
+    AppointmentUpdateSerializer,
 )
 
 
@@ -106,6 +107,8 @@ class AppointmentViewSet(viewsets.GenericViewSet):
     def get_serializer_class(self):
         if self.action in ["list_prescriptions"]:
             return PrescriptionSerializer
+        if self.action in ["update", "partial_update"]:
+            return AppointmentUpdateSerializer
         return AppointmentSerializer
 
     def get_permissions(self):
@@ -116,7 +119,7 @@ class AppointmentViewSet(viewsets.GenericViewSet):
                 return [perms.AppointmentDoctor()]
         elif self.action in ["partial_update"]:
             return [perms.AppointmentOwner()]
-        return [IsAuthenticated]
+        return [IsAuthenticated()]
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
