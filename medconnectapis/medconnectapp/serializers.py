@@ -44,6 +44,7 @@ class AppointmentSerializer(ModelSerializer):
     class Meta:
         extra_kwargs = {
             "user": {"read_only": True},
+            "status": {"read_only": True},
         }
         model = Appointment
         fields = ["id", "user", "doctor", "status", "start"]
@@ -55,6 +56,7 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
             "user": {"read_only": True},
             "doctor": {"read_only": True},
             "start": {"read_only": True},
+            "status": {"read_only": False},
         }
 
     def validate_status(self, value):
