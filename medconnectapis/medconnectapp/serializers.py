@@ -1,21 +1,24 @@
+from datetime import timedelta
+
 from rest_framework import serializers
+from rest_framework.fields import CurrentUserDefault, HiddenField
 from rest_framework.serializers import ModelSerializer
+
 from .models import (
-    Specialty,
-    User,
+    Appointment,
+    Disease,
+    DiseaseCategory,
+    Doctor,
+    DoctorSchedule,
     Medicine,
     MedicineCategory,
     PatientProfile,
-    DiseaseCategory,
-    Disease,
-    Appointment,
-    Service,
-    Doctor,
-    DoctorSchedule,
     Prescription,
     PrescriptionDetail,
+    Service,
+    Specialty,
+    User,
 )
-from rest_framework.fields import HiddenField, CurrentUserDefault
 
 
 class PrescriptionSerializer(ModelSerializer):
@@ -48,6 +51,40 @@ class AppointmentSerializer(ModelSerializer):
         }
         model = Appointment
         fields = ["id", "user", "doctor", "status", "start"]
+
+    def validate(self, attrs):
+        doctor = attrs.get("doctor")
+        start = attrs.get("start")
+        if doctor and start:
+            schedule = doctor.doctorschedule_set.filter(
+                start_time__date=start.date()
+            ).first()
+            if not schedule:
+                raise serializers.ValidationError(
+                    {"start": "Bác sĩ không có ca làm việc vào ngày này"}
+                )
+
+            shift_end_time = schedule.start_time + timedelta(hours=schedule.hours)
+            appointment_end_time = start + timedelta(minutes=schedule.duration)
+            if start < schedule.start_time or appointment_end_time > shift_end_time:
+                raise serializers.ValidationError(
+                    {
+                        "start": "Thời gian đặt lịch không nằm trong khung giờ làm việc của bác sĩ."
+                    }
+                )
+
+            is_overlapping = Appointment.objects.filter(
+                doctor=doctor,
+                active=True,
+                status=Appointment.AppointmentStatus.SCHEDULED,
+                start__lt=appointment_end_time,
+                start__gt=start - timedelta(minutes=schedule.duration),
+            )
+            if is_overlapping.exists():
+                raise serializers.ValidationError(
+                    {"start": "Khung giờ bạn tính đặt đã có người khác đặt trước"}
+                )
+            return attrs
 
 
 class AppointmentUpdateSerializer(AppointmentSerializer):
