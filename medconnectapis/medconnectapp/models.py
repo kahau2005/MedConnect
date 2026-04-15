@@ -111,8 +111,8 @@ class Appointment(BaseModel):
         default=AppointmentStatus.SCHEDULED,
     )
     start = models.DateTimeField()
-    reason = models.TextField(blank=True, null=True)
-    symptoms = models.TextField(blank=True, null=True)
+    reason = models.TextField(null=True, blank=True)
+    symptoms = models.TextField(null=True, blank=True)
     diagnosis = models.ForeignKey(Disease, on_delete=models.PROTECT, default=6)
     note = models.TextField(blank=True, null=True)
     active_start = models.DateTimeField(null=True, blank=True)
@@ -220,3 +220,33 @@ class Payment(BaseModel):
         max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
     )
     total_amount = models.DecimalField(null=False, max_digits=10, decimal_places=2)
+
+
+class ChatRoom(BaseModel):
+    appointment = models.OneToOneField(
+        Appointment, on_delete=models.PROTECT, related_name="chat_room"
+    )
+
+    def __str__(self):
+        return f"Phòng chat của lịch khám {self.appointment.id}"
+
+
+class VideoCallLog(BaseModel):
+    class CallStatus(models.TextChoices):
+        CONNTECTED = "CONNTECTED", "Đã kết nối"
+        COMPLETED = "COMPLETED", "Đã kết thúc"
+        MISSED = "MISSED", "Gọi nhỡ"
+        REJECTED = "REJECTED", "Đã từ chối"
+        FAILED = "FAILED", "Đã thất bại"
+
+    room = models.ForeignKey(
+        ChatRoom, on_delete=models.PROTECT, related_name="video_calls"
+    )
+    caller = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name="outgoing_calls"
+    )
+    receiver = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name="incoming_calls"
+    )
+    start = models.DateTimeField(null=False)
+    end = models.DateTimeField(null=True, blank=True)
