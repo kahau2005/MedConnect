@@ -26,7 +26,7 @@ class User(AbstractUser, BaseModel):
         max_length=20, choices=UserRole.choices, default=UserRole.PATIENT
     )
     phone = models.TextField(max_length=10, null=False)
-    avatar = CloudinaryField(null=True)
+    avatar = CloudinaryField(null=True, default="d4outkeghzi4x3tsuclc.jpg")
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -113,7 +113,7 @@ class Appointment(BaseModel):
     start = models.DateTimeField()
     reason = models.TextField(blank=True, null=True)
     symptoms = models.TextField(blank=True, null=True)
-    diagnosis = models.ForeignKey(Disease, on_delete=models.PROTECT, default=6)
+    diagnosis = models.ForeignKey(Disease, on_delete=models.PROTECT, default=1)
     note = models.TextField(blank=True, null=True)
     active_start = models.DateTimeField(null=True, blank=True)
 
