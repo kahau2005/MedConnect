@@ -10,6 +10,7 @@ cryptography==46.0.5
 distro==1.9.0
 django==6.0.3
 django-ckeditor==6.7.3
+django-cors-headers==4.9.0
 django-filter==25.2
 django-js-asset==3.1.2
 django-oauth-toolkit==3.2.0
