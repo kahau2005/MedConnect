@@ -1,6 +1,6 @@
-from django.db import models
 from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 
 
 class BaseModel(models.Model):
@@ -23,7 +23,7 @@ class User(AbstractUser, BaseModel):
     last_login = None
     is_staff = models.BooleanField(default=False, editable=False)
     role = models.CharField(
-        max_length=10, choices=UserRole.choices, default=UserRole.PATIENT
+        max_length=20, choices=UserRole.choices, default=UserRole.PATIENT
     )
     phone = models.TextField(max_length=10, null=False)
     avatar = CloudinaryField(null=True)
@@ -57,7 +57,9 @@ class PatientProfile(BaseModel):
 class Specialty(BaseModel):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    image = CloudinaryField(null=True)
+    image = CloudinaryField(
+        null=True, default="Pngtree_doctor_check_the_eye_health_5315645_y7jg2j.png"
+    )
 
     def __str__(self):
         return self.name
@@ -111,7 +113,7 @@ class Appointment(BaseModel):
     start = models.DateTimeField()
     reason = models.TextField(blank=True, null=True)
     symptoms = models.TextField(blank=True, null=True)
-    diagnosis = models.TextField(blank=True, null=True)
+    diagnosis = models.ForeignKey(Disease, on_delete=models.PROTECT, default=6)
     note = models.TextField(blank=True, null=True)
     active_start = models.DateTimeField(null=True, blank=True)
 
@@ -164,7 +166,9 @@ class PrescriptionDetail(BaseModel):
     frequency = models.IntegerField(null=False, default=1)
     duration_day = models.IntegerField(null=False, default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    instruction = models.TextField(null=True, choices=Instruction.choices)
+    instruction = models.CharField(
+        null=True, max_length=20, choices=Instruction.choices
+    )
 
 
 class MedicineCategory(BaseModel):
@@ -212,7 +216,7 @@ class Payment(BaseModel):
     appointment = models.OneToOneField(
         Appointment, on_delete=models.PROTECT, related_name="payment"
     )
-    status = models.TextField(
+    status = models.CharField(
         max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
     )
     total_amount = models.DecimalField(null=False, max_digits=10, decimal_places=2)

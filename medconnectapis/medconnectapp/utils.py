@@ -1,12 +1,12 @@
+import hashlib
+import hmac
 import os
+import urllib.parse
 
 from google import genai
 
 from medconnectapp.models import Specialty
 
-import hashlib
-import hmac
-import urllib.parse
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -43,7 +43,7 @@ def get_recommend_specialty(symptoms):
         ).first()
         return recommended_specialty
     except Exception as ex:
-        print(f"Lỗi gọi API: {ex}")
+        raise Exception(str(ex))
 
 
 class VNPay:
@@ -52,7 +52,6 @@ class VNPay:
         self.responseData = {}
 
     def get_mac(self, secret_key, data):
-        # Thuật toán tạo mã băm HMAC-SHA512 của VNPay
         hashValue = hmac.new(
             secret_key.encode("utf-8"), data.encode("utf-8"), hashlib.sha512
         ).hexdigest()
