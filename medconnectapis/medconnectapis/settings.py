@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "oauth2_provider",
     "medconnectapp.apps.MedconnectappConfig",
+    "corsheaders",
 ]
 
 REST_FRAMEWORK = {
@@ -59,12 +60,15 @@ REST_FRAMEWORK = {
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+CORS_ALLOW_ALL_ORIGINS = True
+ALLOWED_HOSTS=["*"]
 
 MEDIA_ROOT = "%s/medconnectapp/static/" % BASE_DIR
 CKEDITOR_UPLOAD_PATH = "images/ckeditors/"
