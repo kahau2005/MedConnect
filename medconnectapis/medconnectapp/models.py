@@ -56,7 +56,7 @@ class PatientProfile(BaseModel):
 
 class Specialty(BaseModel):
     name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(null=True, blank=True)
     image = CloudinaryField(
         null=True, default="Pngtree_doctor_check_the_eye_health_5315645_y7jg2j.png"
     )
@@ -111,10 +111,10 @@ class Appointment(BaseModel):
         default=AppointmentStatus.SCHEDULED,
     )
     start = models.DateTimeField()
-    reason = models.TextField(blank=True, null=True)
-    symptoms = models.TextField(blank=True, null=True)
+    reason = models.TextField(null=True, blank=True)
+    symptoms = models.TextField(null=True, blank=True)
     diagnosis = models.ForeignKey(Disease, on_delete=models.PROTECT, default=1)
-    note = models.TextField(blank=True, null=True)
+    note = models.TextField(null=True, blank=True)
     active_start = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -193,7 +193,7 @@ class Medicine(BaseModel):
 class Service(BaseModel):
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -220,3 +220,60 @@ class Payment(BaseModel):
         max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
     )
     total_amount = models.DecimalField(null=False, max_digits=10, decimal_places=2)
+
+
+class ChatRoom(BaseModel):
+    appointment = models.OneToOneField(
+        Appointment, on_delete=models.PROTECT, related_name="chat_room"
+    )
+
+    def __str__(self):
+        return f"Phòng chat của lịch khám {self.appointment.id}"
+
+
+class VideoCallLog(BaseModel):
+    class CallStatus(models.TextChoices):
+        CONNTECTED = "CONNTECTED", "Đã kết nối"
+        COMPLETED = "COMPLETED", "Đã kết thúc"
+        MISSED = "MISSED", "Gọi nhỡ"
+        REJECTED = "REJECTED", "Đã từ chối"
+        FAILED = "FAILED", "Đã thất bại"
+
+    room = models.ForeignKey(
+        ChatRoom, on_delete=models.PROTECT, related_name="video_calls"
+    )
+    caller = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name="outgoing_calls"
+    )
+    receiver = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name="incoming_calls"
+    )
+    status = models.CharField(
+        max_length=20, choices=CallStatus.choices, default=CallStatus.CONNTECTED
+    )
+    start = models.DateTimeField(null=False)
+    end = models.DateTimeField(null=True, blank=True)
+
+
+class ChatMessage(BaseModel):
+    class MessageType(models.TextChoices):
+        TEXT = "TEXT", "Tin nhắn"
+        CALL = "CALL", "Thông tin cuộc gọi"
+
+    room = models.ForeignKey(
+        ChatRoom, on_delete=models.PROTECT, related_name="messages"
+    )
+    sender = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name="user_messages"
+    )
+    chat_type = models.CharField(
+        max_length=10, choices=MessageType.choices, default=MessageType.TEXT
+    )
+    content = models.TextField(null=True, blank=True)
+    call_log = models.OneToOneField(
+        null=True,
+        blank=True,
+        to=VideoCallLog,
+        on_delete=models.PROTECT,
+        related_name="chat_message",
+    )
