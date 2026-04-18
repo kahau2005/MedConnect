@@ -215,6 +215,27 @@ class AppointmentService(BaseModel):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
 
+class TestResult(BaseModel):
+    class ResultType(models.TextChoices):
+        BLOOD = "BLOOD", "Xét nghiệm máu"
+        URINE = "URINE", "Xét nghiệm nước tiểu"
+        XRAY = "XRAY", "X-quang"
+        ULTRASOUND = "ULTRASOUND", "Siêu âm"
+        OTHER = "OTHER", "Khác"
+
+    appointment_service = models.OneToOneField(
+        AppointmentService, on_delete=models.PROTECT, related_name="test_result"
+    )
+    result_type = models.CharField(
+        max_length=20, choices=ResultType.choices, default=ResultType.OTHER
+    )
+    tested_by = models.ForeignKey(
+        Doctor, on_delete=models.PROTECT, related_name="test_results"
+    )
+    result_data = models.TextField(null=True, blank=True)
+    conclusion = models.TextField(null=True, blank=True)
+
+
 class Payment(BaseModel):
     class PaymentStatus(models.TextChoices):
         PENDING = "PENDING", "Đang đợi thanh toán"

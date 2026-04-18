@@ -19,6 +19,7 @@ from .models import (
     Service,
     Specialty,
     User,
+    AppointmentService,
 )
 
 
@@ -32,10 +33,10 @@ class PrescriptionDetailListSerializer(serializers.ListSerializer):
         }
 
     def create(self, validated_data):
-        prescription = self.context.get("prescription")
+        prescription = self.context["prescription"]
 
         medicine_ids = [
-            item.get("medicine_id") for item in validated_data if "medicine_id" in item
+            item["medicine_id"] for item in validated_data if "medicine_id" in item
         ]
 
         details = []
@@ -50,9 +51,14 @@ class PrescriptionDetailListSerializer(serializers.ListSerializer):
                 )
 
             for item in validated_data:
-                medicine_id = item.get("medicine_id")
-                quantity = item.get("quantity", 1)
-                medicine = medicine_map.get(medicine_id)
+                medicine_id = item["medicine_id"]
+                quantity = item["quantity"]
+                medicine = medicine_map.get[medicine_id]
+
+                if not medicine:
+                    raise serializers.ValidationError(
+                        {"medicine": f"Không tìm thấy thuốc #{medicine_id}"}
+                    )
 
                 if medicine.stock < quantity:
                     raise serializers.ValidationError(
@@ -68,10 +74,10 @@ class PrescriptionDetailListSerializer(serializers.ListSerializer):
                     medicine_id=medicine_id,
                     unit_price=medicine.unit_price,
                     quantity=quantity,
-                    dose=item.get("dose", 1),
-                    frequency=item.get("frequency", 1),
-                    duration_day=item.get("duration_day", 1),
-                    instruction=item.get("instruction"),
+                    dose=item["dose"],
+                    frequency=item["frequency"],
+                    duration_day=item["duration_day"],
+                    instruction=item["instruction"],
                 )
                 details.append(detail)
 
@@ -81,12 +87,28 @@ class PrescriptionDetailListSerializer(serializers.ListSerializer):
 
 class PrescriptionDetailSerializer(ModelSerializer):
     medicine = serializers.IntegerField(source="medicine_id")
-    id = serializers.IntegerField(required=False)
+    quantity = serializers.IntegerField(min_value=1)
+    dose = serializers.IntegerField(min_value=1)
+    frequency = serializers.IntegerField(min_value=1)
+    duration_day = serializers.IntegerField(min_value=1)
 
     class Meta:
         model = PrescriptionDetail
-        fields = "__all__"
+        fields = [
+            "id",
+            "prescription",
+            "medicine",
+            "quantity",
+            "dose",
+            "frequency",
+            "duration_day",
+            "unit_price",
+            "instruction",
+            "created_at",
+            "updated_at",
+        ]
         extra_kwargs = {
+            "id": {"read_only": True},
             "prescription": {"read_only": True},
             "created_at": {"read_only": True},
             "updated_at": {"read_only": True},
@@ -102,37 +124,38 @@ class PrescriptionDetailSerializer(ModelSerializer):
         new_quantity = validated_data.get("quantity", old_quantity)
 
         if new_medicine_id != old_medicine_id or new_quantity != old_quantity:
-            meds_to_lock = list(
+            medicines_to_lock = list(
                 set([m for m in [old_medicine_id, new_medicine_id] if m])
             )
-            medicines = Medicine.objects.filter(id__in=meds_to_lock).select_for_update()
-            med_map = {m.id: m for m in medicines}
+            medicines = Medicine.objects.filter(
+                id__in=medicines_to_lock
+            ).select_for_update()
+            medicine_map = {m.id: m for m in medicines}
 
-            old_med = med_map.get(old_medicine_id)
-            new_med = med_map.get(new_medicine_id)
+            old_medicine = medicine_map.get(old_medicine_id)
+            new_medicine = medicine_map.get(new_medicine_id)
 
-            if not new_med:
+            if not new_medicine:
                 raise serializers.ValidationError(
                     {"medicine": f"Không tìm thấy thuốc #{new_medicine_id}"}
                 )
 
-            if old_med:
-                old_med.stock += old_quantity
-
-            if new_med.stock < new_quantity:
+            if new_medicine.stock < new_quantity:
                 raise serializers.ValidationError(
                     {
-                        "quantity": f"Thuốc '{new_med.name}' không đủ tồn kho (chỉ còn {new_med.stock} {new_med.unit})."
+                        "quantity": f"Thuốc {new_medicine.name} không đủ tồn kho (chỉ còn {new_medicine.stock} {new_medicine.unit})."
                     }
                 )
+            if old_medicine:
+                old_medicine.stock += old_quantity
 
-            new_med.stock -= new_quantity
+            new_medicine.stock -= new_quantity
+            validated_data["unit_price"] = new_medicine.unit_price
 
-            if old_med and old_med.id != new_med.id:
-                old_med.save()
-            new_med.save()
+            medicines_to_update = [m for m in [old_medicine, new_medicine] if m]
+            if medicines_to_update:
+                Medicine.objects.bulk_update(medicines_to_update, ["stock"])
 
-            validated_data["unit_price"] = new_med.unit_price
         return super().update(instance, validated_data)
 
 
@@ -247,9 +270,45 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
 
 class DetailAppointmentSerializer(ModelSerializer):
     class Meta:
-        extra_kwargs = {"user": {"read_only": True}}
         model = Appointment
         fields = "__all__"
+        extra_kwargs = {"user": {"read_only": True}}
+
+
+class AppointmentServiceSerializer(ModelSerializer):
+    class Meta:
+        model = AppointmentService
+        fields = "__all__"
+        extra_kwargs = {
+            "id": {"read_only": True},
+            "appointment": {"read_only": True},
+            "active": {"read_only": True},
+            "created_at": {"read_only": True},
+            "updated_at": {"read_only": True},
+            "unit_price": {"read_only": True},
+        }
+
+    def create(self, validated_data):
+        appointment = self.context["appointment"]
+        service = validated_data["service"]
+        quantity = validated_data["quantity"]
+
+        return AppointmentService.objects.create(
+            appointment=appointment,
+            service=service,
+            quantity=quantity,
+            unit_price=service.price,
+        )
+
+    def update(self, instance, validated_data):
+        service = validated_data.get("service", instance.service)
+        quantity = validated_data.get("quantity", instance.quantity)
+
+        instance.service = service
+        instance.quantity = quantity
+        instance.unit_price = service.price
+        instance.save()
+        return instance
 
 
 class DiseaseCategorySerializer(ModelSerializer):

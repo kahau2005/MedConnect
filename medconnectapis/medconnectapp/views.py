@@ -1,8 +1,7 @@
 import os
 from datetime import datetime
 
-from django.db import transaction
-from django.db.models import Case, Count, Value, When
+from django.db.models import Case, Count, Value, When, Q
 from django.db.models.fields import CharField
 from django.db.models.functions import ExtractYear, Now
 from django.shortcuts import render
@@ -47,6 +46,7 @@ from .serializers import (
     SimpleUserSerializer,
     SpecialtySerializer,
     UserSerializer,
+    AppointmentServiceSerializer,
 )
 
 
@@ -57,7 +57,36 @@ class AppointmentViewSet(viewsets.GenericViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         if self.request.user.role == User.UserRole.PATIENT:
-            return queryset.filter(user=self.request.user)
+            queryset = queryset.filter(user=self.request.user)
+        status_param = self.request.query_params.get("status")
+        from_date = self.request.query_params.get("from_date")
+        to_date = self.request.query_params.get("to_date")
+        kw = self.request.query_params.get("kw")
+        doctor_id = self.request.query_params.get("doctor_id")
+
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+        if from_date:
+            try:
+                parsed_from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+                queryset = queryset.filter(start__date__gte=parsed_from_date)
+            except Exception:
+                raise ValueError({"from_date": "Invalid from date"})
+        if to_date:
+            try:
+                parsed_to_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+                queryset = queryset.filter(start__date__lte=parsed_to_date)
+            except Exception:
+                raise ValueError({"to_date": "Invalid to date"})
+        if kw:
+            queryset = queryset.filter(
+                Q(reason__icontains=kw)
+                | Q(symptoms__icontains=kw)
+                | Q(note__icontains=kw)
+                | Q(diagnosis__name__icontains=kw)
+            )
+        if doctor_id:
+            queryset = queryset.filter(doctor_id=doctor_id)
         return queryset
 
     def get_serializer_class(self):
@@ -80,7 +109,35 @@ class AppointmentViewSet(viewsets.GenericViewSet):
                 return [perms.AppointmentDoctor()]
         elif self.action in ["partial_update"]:
             return [perms.AppointmentOwner()]
+        elif self.action in ["services"]:
+            if self.request.method == "GET":
+                return [perms.AppointmentOwnerOrDoctor()]
+            elif self.request.method == "POST":
+                return [perms.AppointmentDoctor()]
         return super().get_permissions()
+
+    @action(methods=["get"], url_path="doctors", detail=False)
+    def doctors(self, request):
+        user = request.user
+        queryset = self.get_queryset()
+        queryset = queryset.filter(status=Appointment.AppointmentStatus.COMPLETED)
+        doctor_ids = queryset.values_list("doctor_id", flat=True).distinct()
+
+        doctors = Doctor.objects.filter(user_id__in=doctor_ids).select_related("user")
+        data = []
+        for d in doctors:
+            data.append(
+                {
+                    "id": d.user_id,
+                    "first_name": d.user.first_name,
+                    "last_name": d.user.last_name,
+                    "email": d.user.email,
+                    "avatar": d.user.avatar.url if d.user.avatar else None,
+                    "background": d.background,
+                    "specialty_id": d.specialty_id,
+                }
+            )
+        return Response(data, status=status.HTTP_200_OK)
 
     @action(
         methods=["get"],
@@ -151,6 +208,17 @@ class AppointmentViewSet(viewsets.GenericViewSet):
         s.is_valid(raise_exception=True)
         s.save(appointment=appointment)
         return Response(s.data, status=status.HTTP_201_CREATED)
+
+    @action(methods=["get", "post"], url_path="services", detail=True)
+    def services(self, request):
+        appointment = self.get_object()
+
+        if request.method == "GET":
+            q = appointment.services.filter(active=True).select_related("service")
+            return Response(
+                AppointmentServiceSerializer(q, many=True).data,
+                status=status.HTTP_200_OK,
+            )
 
     @action(
         detail=True,
@@ -279,23 +347,10 @@ class PrescriptionDetailViewSet(viewsets.GenericViewSet):
 
     def partial_update(self, request, pk=None):
         detail = self.get_object()
-        medicine_id = request.data.get("medicine_id")
-
-        data = request.data.copy()
-
-        if medicine_id:
-            medicine = Medicine.objects.filter(pk=medicine_id).first()
-            if not medicine:
-                return Response(
-                    {"medicine": f"Không tìm thấy thuốc #{medicine_id}"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-            data["unit_price"] = medicine.unit_price
-
-        s = self.get_serializer(detail, data=data, partial=True)
-        s.is_valid(raise_exception=True)
-        s.save()
-        return Response(s.data, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(detail, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class DiseaseCategoryViewSet(
