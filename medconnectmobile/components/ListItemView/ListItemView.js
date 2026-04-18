@@ -3,7 +3,7 @@ import { Searchbar } from "react-native-paper";
 import SimpleCardView from "../SimpleCardView/SimpleCardView";
 import ListItemStyle from "./Style";
 
-const ListItemView = ({ searchTitle, items, clickProcess }) => {
+const ListItemView = ({ searchTitle, items, clickProcess, setItemId }) => {
   return (
     <View style={ListItemStyle.container}>
       {searchTitle && <Searchbar placeholder={searchTitle} />}
@@ -20,9 +20,12 @@ const ListItemView = ({ searchTitle, items, clickProcess }) => {
             image={
               item.image === null
                 ? require("../../assets/imgs/banner_doctor.png")
-                : item.image
+                : { uri: item.image }
             }
-            clickProcess={clickProcess}
+            clickProcess={() => {
+              clickProcess(item.id);
+              console.log("Clicked item ID:", item.id);
+            }}
           />
         ))}
       </ScrollView>

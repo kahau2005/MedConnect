@@ -10,7 +10,7 @@ const Home = () => {
   return (
     <Tab.Navigator screenOptions={{ headerShown: false }}>
       <Tab.Screen
-        name="Home"
+        name="HomeTab"
         component={HomeTab}
         options={{
           tabBarIcon: ({ color, size }) => (
@@ -19,7 +19,7 @@ const Home = () => {
         }}
       />
       <Tab.Screen
-        name="Specialty"
+        name="SpecialtyTab"
         component={SpecialtyTab}
         options={{
           tabBarIcon: ({ color, size }) => (
@@ -28,7 +28,7 @@ const Home = () => {
         }}
       />
       <Tab.Screen
-        name="Profile"
+        name="ProfileTab"
         component={HomeTab}
         options={{
           tabBarIcon: ({ color, size }) => (

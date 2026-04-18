@@ -17,7 +17,10 @@
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-element-dropdown": "^2.12.4",
+    "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-paper": "^5.15.1",
+    "react-native-paper-dates": "^0.23.6",
     "react-native-safe-area-context": "^5.7.0",
     "react-native-screens": "4.16.0"
   },
