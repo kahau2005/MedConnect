@@ -5,7 +5,6 @@ dependencies = [
     "annotated-types==0.7.0",
     "anyio==4.13.0",
     "asgiref==3.11.1",
-    "bidict==0.23.1",
     "certifi==2026.2.25",
     "cffi==2.0.0",
     "charset-normalizer==3.4.6",

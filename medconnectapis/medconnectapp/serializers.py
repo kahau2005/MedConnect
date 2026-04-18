@@ -11,27 +11,14 @@ from .models import (
     Doctor,
     DoctorSchedule,
     Medicine,
-    MedicineCategory,
     PatientProfile,
     Prescription,
     PrescriptionDetail,
     Service,
     Specialty,
     User,
+    MedicineCategory,
 )
-
-
-class PrescriptionSerializer(ModelSerializer):
-    class Meta:
-        model = Prescription
-        fields = "__all__"
-        read_only_fields = [
-            "id",
-            "appointment",
-            "active",
-            "created_at",
-            "updated_at",
-        ]
 
 
 class PrescriptionDetailSerializer(ModelSerializer):
@@ -40,14 +27,52 @@ class PrescriptionDetailSerializer(ModelSerializer):
         fields = "__all__"
         extra_kwargs = {
             "prescription": {"read_only": True},
+            "unit_price": {"read_only": True},
+        }
+
+    def create(self, validated_data):
+        medicine = validated_data.get("medicine")
+        if medicine:
+            validated_data["unit_price"] = medicine.unit_price
+        return super().create(validated_data)
+
+
+class PrescriptionSerializer(ModelSerializer):
+    details = PrescriptionDetailSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Prescription
+        fields = "__all__"
+        extra_kwargs = {
+            "id": {"read_only": True},
+            "appointment": {"read_only": True},
+            "active": {"read_only": True},
+            "created_at": {"read_only": True},
+            "updated_at": {"read_only": True},
+            "status": {"read_only": True},
+        }
+
+
+class SimplePrescriptionSerializer(ModelSerializer):
+    class Meta:
+        model = Prescription
+        fields = "__all__"
+        extra_kwargs = {
+            "id": {"read_only": True},
+            "appointment": {"read_only": True},
+            "active": {"read_only": True},
+            "created_at": {"read_only": True},
+            "updated_at": {"read_only": True},
         }
 
 
 class AppointmentSerializer(ModelSerializer):
     class Meta:
         extra_kwargs = {
+            "id": {"read_only": True},
             "user": {"read_only": True},
             "status": {"read_only": True},
+            "active": {"read_only": True},
         }
         model = Appointment
         fields = ["id", "user", "doctor", "status", "start"]
@@ -84,15 +109,17 @@ class AppointmentSerializer(ModelSerializer):
                 raise serializers.ValidationError(
                     {"start": "Khung giờ bạn tính đặt đã có người khác đặt trước"}
                 )
-            return attrs
+        return attrs
 
 
 class AppointmentUpdateSerializer(AppointmentSerializer):
     class Meta(AppointmentSerializer.Meta):
         extra_kwargs = {
+            "id": {"read_only": True},
             "user": {"read_only": True},
             "doctor": {"read_only": True},
             "start": {"read_only": True},
+            "active": {"read_only": True},
             "status": {"read_only": False},
         }
 
@@ -132,6 +159,12 @@ class SpecialtySerializer(ModelSerializer):
     class Meta:
         model = Specialty
         fields = "__all__"
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.image:
+            data["image"] = instance.image.url
+        return data
 
 
 class PatientProfileSerializer(ModelSerializer):
@@ -195,6 +228,12 @@ class DetailServiceSerializer(ModelSerializer):
         fields = "__all__"
 
 
+class MedicineCategorySerializer(ModelSerializer):
+    class Meta:
+        model = MedicineCategory
+        fields = "__all__"
+
+
 class MedicineSerializer(ModelSerializer):
     class Meta:
         model = Medicine
@@ -207,12 +246,6 @@ class DetailMedicineSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class MedicineCategorySerializer(ModelSerializer):
-    class Meta:
-        model = MedicineCategory
-        fields = "__all__"
-
-
 class DoctorSerializer(ModelSerializer):
     first_name = serializers.CharField(source="user.first_name", read_only=True)
     last_name = serializers.CharField(source="user.last_name", read_only=True)
@@ -221,7 +254,7 @@ class DoctorSerializer(ModelSerializer):
 
     class Meta:
         model = Doctor
-        fields = ["user_id", "first_name", "last_name", "email", "avatar"]
+        fields = ["user_id", "first_name", "last_name", "email", "avatar", "background"]
 
 
 class DoctorScheduleSerializer(ModelSerializer):

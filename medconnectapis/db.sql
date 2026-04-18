@@ -21,7 +21,7 @@ SET @@SESSION.SQL_LOG_BIN= 0;
 -- GTID state at the beginning of the backup 
 --
 
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '00546850-b2fe-11f0-8147-f26f4349a4ff:1-5383';
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '00546850-b2fe-11f0-8147-f26f4349a4ff:1-5418';
 
 --
 -- Table structure for table `auth_group`
@@ -125,7 +125,7 @@ CREATE TABLE `django_admin_log` (
   CONSTRAINT `django_admin_log_content_type_id_c4bce8eb_fk_django_co` FOREIGN KEY (`content_type_id`) REFERENCES `django_content_type` (`id`),
   CONSTRAINT `django_admin_log_user_id_c564eba6_fk_medconnectapp_user_id` FOREIGN KEY (`user_id`) REFERENCES `medconnectapp_user` (`id`),
   CONSTRAINT `django_admin_log_chk_1` CHECK ((`action_flag` >= 0))
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -134,7 +134,7 @@ CREATE TABLE `django_admin_log` (
 
 LOCK TABLES `django_admin_log` WRITE;
 /*!40000 ALTER TABLE `django_admin_log` DISABLE KEYS */;
-INSERT INTO `django_admin_log` VALUES (1,'2026-04-15 10:24:32.146273','10','Hai BS',2,'[{\"changed\": {\"fields\": [\"Role\"]}}]',26,1),(2,'2026-04-17 01:13:42.954856','10','Bác sĩ Hai BS',1,'[{\"added\": {}}]',16,1),(3,'2026-04-17 01:15:08.940993','4','DoctorSchedule object (4)',1,'[{\"added\": {}}]',17,1);
+INSERT INTO `django_admin_log` VALUES (1,'2026-04-15 10:24:32.146273','10','Hai BS',2,'[{\"changed\": {\"fields\": [\"Role\"]}}]',26,1),(2,'2026-04-17 01:13:42.954856','10','Bác sĩ Hai BS',1,'[{\"added\": {}}]',16,1),(3,'2026-04-17 01:15:08.940993','4','DoctorSchedule object (4)',1,'[{\"added\": {}}]',17,1),(4,'2026-04-17 01:59:19.997603','5','DoctorSchedule object (5)',1,'[{\"added\": {}}]',17,1),(5,'2026-04-17 03:26:57.374616','3','Mắt',2,'[{\"changed\": {\"fields\": [\"Image\"]}}]',25,1),(6,'2026-04-17 03:33:16.283516','2','Tai Mũi Họng',2,'[{\"changed\": {\"fields\": [\"Image\"]}}]',25,1),(7,'2026-04-17 03:33:26.849405','1','Nội tổng quát',2,'[{\"changed\": {\"fields\": [\"Image\"]}}]',25,1),(8,'2026-04-17 03:34:20.934471','4','Xương khớp',1,'[{\"added\": {}}]',25,1);
 /*!40000 ALTER TABLE `django_admin_log` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -177,7 +177,7 @@ CREATE TABLE `django_migrations` (
   `name` varchar(255) NOT NULL,
   `applied` datetime(6) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -186,7 +186,7 @@ CREATE TABLE `django_migrations` (
 
 LOCK TABLES `django_migrations` WRITE;
 /*!40000 ALTER TABLE `django_migrations` DISABLE KEYS */;
-INSERT INTO `django_migrations` VALUES (1,'contenttypes','0001_initial','2026-04-15 10:01:04.470044'),(2,'contenttypes','0002_remove_content_type_name','2026-04-15 10:01:04.523173'),(3,'auth','0001_initial','2026-04-15 10:01:04.705845'),(4,'auth','0002_alter_permission_name_max_length','2026-04-15 10:01:04.742224'),(5,'auth','0003_alter_user_email_max_length','2026-04-15 10:01:04.747367'),(6,'auth','0004_alter_user_username_opts','2026-04-15 10:01:04.752264'),(7,'auth','0005_alter_user_last_login_null','2026-04-15 10:01:04.757322'),(8,'auth','0006_require_contenttypes_0002','2026-04-15 10:01:04.759963'),(9,'auth','0007_alter_validators_add_error_messages','2026-04-15 10:01:04.765300'),(10,'auth','0008_alter_user_username_max_length','2026-04-15 10:01:04.772375'),(11,'auth','0009_alter_user_last_name_max_length','2026-04-15 10:01:04.779323'),(12,'auth','0010_alter_group_name_max_length','2026-04-15 10:01:04.791218'),(13,'auth','0011_update_proxy_permissions','2026-04-15 10:01:04.797205'),(14,'auth','0012_alter_user_first_name_max_length','2026-04-15 10:01:04.803543'),(15,'medconnectapp','0001_initial','2026-04-15 10:01:05.915261'),(16,'admin','0001_initial','2026-04-15 10:01:06.020405'),(17,'admin','0002_logentry_remove_auto_add','2026-04-15 10:01:06.028382'),(18,'admin','0003_logentry_add_action_flag_choices','2026-04-15 10:01:06.039811'),(19,'oauth2_provider','0001_initial','2026-04-15 10:01:06.594932'),(20,'oauth2_provider','0002_auto_20190406_1805','2026-04-15 10:01:06.690869'),(21,'oauth2_provider','0003_auto_20201211_1314','2026-04-15 10:01:06.744498'),(22,'oauth2_provider','0004_auto_20200902_2022','2026-04-15 10:01:07.106976'),(23,'oauth2_provider','0005_auto_20211222_2352','2026-04-15 10:01:07.190217'),(24,'oauth2_provider','0006_alter_application_client_secret','2026-04-15 10:01:07.221448'),(25,'oauth2_provider','0007_application_post_logout_redirect_uris','2026-04-15 10:01:07.276738'),(26,'oauth2_provider','0008_alter_accesstoken_token','2026-04-15 10:01:07.291089'),(27,'oauth2_provider','0009_add_hash_client_secret','2026-04-15 10:01:07.358698'),(28,'oauth2_provider','0010_application_allowed_origins','2026-04-15 10:01:07.407272'),(29,'oauth2_provider','0011_refreshtoken_token_family','2026-04-15 10:01:07.458553'),(30,'oauth2_provider','0012_add_token_checksum','2026-04-15 10:01:07.691209'),(31,'oauth2_provider','0013_alter_application_authorization_grant_type_device','2026-04-15 10:01:07.799522'),(32,'sessions','0001_initial','2026-04-15 10:01:07.833577'),(33,'medconnectapp','0002_alter_appointment_diagnosis','2026-04-15 10:10:57.113507'),(34,'medconnectapp','0003_alter_user_avatar','2026-04-15 10:20:18.705425'),(35,'medconnectapp','0004_chatroom_videocalllog_chatmessage','2026-04-17 01:07:16.045414');
+INSERT INTO `django_migrations` VALUES (1,'contenttypes','0001_initial','2026-04-15 10:01:04.470044'),(2,'contenttypes','0002_remove_content_type_name','2026-04-15 10:01:04.523173'),(3,'auth','0001_initial','2026-04-15 10:01:04.705845'),(4,'auth','0002_alter_permission_name_max_length','2026-04-15 10:01:04.742224'),(5,'auth','0003_alter_user_email_max_length','2026-04-15 10:01:04.747367'),(6,'auth','0004_alter_user_username_opts','2026-04-15 10:01:04.752264'),(7,'auth','0005_alter_user_last_login_null','2026-04-15 10:01:04.757322'),(8,'auth','0006_require_contenttypes_0002','2026-04-15 10:01:04.759963'),(9,'auth','0007_alter_validators_add_error_messages','2026-04-15 10:01:04.765300'),(10,'auth','0008_alter_user_username_max_length','2026-04-15 10:01:04.772375'),(11,'auth','0009_alter_user_last_name_max_length','2026-04-15 10:01:04.779323'),(12,'auth','0010_alter_group_name_max_length','2026-04-15 10:01:04.791218'),(13,'auth','0011_update_proxy_permissions','2026-04-15 10:01:04.797205'),(14,'auth','0012_alter_user_first_name_max_length','2026-04-15 10:01:04.803543'),(15,'medconnectapp','0001_initial','2026-04-15 10:01:05.915261'),(16,'admin','0001_initial','2026-04-15 10:01:06.020405'),(17,'admin','0002_logentry_remove_auto_add','2026-04-15 10:01:06.028382'),(18,'admin','0003_logentry_add_action_flag_choices','2026-04-15 10:01:06.039811'),(19,'oauth2_provider','0001_initial','2026-04-15 10:01:06.594932'),(20,'oauth2_provider','0002_auto_20190406_1805','2026-04-15 10:01:06.690869'),(21,'oauth2_provider','0003_auto_20201211_1314','2026-04-15 10:01:06.744498'),(22,'oauth2_provider','0004_auto_20200902_2022','2026-04-15 10:01:07.106976'),(23,'oauth2_provider','0005_auto_20211222_2352','2026-04-15 10:01:07.190217'),(24,'oauth2_provider','0006_alter_application_client_secret','2026-04-15 10:01:07.221448'),(25,'oauth2_provider','0007_application_post_logout_redirect_uris','2026-04-15 10:01:07.276738'),(26,'oauth2_provider','0008_alter_accesstoken_token','2026-04-15 10:01:07.291089'),(27,'oauth2_provider','0009_add_hash_client_secret','2026-04-15 10:01:07.358698'),(28,'oauth2_provider','0010_application_allowed_origins','2026-04-15 10:01:07.407272'),(29,'oauth2_provider','0011_refreshtoken_token_family','2026-04-15 10:01:07.458553'),(30,'oauth2_provider','0012_add_token_checksum','2026-04-15 10:01:07.691209'),(31,'oauth2_provider','0013_alter_application_authorization_grant_type_device','2026-04-15 10:01:07.799522'),(32,'sessions','0001_initial','2026-04-15 10:01:07.833577'),(33,'medconnectapp','0002_alter_appointment_diagnosis','2026-04-15 10:10:57.113507'),(34,'medconnectapp','0003_alter_user_avatar','2026-04-15 10:20:18.705425'),(35,'medconnectapp','0004_chatroom_videocalllog_chatmessage','2026-04-17 01:07:16.045414'),(36,'medconnectapp','0005_remove_medicine_category_delete_medicinecategory','2026-04-17 02:25:54.255981'),(37,'medconnectapp','0006_medicinecategory_alter_doctor_background_and_more','2026-04-17 02:30:17.884577');
 /*!40000 ALTER TABLE `django_migrations` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -244,7 +244,7 @@ CREATE TABLE `medconnectapp_appointment` (
   CONSTRAINT `medconnectapp_appoin_diagnosis_id_49b3acc3_fk_medconnec` FOREIGN KEY (`diagnosis_id`) REFERENCES `medconnectapp_disease` (`id`),
   CONSTRAINT `medconnectapp_appoin_doctor_id_8b16fde3_fk_medconnec` FOREIGN KEY (`doctor_id`) REFERENCES `medconnectapp_doctor` (`user_id`),
   CONSTRAINT `medconnectapp_appoin_user_id_6566b019_fk_medconnec` FOREIGN KEY (`user_id`) REFERENCES `medconnectapp_user` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -253,7 +253,7 @@ CREATE TABLE `medconnectapp_appointment` (
 
 LOCK TABLES `medconnectapp_appointment` WRITE;
 /*!40000 ALTER TABLE `medconnectapp_appointment` DISABLE KEYS */;
-INSERT INTO `medconnectapp_appointment` VALUES (1,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','SCHEDULED','2026-04-16 08:00:00.000000','Khám sức khỏe','Mệt mỏi','Đợi khám','2026-04-16 08:00:00.000000',1,1,4),(2,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','COMPLETED','2026-04-15 09:00:00.000000','Đau họng','Ho, rát họng','Đã kê đơn thuốc','2026-04-15 09:00:00.000000',2,3,5),(3,0,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','CANCELED','2026-04-17 08:00:00.000000','Mờ mắt','Nhức mắt','Bệnh nhân bận đột xuất',NULL,3,1,6),(4,0,'2026-04-17 01:16:33.855010','2026-04-17 01:29:41.317752','SCHEDULED','2026-04-17 08:00:00.000000',NULL,NULL,NULL,NULL,8,1,10);
+INSERT INTO `medconnectapp_appointment` VALUES (1,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','SCHEDULED','2026-04-16 08:00:00.000000','Khám sức khỏe','Mệt mỏi','Đợi khám','2026-04-16 08:00:00.000000',1,1,4),(2,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','COMPLETED','2026-04-15 09:00:00.000000','Đau họng','Ho, rát họng','Đã kê đơn thuốc','2026-04-15 09:00:00.000000',2,3,5),(3,0,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','CANCELED','2026-04-17 08:00:00.000000','Mờ mắt','Nhức mắt','Bệnh nhân bận đột xuất',NULL,3,1,6),(4,1,'2026-04-17 01:16:33.855010','2026-04-17 01:29:41.317752','SCHEDULED','2026-04-17 08:00:00.000000',NULL,NULL,NULL,NULL,8,1,10),(5,1,'2026-04-17 01:59:24.830589','2026-04-17 01:59:24.830609','SCHEDULED','2026-04-18 08:00:00.000000',NULL,NULL,NULL,'2026-04-18 08:00:00.000000',8,1,10);
 /*!40000 ALTER TABLE `medconnectapp_appointment` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -459,7 +459,7 @@ CREATE TABLE `medconnectapp_doctorschedule` (
   PRIMARY KEY (`id`),
   KEY `medconnectapp_doctor_doctor_id_7f047439_fk_medconnec` (`doctor_id`),
   CONSTRAINT `medconnectapp_doctor_doctor_id_7f047439_fk_medconnec` FOREIGN KEY (`doctor_id`) REFERENCES `medconnectapp_doctor` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -468,7 +468,7 @@ CREATE TABLE `medconnectapp_doctorschedule` (
 
 LOCK TABLES `medconnectapp_doctorschedule` WRITE;
 /*!40000 ALTER TABLE `medconnectapp_doctorschedule` DISABLE KEYS */;
-INSERT INTO `medconnectapp_doctorschedule` VALUES (1,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','2026-04-16 08:00:00.000000',4,15,4),(2,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','2026-04-16 13:00:00.000000',4,15,5),(3,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','2026-04-17 08:00:00.000000',4,15,6),(4,1,'2026-04-17 01:15:08.940098','2026-04-17 01:15:08.940124','2026-04-17 07:30:00.000000',5,15,10);
+INSERT INTO `medconnectapp_doctorschedule` VALUES (1,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','2026-04-16 08:00:00.000000',4,15,4),(2,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','2026-04-16 13:00:00.000000',4,15,5),(3,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','2026-04-17 08:00:00.000000',4,15,6),(4,1,'2026-04-17 01:15:08.940098','2026-04-17 01:15:08.940124','2026-04-17 07:30:00.000000',5,15,10),(5,1,'2026-04-17 01:59:19.995223','2026-04-17 01:59:19.995265','2026-04-18 07:30:00.000000',5,15,10);
 /*!40000 ALTER TABLE `medconnectapp_doctorschedule` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -489,7 +489,7 @@ CREATE TABLE `medconnectapp_medicine` (
   `unit_price` decimal(10,2) NOT NULL,
   `unit` varchar(50) NOT NULL,
   `expired` date NOT NULL,
-  `category_id` bigint NOT NULL,
+  `category_id` bigint DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `medconnectapp_medici_category_id_bdd48046_fk_medconnec` (`category_id`),
   CONSTRAINT `medconnectapp_medici_category_id_bdd48046_fk_medconnec` FOREIGN KEY (`category_id`) REFERENCES `medconnectapp_medicinecategory` (`id`)
@@ -616,7 +616,7 @@ CREATE TABLE `medconnectapp_prescription` (
   PRIMARY KEY (`id`),
   KEY `medconnectapp_prescr_appointment_id_1e61b96e_fk_medconnec` (`appointment_id`),
   CONSTRAINT `medconnectapp_prescr_appointment_id_1e61b96e_fk_medconnec` FOREIGN KEY (`appointment_id`) REFERENCES `medconnectapp_appointment` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -625,7 +625,7 @@ CREATE TABLE `medconnectapp_prescription` (
 
 LOCK TABLES `medconnectapp_prescription` WRITE;
 /*!40000 ALTER TABLE `medconnectapp_prescription` DISABLE KEYS */;
-INSERT INTO `medconnectapp_prescription` VALUES (1,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','DISPENSED',2),(2,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','PENDING',1),(3,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','PENDING',3);
+INSERT INTO `medconnectapp_prescription` VALUES (1,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','DISPENSED',2),(2,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','PENDING',1),(3,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','PENDING',3),(4,1,'2026-04-17 02:05:44.263104','2026-04-17 04:10:23.389599','PENDING',4);
 /*!40000 ALTER TABLE `medconnectapp_prescription` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -654,7 +654,7 @@ CREATE TABLE `medconnectapp_prescriptiondetail` (
   KEY `medconnectapp_prescr_prescription_id_6744ce47_fk_medconnec` (`prescription_id`),
   CONSTRAINT `medconnectapp_prescr_medicine_id_b65a4bff_fk_medconnec` FOREIGN KEY (`medicine_id`) REFERENCES `medconnectapp_medicine` (`id`),
   CONSTRAINT `medconnectapp_prescr_prescription_id_6744ce47_fk_medconnec` FOREIGN KEY (`prescription_id`) REFERENCES `medconnectapp_prescription` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -663,7 +663,7 @@ CREATE TABLE `medconnectapp_prescriptiondetail` (
 
 LOCK TABLES `medconnectapp_prescriptiondetail` WRITE;
 /*!40000 ALTER TABLE `medconnectapp_prescriptiondetail` DISABLE KEYS */;
-INSERT INTO `medconnectapp_prescriptiondetail` VALUES (1,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000',10,1,2,5,5000.00,'AFTER_MEAL',1,1),(2,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000',10,1,2,5,2000.00,'AFTER_MEAL',2,1),(3,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000',20,1,1,20,3000.00,'BEFORE_MEAL',3,2);
+INSERT INTO `medconnectapp_prescriptiondetail` VALUES (1,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000',10,1,2,5,5000.00,'AFTER_MEAL',1,1),(2,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000',10,1,2,5,2000.00,'AFTER_MEAL',2,1),(3,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000',20,1,1,20,3000.00,'BEFORE_MEAL',3,2),(4,1,'2026-04-17 02:17:42.820304','2026-04-17 02:17:42.820352',14,1,2,7,5000.00,'AFTER_MEAL',1,4),(5,1,'2026-04-17 02:45:35.144551','2026-04-17 02:45:35.144595',14,1,2,7,2000.00,'AFTER_MEAL',2,4),(6,1,'2026-04-17 02:45:35.157307','2026-04-17 02:45:35.157354',4,1,1,4,3000.00,'AFTER_MEAL',3,4);
 /*!40000 ALTER TABLE `medconnectapp_prescriptiondetail` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -712,7 +712,7 @@ CREATE TABLE `medconnectapp_specialty` (
   `description` longtext,
   `image` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -721,7 +721,7 @@ CREATE TABLE `medconnectapp_specialty` (
 
 LOCK TABLES `medconnectapp_specialty` WRITE;
 /*!40000 ALTER TABLE `medconnectapp_specialty` DISABLE KEYS */;
-INSERT INTO `medconnectapp_specialty` VALUES (1,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','Nội tổng quát','Khám các bệnh lý nội khoa cơ bản','default_specialty.png'),(2,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','Tai Mũi Họng','Chuyên khám và điều trị Tai Mũi Họng','default_specialty.png'),(3,1,'2026-04-15 10:16:56.000000','2026-04-15 10:16:56.000000','Mắt','Khám và đo khúc xạ mắt','default_specialty.png');
+INSERT INTO `medconnectapp_specialty` VALUES (1,1,'2026-04-15 10:16:56.000000','2026-04-17 03:33:24.677605','Nội tổng quát','Khám các bệnh lý nội khoa cơ bản','image/upload/v1776396806/fec8pammvssecbdpf08i.png'),(2,1,'2026-04-15 10:16:56.000000','2026-04-17 03:33:13.244613','Tai Mũi Họng','Chuyên khám và điều trị Tai Mũi Họng','image/upload/v1776396795/wdey9rel2mkaz5jlb9ms.png'),(3,1,'2026-04-15 10:16:56.000000','2026-04-17 03:26:54.052082','Mắt','Khám và đo khúc xạ mắt','image/upload/v1776396416/op8zrf2s56fuzc42xwxi.png'),(4,1,'2026-04-17 03:34:20.932604','2026-04-17 03:34:20.932664','Xương khớp','Điều trị các bệnh liên quan về xương khớp','image/upload/Pngtree_doctor_check_the_eye_health_5315645_y7jg2j.png');
 /*!40000 ALTER TABLE `medconnectapp_specialty` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -745,7 +745,7 @@ CREATE TABLE `medconnectapp_user` (
   `updated_at` datetime(6) NOT NULL,
   `is_staff` tinyint(1) NOT NULL,
   `role` varchar(20) NOT NULL,
-  `phone` longtext NOT NULL,
+  `phone` varchar(10) NOT NULL,
   `avatar` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
@@ -884,7 +884,7 @@ CREATE TABLE `oauth2_provider_accesstoken` (
   CONSTRAINT `oauth2_provider_acce_id_token_id_85db651b_fk_oauth2_pr` FOREIGN KEY (`id_token_id`) REFERENCES `oauth2_provider_idtoken` (`id`),
   CONSTRAINT `oauth2_provider_acce_source_refresh_token_e66fbc72_fk_oauth2_pr` FOREIGN KEY (`source_refresh_token_id`) REFERENCES `oauth2_provider_refreshtoken` (`id`),
   CONSTRAINT `oauth2_provider_acce_user_id_6e4c9a65_fk_medconnec` FOREIGN KEY (`user_id`) REFERENCES `medconnectapp_user` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -893,7 +893,7 @@ CREATE TABLE `oauth2_provider_accesstoken` (
 
 LOCK TABLES `oauth2_provider_accesstoken` WRITE;
 /*!40000 ALTER TABLE `oauth2_provider_accesstoken` DISABLE KEYS */;
-INSERT INTO `oauth2_provider_accesstoken` VALUES (1,'SWhX25vFY6ZwqMbqq9LcCnbxJNFxA2','2026-04-17 11:10:55.977135','read write',1,8,'2026-04-17 01:10:55.978278','2026-04-17 01:10:55.978291',NULL,NULL,'1d43defb2756f83f2b56c3ae168549ecd5416ae419084211a744eac8e608c28d'),(2,'nTaoVlXoDGwgMQrSpWyQAuMm1h93KH','2026-04-17 11:25:47.364730','read write',1,1,'2026-04-17 01:25:47.365780','2026-04-17 01:25:47.365824',NULL,NULL,'b8ae74394654d3c41cb6910ed0d621204f0d8e6a26dd10d7ad7a9d2168e1e48a'),(3,'kkMIdeJbgBDp1cnIdQ02dPZAHc03p0','2026-04-17 11:26:04.786970','read write',1,8,'2026-04-17 01:26:04.787357','2026-04-17 01:26:04.787369',NULL,NULL,'8e5a5d2a3938a95db6a111cf1cfd0178aa4638f33bcedde97e7cdf16f7dd6d69');
+INSERT INTO `oauth2_provider_accesstoken` VALUES (1,'SWhX25vFY6ZwqMbqq9LcCnbxJNFxA2','2026-04-17 11:10:55.977135','read write',1,8,'2026-04-17 01:10:55.978278','2026-04-17 01:10:55.978291',NULL,NULL,'1d43defb2756f83f2b56c3ae168549ecd5416ae419084211a744eac8e608c28d'),(2,'nTaoVlXoDGwgMQrSpWyQAuMm1h93KH','2026-04-17 11:25:47.364730','read write',1,1,'2026-04-17 01:25:47.365780','2026-04-17 01:25:47.365824',NULL,NULL,'b8ae74394654d3c41cb6910ed0d621204f0d8e6a26dd10d7ad7a9d2168e1e48a'),(3,'kkMIdeJbgBDp1cnIdQ02dPZAHc03p0','2026-04-17 11:26:04.786970','read write',1,8,'2026-04-17 01:26:04.787357','2026-04-17 01:26:04.787369',NULL,NULL,'8e5a5d2a3938a95db6a111cf1cfd0178aa4638f33bcedde97e7cdf16f7dd6d69'),(4,'dDUKfrtLvMv8AiU84homaByyZ7UHam','2026-04-17 12:05:38.401219','read write',1,10,'2026-04-17 02:05:38.401968','2026-04-17 02:05:38.401987',NULL,NULL,'7d132fccfe86f00ee5afeab1c72079ae29d36b5c88d5c28bffb9db59d6cfcea8'),(5,'ZezlHWrld83oO1wz93JCauWuzzqllm','2026-04-17 13:46:11.820361','read write',1,8,'2026-04-17 03:46:11.821159','2026-04-17 03:46:11.821177',NULL,NULL,'cadcbe351d6ed6a97d6e936fd31d0d54c5d9e7b0e6b532f3859fca50445cbe12'),(6,'frYkZsIPBLQoeZUwCQeSmQjmE1n98h','2026-04-17 14:08:22.375414','read write',1,10,'2026-04-17 04:08:22.376175','2026-04-17 04:08:22.376195',NULL,NULL,'4011544eb8d682ffe30cb3a3f96c750b923ab45a9b8e719da64506a30c3aa830'),(7,'jWNFphOBSawF1upJefr3sC9GKVTKtc','2026-04-17 14:10:05.665194','read write',1,8,'2026-04-17 04:10:05.665930','2026-04-17 04:10:05.665943',NULL,NULL,'ecf815bb44aa5a6e28689f967783e4c01d6b5f787c7f2359c76b89a4e92efec1');
 /*!40000 ALTER TABLE `oauth2_provider_accesstoken` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1072,7 +1072,7 @@ CREATE TABLE `oauth2_provider_refreshtoken` (
   CONSTRAINT `oauth2_provider_refr_access_token_id_775e84e8_fk_oauth2_pr` FOREIGN KEY (`access_token_id`) REFERENCES `oauth2_provider_accesstoken` (`id`),
   CONSTRAINT `oauth2_provider_refr_application_id_2d1c311b_fk_oauth2_pr` FOREIGN KEY (`application_id`) REFERENCES `oauth2_provider_application` (`id`),
   CONSTRAINT `oauth2_provider_refr_user_id_da837fce_fk_medconnec` FOREIGN KEY (`user_id`) REFERENCES `medconnectapp_user` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1081,7 +1081,7 @@ CREATE TABLE `oauth2_provider_refreshtoken` (
 
 LOCK TABLES `oauth2_provider_refreshtoken` WRITE;
 /*!40000 ALTER TABLE `oauth2_provider_refreshtoken` DISABLE KEYS */;
-INSERT INTO `oauth2_provider_refreshtoken` VALUES (1,'wuLOyfaTmWLFSlKNjSBpYjpCLaob02',1,1,8,'2026-04-17 01:10:55.991725','2026-04-17 01:10:55.991780',NULL,'72938e14864a48c89aab40795574a6ad'),(2,'J3ILjdY8dhCL0S9d5WBYBlgyz39zew',2,1,1,'2026-04-17 01:25:47.368303','2026-04-17 01:25:47.368374',NULL,'cb16ee5b4fa24cbe8ff2316b54472435'),(3,'XfPX6saRpCLe9dIC1wHWJDYks1D6pe',3,1,8,'2026-04-17 01:26:04.788120','2026-04-17 01:26:04.788136',NULL,'d9ea3c1b6c13409195929879626fbb01');
+INSERT INTO `oauth2_provider_refreshtoken` VALUES (1,'wuLOyfaTmWLFSlKNjSBpYjpCLaob02',1,1,8,'2026-04-17 01:10:55.991725','2026-04-17 01:10:55.991780',NULL,'72938e14864a48c89aab40795574a6ad'),(2,'J3ILjdY8dhCL0S9d5WBYBlgyz39zew',2,1,1,'2026-04-17 01:25:47.368303','2026-04-17 01:25:47.368374',NULL,'cb16ee5b4fa24cbe8ff2316b54472435'),(3,'XfPX6saRpCLe9dIC1wHWJDYks1D6pe',3,1,8,'2026-04-17 01:26:04.788120','2026-04-17 01:26:04.788136',NULL,'d9ea3c1b6c13409195929879626fbb01'),(4,'AODVepIHeVaF5d7r1Zmf7QtT0GNmq1',4,1,10,'2026-04-17 02:05:38.404772','2026-04-17 02:05:38.404832',NULL,'9e9b578f1a844cb3871f72eb61549c63'),(5,'XNYul5F0JkKleGmwGDb9JERkVKZwJo',5,1,8,'2026-04-17 03:46:11.823304','2026-04-17 03:46:11.823346',NULL,'83b4183df4ca492aa96e2b52dc7a0e2a'),(6,'0WJ2UiwTbHu3RaNKgOoWTG3VDll7Kl',6,1,10,'2026-04-17 04:08:22.377994','2026-04-17 04:08:22.378022',NULL,'713c714df78240cf802b0951863aef7a'),(7,'wEfAG1rh8qSNuyvRNGGY4K85Wmequ0',7,1,8,'2026-04-17 04:10:05.667777','2026-04-17 04:10:05.667810',NULL,'2d799f1d8201477ebbf078ddc84910b9');
 /*!40000 ALTER TABLE `oauth2_provider_refreshtoken` ENABLE KEYS */;
 UNLOCK TABLES;
 SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
@@ -1095,4 +1095,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-17  8:40:41
+-- Dump completed on 2026-04-17 11:25:58
