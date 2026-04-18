@@ -1,8 +1,9 @@
 from datetime import timedelta
 
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework.fields import CurrentUserDefault, HiddenField
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ListSerializer, ModelSerializer
 
 from .models import (
     Appointment,
@@ -11,17 +12,17 @@ from .models import (
     Doctor,
     DoctorSchedule,
     Medicine,
+    MedicineCategory,
     PatientProfile,
     Prescription,
     PrescriptionDetail,
     Service,
     Specialty,
     User,
-    MedicineCategory,
 )
 
 
-class PrescriptionDetailSerializer(ModelSerializer):
+class PrescriptionDetailListSerializer(serializers.ListSerializer):
     class Meta:
         model = PrescriptionDetail
         fields = "__all__"
@@ -31,10 +32,108 @@ class PrescriptionDetailSerializer(ModelSerializer):
         }
 
     def create(self, validated_data):
-        medicine = validated_data.get("medicine")
-        if medicine:
-            validated_data["unit_price"] = medicine.unit_price
-        return super().create(validated_data)
+        prescription = self.context.get("prescription")
+
+        medicine_ids = [
+            item.get("medicine_id") for item in validated_data if "medicine_id" in item
+        ]
+
+        details = []
+
+        with transaction.atomic():
+            medicines = Medicine.objects.filter(id__in=medicine_ids).select_for_update()
+            medicine_map = {medicine.id: medicine for medicine in medicines}
+
+            if len(medicine_map) != len(set(medicine_ids)):
+                raise serializers.ValidationError(
+                    {"medicine": "Có id thuốc không tồn tại"}
+                )
+
+            for item in validated_data:
+                medicine_id = item.get("medicine_id")
+                quantity = item.get("quantity", 1)
+                medicine = medicine_map.get(medicine_id)
+
+                if medicine.stock < quantity:
+                    raise serializers.ValidationError(
+                        {
+                            "quantity": f"Thuốc {medicine.name} không đủ số lượng (chỉ còn {medicine.stock} {medicine.unit})."
+                        }
+                    )
+
+                medicine.stock -= quantity
+
+                detail = PrescriptionDetail.objects.create(
+                    prescription=prescription,
+                    medicine_id=medicine_id,
+                    unit_price=medicine.unit_price,
+                    quantity=quantity,
+                    dose=item.get("dose", 1),
+                    frequency=item.get("frequency", 1),
+                    duration_day=item.get("duration_day", 1),
+                    instruction=item.get("instruction"),
+                )
+                details.append(detail)
+
+            Medicine.objects.bulk_update(medicine_map.values(), ["stock"])
+        return details
+
+
+class PrescriptionDetailSerializer(ModelSerializer):
+    medicine = serializers.IntegerField(source="medicine_id")
+    id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = PrescriptionDetail
+        fields = "__all__"
+        extra_kwargs = {
+            "prescription": {"read_only": True},
+            "created_at": {"read_only": True},
+            "updated_at": {"read_only": True},
+            "unit_price": {"read_only": True},
+        }
+        list_serializer_class = PrescriptionDetailListSerializer
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        old_medicine_id = instance.medicine_id
+        old_quantity = instance.quantity
+        new_medicine_id = validated_data.get("medicine_id", old_medicine_id)
+        new_quantity = validated_data.get("quantity", old_quantity)
+
+        if new_medicine_id != old_medicine_id or new_quantity != old_quantity:
+            meds_to_lock = list(
+                set([m for m in [old_medicine_id, new_medicine_id] if m])
+            )
+            medicines = Medicine.objects.filter(id__in=meds_to_lock).select_for_update()
+            med_map = {m.id: m for m in medicines}
+
+            old_med = med_map.get(old_medicine_id)
+            new_med = med_map.get(new_medicine_id)
+
+            if not new_med:
+                raise serializers.ValidationError(
+                    {"medicine": f"Không tìm thấy thuốc #{new_medicine_id}"}
+                )
+
+            if old_med:
+                old_med.stock += old_quantity
+
+            if new_med.stock < new_quantity:
+                raise serializers.ValidationError(
+                    {
+                        "quantity": f"Thuốc '{new_med.name}' không đủ tồn kho (chỉ còn {new_med.stock} {new_med.unit})."
+                    }
+                )
+
+            new_med.stock -= new_quantity
+
+            if old_med and old_med.id != new_med.id:
+                old_med.save()
+            new_med.save()
+
+            validated_data["unit_price"] = new_med.unit_price
+        return super().update(instance, validated_data)
 
 
 class PrescriptionSerializer(ModelSerializer):
@@ -78,6 +177,16 @@ class AppointmentSerializer(ModelSerializer):
         fields = ["id", "user", "doctor", "status", "start"]
 
     def validate(self, attrs):
+        request = self.context.get("request")
+        if request and request.user:
+            user = request.user
+
+            if user and user.role == User.UserRole.PATIENT:
+                if not hasattr(user, "patient_profile"):
+                    raise serializers.ValidationError(
+                        {"err_msg": "Bạn cần cập nhật hồ sơ y tế trước khi đặt lịch"}
+                    )
+
         doctor = attrs.get("doctor")
         start = attrs.get("start")
         if doctor and start:
@@ -127,11 +236,11 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
         if self.instance:
             if self.instance.status != Appointment.AppointmentStatus.SCHEDULED:
                 raise serializers.ValidationError(
-                    "Chỉ có thể cập nhật lịch khám ở trạng thái SCHEDULED"
+                    {"status": "Chỉ có thể cập nhật lịch khám ở trạng thái SCHEDULED"}
                 )
             if value != Appointment.AppointmentStatus.CANCELED:
                 raise serializers.ValidationError(
-                    "Chỉ được chuyển sang trạng thái CANCELED"
+                    {"status": "Chỉ được chuyển sang trạng thái CANCELED"}
                 )
         return value
 
@@ -280,6 +389,6 @@ class PatientSpecialtySerializer(serializers.Serializer):
 
 
 class ReportPatientSerializer(serializers.Serializer):
-    by_age_groups = PatientAgeGroupSerializer(many=True)
-    by_genders = PatientGenderSerializer(many=True)
-    by_specialties = PatientSpecialtySerializer(many=True)
+    age_groups = PatientAgeGroupSerializer(many=True)
+    genders = PatientGenderSerializer(many=True)
+    specialties = PatientSpecialtySerializer(many=True)

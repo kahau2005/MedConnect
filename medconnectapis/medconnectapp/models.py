@@ -43,7 +43,9 @@ class PatientProfile(BaseModel):
         AB = "AB", "AB"
         O = "O", "O"
 
-    user = models.OneToOneField(User, on_delete=models.PROTECT, primary_key=True)
+    user = models.OneToOneField(
+        User, on_delete=models.PROTECT, primary_key=True, related_name="patient_profile"
+    )
     gender = models.CharField(max_length=10, choices=Gender.choices)
     dob = models.DateField(null=False)
     weight = models.FloatField(null=False)
@@ -52,6 +54,9 @@ class PatientProfile(BaseModel):
     chronic_diseases = models.TextField(null=True, blank=True)
     blood_type = models.CharField(max_length=2, choices=BloodType.choices, null=True)
     address = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.first_name} {self.user.last_name}"
 
 
 class Specialty(BaseModel):
