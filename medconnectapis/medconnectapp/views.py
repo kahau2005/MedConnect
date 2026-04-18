@@ -44,6 +44,7 @@ from .serializers import (
     SimpleUserSerializer,
     SpecialtySerializer,
     UserSerializer,
+    SimplePrescriptionSerializer,
 )
 
 
@@ -52,14 +53,14 @@ class AppointmentViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.action in ["list_prescriptions"]:
+        if self.action in ["prescriptions"]:
             return PrescriptionSerializer
         if self.action in ["partial_update"]:
             return AppointmentUpdateSerializer
         return AppointmentSerializer
 
     def get_permissions(self):
-        if self.action in ["list_prescriptions"]:
+        if self.action in ["prescriptions"]:
             if self.request.method == "GET":
                 return [perms.AppointmentOwnerOrDoctor()]
             elif self.request.method == "POST":
@@ -85,15 +86,14 @@ class AppointmentViewSet(viewsets.GenericViewSet):
         detail=True,
         methods=["get", "post"],
         url_path="prescriptions",
-        permission_classes=[perms.AppointmentOwnerOrDoctor],
     )
-    def list_prescriptions(self, request, pk):
+    def prescriptions(self, request, pk):
         appointment = self.get_object()
 
         if self.request.method == "GET":
             prescription = appointment.prescription_set.filter(active=True)
             return Response(
-                serializers.PrescriptionSerializer(prescription, many=True).data,
+                self.get_serializer(prescription, many=True).data,
                 status=status.HTTP_200_OK,
             )
 
@@ -187,34 +187,33 @@ class AppointmentViewSet(viewsets.GenericViewSet):
         )
 
 
-class PrescriptionViewSet(viewsets.ViewSet):
-    queryset = Prescription.objects.all()
+class PrescriptionViewSet(viewsets.GenericViewSet):
+    queryset = Prescription.objects.filter(active=True)
+    permission_classes = [perms.AppointmentDoctor]
 
     def get_serializer_class(self):
-        if self.action in ["create_details"]:
+        if self.action in ["create_details", "update_details"]:
             return PrescriptionDetailSerializer
+        elif self.action in ["partial_update"]:
+            return SimplePrescriptionSerializer
         return PrescriptionSerializer
 
     def partial_update(self, request, pk):
-        self.permission_classes = [perms.AppointmentDoctor]
-        prescription = self.queryset.get(pk=pk)
-        serializers = PrescriptionSerializer(
-            prescription, data=request.data, partial=True
-        )
+        prescription = self.get_object()
+        serializers = self.get_serializer(prescription, data=request.data, partial=True)
         serializers.is_valid(raise_exception=True)
         serializers.save()
-        return Response(serializers.data, status=status.HTTP_204_NO_CONTENT)
+        return Response(serializers.data, status=status.HTTP_200_OK)
 
     @action(
         detail=True,
         methods=["post"],
         url_path="details",
-        permission_classes=[perms.AppointmentDoctor],
     )
-    def create_detail(self, request, pk):
-        prescription = self.queryset.get(pk=pk)
+    def create_details(self, request, pk):
+        prescription = self.get_object()
 
-        serializers = PrescriptionDetailSerializer(data=request.data, many=True)
+        serializers = self.get_serializer(data=request.data, many=True)
         serializers.is_valid(raise_exception=True)
         serializers.save(prescription=prescription)
         return Response(serializers.data, status=status.HTTP_201_CREATED)
@@ -223,23 +222,16 @@ class PrescriptionViewSet(viewsets.ViewSet):
         detail=True,
         methods=["patch"],
         url_path="details/(?P<detail_pk>[^/.]+)",
-        permission_classes=[perms.AppointmentDoctor],
     )
-    def update_partial_detail(self, request, pk, detail_pk):
-        prescription = self.queryset.get(pk=pk)
-        if not prescription:
-            return Response(
-                {"msg": "Không tìm thấy đơn thuốc"}, status=status.HTTP_404_NOT_FOUND
-            )
+    def update_details(self, request, pk, detail_pk):
+        prescription = self.get_object()
         detail = prescription.details.filter(pk=detail_pk).first()
         if not detail:
             return Response(
                 {"msg": "Không tìm thấy chi tiết đơn thuốc"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        serializer = PrescriptionDetailSerializer(
-            detail, data=request.data, partial=True
-        )
+        serializer = self.get_serializer(detail, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -321,6 +313,7 @@ class MedicineViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveA
 class MedicineCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = MedicineCategory.objects.filter(active=True)
     serializer_class = MedicineCategorySerializer
+    permission_classes = [perms.IsDoctorOrAdmin]
 
 
 class PatientProfileViewSet(viewsets.ViewSet, generics.CreateAPIView):
