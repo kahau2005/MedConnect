@@ -3,6 +3,14 @@ from rest_framework import permissions
 from medconnectapp.models import User
 
 
+class IsPatient(permissions.IsAuthenticated):
+    def has_permission(self, request, view):
+        return (
+            super().has_permission(request, view)
+            and request.user.role == User.UserRole.PATIENT
+        )
+
+
 class IsDoctor(permissions.IsAuthenticated):
     def has_permission(self, request, view):
         return (
@@ -49,7 +57,12 @@ class AppointmentOwnerOrDoctor(permissions.IsAuthenticated):
 
 class AppointmentDoctor(permissions.IsAuthenticated):
     def has_object_permission(self, request, view, obj):
-        appointment = obj.appointment if hasattr(obj, "appointment") else obj
+        if hasattr(obj, "appointment"):
+            appointment = obj.appointment
+        elif hasattr(obj, "prescription"):
+            appointment = obj.prescription.appointment
+        else:
+            appointment = obj
         return (
             super().has_permission(request, view)
             and request.user.role == User.UserRole.DOCTOR
