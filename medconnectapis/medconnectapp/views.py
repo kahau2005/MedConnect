@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from django.db.models import Case, Count, Value, When, Q
+from django.db.models import Case, Count, Q, Value, When
 from django.db.models.fields import CharField
 from django.db.models.functions import ExtractYear, Now
 from django.shortcuts import render
@@ -11,12 +11,13 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from . import perms, serializers, utils
+from . import paginators, perms, serializers, utils
 from .models import (
     Appointment,
     Disease,
     DiseaseCategory,
     Doctor,
+    DoctorSchedule,
     Medicine,
     MedicineCategory,
     PatientProfile,
@@ -25,9 +26,11 @@ from .models import (
     Service,
     Specialty,
     User,
+    AppointmentService,
 )
 from .serializers import (
     AppointmentSerializer,
+    AppointmentServiceSerializer,
     AppointmentUpdateSerializer,
     DetailAppointmentSerializer,
     DetailMedicineSerializer,
@@ -46,13 +49,17 @@ from .serializers import (
     SimpleUserSerializer,
     SpecialtySerializer,
     UserSerializer,
-    AppointmentServiceSerializer,
 )
 
 
-class AppointmentViewSet(viewsets.GenericViewSet):
+class AppointmentViewSet(
+    viewsets.GenericViewSet,
+    generics.ListAPIView,
+    generics.RetrieveAPIView,
+):
     queryset = Appointment.objects.filter(active=True)
     permission_classes = [IsAuthenticated]
+    pagination_class = paginators.AppointmentPaginator
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -116,28 +123,26 @@ class AppointmentViewSet(viewsets.GenericViewSet):
                 return [perms.AppointmentDoctor()]
         return super().get_permissions()
 
-    @action(methods=["get"], url_path="doctors", detail=False)
+    @action(
+        methods=["get"],
+        url_path="doctors",
+        detail=False,
+        permission_classes=[perms.IsPatient],
+    )
     def doctors(self, request):
-        user = request.user
-        queryset = self.get_queryset()
-        queryset = queryset.filter(status=Appointment.AppointmentStatus.COMPLETED)
-        doctor_ids = queryset.values_list("doctor_id", flat=True).distinct()
+        completed_appointments = Appointment.objects.filter(
+            active=True,
+            user=request.user,
+            status=Appointment.AppointmentStatus.COMPLETED,
+        )
 
+        doctor_ids = completed_appointments.values_list(
+            "doctor_id", flat=True
+        ).distinct()
         doctors = Doctor.objects.filter(user_id__in=doctor_ids).select_related("user")
-        data = []
-        for d in doctors:
-            data.append(
-                {
-                    "id": d.user_id,
-                    "first_name": d.user.first_name,
-                    "last_name": d.user.last_name,
-                    "email": d.user.email,
-                    "avatar": d.user.avatar.url if d.user.avatar else None,
-                    "background": d.background,
-                    "specialty_id": d.specialty_id,
-                }
-            )
-        return Response(data, status=status.HTTP_200_OK)
+
+        serializer = DoctorSerializer(doctors, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
         methods=["get"],
@@ -160,26 +165,13 @@ class AppointmentViewSet(viewsets.GenericViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def list(self, request):
-        queryset = self.get_queryset()
-        return Response(
-            self.get_serializer(queryset, many=True).data, status=status.HTTP_200_OK
-        )
-
-    def retrieve(self, request, pk=None):
-        appointment = self.get_object()
-        return Response(
-            self.get_serializer(appointment).data,
-            status=status.HTTP_200_OK,
-        )
-
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def partial_update(self, request, pk):
+    def partial_update(self, request, pk=None):
         appointment = self.get_object()
         serializer = self.get_serializer(appointment, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -304,6 +296,12 @@ class AppointmentViewSet(viewsets.GenericViewSet):
         )
 
 
+class AppointmentServiceViewSet(viewsets.GenericViewSet):
+    queryset = AppointmentService.objects.filter(active=True)
+    serializer_class = AppointmentServiceSerializer
+    permission_classes = [perms.AppointmentDoctor]
+
+
 class PrescriptionViewSet(viewsets.GenericViewSet):
     queryset = Prescription.objects.filter(active=True)
     permission_classes = [perms.AppointmentDoctor]
@@ -370,12 +368,7 @@ class DiseaseViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
 class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Specialty.objects.filter(active=True)
     serializer_class = SpecialtySerializer
-
-    @action(methods=["get"], url_path="doctors", detail=True)
-    def get_doctors(self, request, pk=None):
-        specialty = self.get_object()
-        doctors = specialty.doctor_set.all()
-        return Response(serializers.DoctorSerializer(doctors, many=True).data)
+    pagination_class = paginators.SpecialtyPaginator
 
     @action(
         methods=["post"],
@@ -502,19 +495,35 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = Doctor.objects.filter(user__is_active=True)
     serializer_class = DoctorSerializer
+    pagination_class = paginators.DoctorPaginator
 
-    @action(
-        methods=["get"],
-        url_path="current-user/schedules",
-        detail=False,
-        permission_classes=[perms.IsDoctor],
-    )
-    def get_schedules(self, request):
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related("user", "specialty")
+        specialty_id = self.request.query_params.get("specialty_id")
+        kw = self.request.query_params.get("kw")
+
+        if specialty_id:
+            queryset = queryset.filter(specialty_id=specialty_id)
+        if kw:
+            queryset = queryset.filter(
+                Q(user__first_name__icontains=kw) | Q(user__last_name__icontains=kw)
+            )
+        return queryset
+
+
+class DoctorScheduleViewSet(viewsets.ViewSet):
+    queryset = DoctorSchedule.objects.filter(active=True)
+    serializer_class = serializers.DoctorScheduleSerializer
+    permission_classes = [perms.IsDoctor]
+
+    def list(self, request):
         doctor = request.user.doctor_profile
-        schedules = doctor.doctorschedule_set.filter(
-            start_time__date=timezone.localdate()
-        )
-        return Response(serializers.DoctorScheduleSerializer(schedules, many=True).data)
+        schedules = self.queryset.filter(
+            doctor=doctor,
+            start_time__date=timezone.localdate(),
+        ).order_by("start_time")
+        serializer = self.serializer_class(schedules, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ReportViewSet(viewsets.ViewSet):

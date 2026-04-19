@@ -1,12 +1,14 @@
 from datetime import timedelta
 
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.fields import CurrentUserDefault, HiddenField
 from rest_framework.serializers import ListSerializer, ModelSerializer
 
 from .models import (
     Appointment,
+    AppointmentService,
     Disease,
     DiseaseCategory,
     Doctor,
@@ -18,12 +20,12 @@ from .models import (
     PrescriptionDetail,
     Service,
     Specialty,
+    TestResult,
     User,
-    AppointmentService,
 )
 
 
-class PrescriptionDetailListSerializer(serializers.ListSerializer):
+class PrescriptionDetailListSerializer(ListSerializer):
     class Meta:
         model = PrescriptionDetail
         fields = "__all__"
@@ -212,7 +214,14 @@ class AppointmentSerializer(ModelSerializer):
 
         doctor = attrs.get("doctor")
         start = attrs.get("start")
-        if doctor and start:
+        if start:
+            now = timezone.now()
+            if start <= now:
+                raise serializers.ValidationError(
+                    {"start": "Không được phép đặt lịch ở quá khứ"}
+                )
+
+        if doctor:
             schedule = doctor.doctorschedule_set.filter(
                 start_time__date=start.date()
             ).first()
@@ -261,9 +270,12 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
                 raise serializers.ValidationError(
                     {"status": "Chỉ có thể cập nhật lịch khám ở trạng thái SCHEDULED"}
                 )
-            if value != Appointment.AppointmentStatus.CANCELED:
+            if (
+                value != Appointment.AppointmentStatus.CANCELED
+                or value != Appointment.AppointmentStatus.COMPLETED
+            ):
                 raise serializers.ValidationError(
-                    {"status": "Chỉ được chuyển sang trạng thái CANCELED"}
+                    {"status": "Cập nhật trạng thái không hợp lệ"}
                 )
         return value
 
@@ -309,6 +321,25 @@ class AppointmentServiceSerializer(ModelSerializer):
         instance.unit_price = service.price
         instance.save()
         return instance
+
+
+class TestResultSerializer(ModelSerializer):
+    class Meta:
+        model = TestResult
+        fields = "__all__"
+        extra_kwargs = {
+            "id": {"read_only": True},
+            "appointment_service": {"read_only": True},
+            "tested_by": {"read_only": True},
+            "active": {"read_only": True},
+            "created_at": {"read_only": True},
+            "updated_at": {"read_only": True},
+        }
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        validated_data["tested_by"] = request.user.doctor_profile
+        return super().create(validated_data)
 
 
 class DiseaseCategorySerializer(ModelSerializer):
@@ -415,14 +446,20 @@ class DetailMedicineSerializer(ModelSerializer):
 
 
 class DoctorSerializer(ModelSerializer):
-    first_name = serializers.CharField(source="user.first_name", read_only=True)
-    last_name = serializers.CharField(source="user.last_name", read_only=True)
-    avatar = serializers.ImageField(source="user.avatar", read_only=True)
-    email = serializers.EmailField(source="user.email", read_only=True)
-
     class Meta:
         model = Doctor
-        fields = ["user_id", "first_name", "last_name", "email", "avatar", "background"]
+        fields = ["user_id", "background", "specialty_id"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        user = instance.user
+        data["id"] = instance.user_id
+        data["first_name"] = user.first_name
+        data["last_name"] = user.last_name
+        data["email"] = user.email
+        data["avatar"] = user.avatar.url if user and user.avatar else None
+        return data
 
 
 class DoctorScheduleSerializer(ModelSerializer):
