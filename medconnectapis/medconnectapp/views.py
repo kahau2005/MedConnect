@@ -53,6 +53,7 @@ from .serializers import (
     SpecialtySerializer,
     TestResultSerializer,
     UserSerializer,
+    ServicePopularSerializer,
 )
 
 
@@ -494,17 +495,21 @@ class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
     def get_serializer_class(self):
         if self.action == "retrieve":
             return DetailServiceSerializer
+        if self.action == "popular_services":
+            return ServicePopularSerializer
         return ServiceSerializer
 
     @action(methods=["get"], url_path="popular", detail=False)
     def popular_services(self, request):
         popular = (
-            AppointmentService.objects.filter(active=True)
-            .values("service_id", "service__name")
-            .annotate(total=Count("id"))
+            Service.objects.filter(active=True, appointmentservice__active=True)
+            .annotate(total=Count("appointmentservice__id"))
+            .filter(total__gt=0)
             .order_by("-total")[:5]
         )
-        return Response(popular, status=status.HTTP_200_OK)
+
+        serializer = self.get_serializer(popular, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class MedicineViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
