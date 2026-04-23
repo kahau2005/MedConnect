@@ -475,6 +475,12 @@ class SpecialtySerializer(ModelSerializer):
             data["image"] = instance.image.url
         return data
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.image:
+            data["image"] = instance.image.url
+        return data
+
 
 class PatientProfileSerializer(ModelSerializer):
     user = HiddenField(default=CurrentUserDefault())
