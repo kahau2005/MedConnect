@@ -589,8 +589,8 @@ class PatientGenderSerializer(serializers.Serializer):
 
 
 class PatientSpecialtySerializer(serializers.Serializer):
-    specialty_id = serializers.IntegerField()
-    specialty_name = serializers.CharField()
+    specialty_id = serializers.IntegerField(source="doctor__specialty_id")
+    specialty_name = serializers.CharField(source="doctor__specialty__name")
     total = serializers.IntegerField()
 
 
@@ -598,3 +598,53 @@ class ReportPatientSerializer(serializers.Serializer):
     age_groups = PatientAgeGroupSerializer(many=True)
     genders = PatientGenderSerializer(many=True)
     specialties = PatientSpecialtySerializer(many=True)
+
+
+class ServiceUsageSerializer(serializers.Serializer):
+    service_id = serializers.IntegerField()
+    service_name = serializers.CharField(source="service__name")
+    total_quantity = serializers.IntegerField()
+    total_revenue = serializers.DecimalField(max_digits=15, decimal_places=2)
+    total_appointments = serializers.IntegerField()
+
+
+class ReportServiceSerializer(serializers.Serializer):
+    services = ServiceUsageSerializer(many=True)
+
+
+class DiseaseStatsSerializer(serializers.Serializer):
+    disease_id = serializers.IntegerField(source="diagnosis_id")
+    disease_name = serializers.CharField(source="diagnosis__name")
+    total_appointments = serializers.IntegerField()
+
+
+class ReportDiseaseListSerializer(serializers.ListSerializer):
+    def to_representation(self, data):
+        grouped_data = {}
+
+        for row in data:
+            cat_id = row["diagnosis__disease_category__id"]
+
+            if cat_id not in grouped_data:
+                grouped_data[cat_id] = {
+                    "id": cat_id,
+                    "category_name": row["diagnosis__disease_category__name"],
+                    "total_appointments": 0,
+                    "diseases": [],
+                }
+
+            grouped_data[cat_id]["diseases"].append(row)
+
+            grouped_data[cat_id]["total_appointments"] += row["total_appointments"]
+
+        return super().to_representation(grouped_data.values())
+
+
+class ReportDiseaseSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    category_name = serializers.CharField()
+    total_cases = serializers.IntegerField(source="total_appointments")
+    diseases = DiseaseStatsSerializer(many=True)
+
+    class Meta:
+        list_serializer_class = ReportDiseaseListSerializer
