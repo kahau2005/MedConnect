@@ -1,19 +1,22 @@
 import os
 from datetime import datetime
 
-from django.db.models import Case, Count, Q, Value, When
+from django.db import IntegrityError
+from django.db.models import Case, Count, Q, Value, When, Prefetch
 from django.db.models.fields import CharField
 from django.db.models.functions import ExtractYear, Now
 from django.shortcuts import render
 from django.utils import timezone
 from rest_framework import generics, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from . import paginators, perms, serializers, utils
 from .models import (
     Appointment,
+    AppointmentService,
     Disease,
     DiseaseCategory,
     Doctor,
@@ -26,7 +29,7 @@ from .models import (
     Service,
     Specialty,
     User,
-    AppointmentService,
+    TestResult,
 )
 from .serializers import (
     AppointmentSerializer,
@@ -49,51 +52,76 @@ from .serializers import (
     SimpleUserSerializer,
     SpecialtySerializer,
     UserSerializer,
+    TestResultSerializer,
 )
 
 
-class AppointmentViewSet(
-    viewsets.GenericViewSet,
-    generics.ListAPIView,
-    generics.RetrieveAPIView,
-):
-    queryset = Appointment.objects.filter(active=True)
+class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = paginators.AppointmentPaginator
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.user.role == User.UserRole.PATIENT:
-            queryset = queryset.filter(user=self.request.user)
-        status_param = self.request.query_params.get("status")
-        from_date = self.request.query_params.get("from_date")
-        to_date = self.request.query_params.get("to_date")
-        kw = self.request.query_params.get("kw")
-        doctor_id = self.request.query_params.get("doctor_id")
+        user = self.request.user
+        queryset = Appointment.objects.filter(active=True)
 
-        if status_param:
-            queryset = queryset.filter(status=status_param)
-        if from_date:
-            try:
-                parsed_from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
-                queryset = queryset.filter(start__date__gte=parsed_from_date)
-            except Exception:
-                raise ValueError({"from_date": "Invalid from date"})
-        if to_date:
-            try:
-                parsed_to_date = datetime.strptime(to_date, "%Y-%m-%d").date()
-                queryset = queryset.filter(start__date__lte=parsed_to_date)
-            except Exception:
-                raise ValueError({"to_date": "Invalid to date"})
-        if kw:
-            queryset = queryset.filter(
-                Q(reason__icontains=kw)
-                | Q(symptoms__icontains=kw)
-                | Q(note__icontains=kw)
-                | Q(diagnosis__name__icontains=kw)
+        if self.action == "retrieve":
+            queryset = queryset.select_related("diagnosis").prefetch_related(
+                Prefetch(
+                    "prescription_set",
+                    queryset=Prescription.objects.filter(active=True).prefetch_related(
+                        Prefetch(
+                            "details",
+                            queryset=PrescriptionDetail.objects.filter(
+                                active=True
+                            ).select_related("medicine"),
+                        )
+                    ),
+                ),
+                Prefetch(
+                    "services",
+                    queryset=AppointmentService.objects.filter(
+                        active=True
+                    ).select_related("test_result", "service"),
+                ),
             )
-        if doctor_id:
-            queryset = queryset.filter(doctor_id=doctor_id)
+            return queryset
+
+        if self.action in ["list", "today"]:
+            queryset = queryset.select_related("user", "doctor")
+            if user.role == User.UserRole.PATIENT:
+                queryset = queryset.filter(user=user)
+            elif user.role == User.UserRole.DOCTOR:
+                queryset = queryset.filter(Q(user=user) | Q(doctor__user=user))
+
+            status_param = self.request.query_params.get("status")
+            from_date = self.request.query_params.get("from_date")
+            to_date = self.request.query_params.get("to_date")
+            kw = self.request.query_params.get("kw")
+            doctor_id = self.request.query_params.get("doctor_id")
+
+            if status_param:
+                queryset = queryset.filter(status=status_param)
+            if from_date:
+                try:
+                    parsed_from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+                    queryset = queryset.filter(start__date__gte=parsed_from_date)
+                except Exception:
+                    raise ValueError({"from_date": "Invalid from date"})
+            if to_date:
+                try:
+                    parsed_to_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+                    queryset = queryset.filter(start__date__lte=parsed_to_date)
+                except Exception:
+                    raise ValueError({"to_date": "Invalid to date"})
+            if kw:
+                queryset = queryset.filter(
+                    Q(reason__icontains=kw)
+                    | Q(symptoms__icontains=kw)
+                    | Q(note__icontains=kw)
+                    | Q(diagnosis__name__icontains=kw)
+                )
+            if doctor_id:
+                queryset = queryset.filter(doctor_id=doctor_id)
         return queryset
 
     def get_serializer_class(self):
@@ -115,7 +143,7 @@ class AppointmentViewSet(
             elif self.request.method == "POST":
                 return [perms.AppointmentDoctor()]
         elif self.action in ["partial_update"]:
-            return [perms.AppointmentOwner()]
+            return [perms.AppointmentOwnerOrDoctor()]
         elif self.action in ["services"]:
             if self.request.method == "GET":
                 return [perms.AppointmentOwnerOrDoctor()]
@@ -123,11 +151,15 @@ class AppointmentViewSet(
                 return [perms.AppointmentDoctor()]
         return super().get_permissions()
 
+    def retrieve(self, request, pk=None):
+        appointment = self.get_object()
+        serializer = self.get_serializer(appointment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     @action(
         methods=["get"],
         url_path="doctors",
         detail=False,
-        permission_classes=[perms.IsPatient],
     )
     def doctors(self, request):
         completed_appointments = Appointment.objects.filter(
@@ -153,9 +185,8 @@ class AppointmentViewSet(
     def today(self, request):
         queryset = self.get_queryset()
         today = timezone.localdate()
-        doctor = request.user.doctor_profile
         queryset = queryset.filter(
-            doctor=doctor,
+            doctor_id=request.user.id,
             start__date=today,
             status__in=[
                 Appointment.AppointmentStatus.SCHEDULED,
@@ -168,7 +199,12 @@ class AppointmentViewSet(
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(user=request.user)
+        try:
+            serializer.save(user=request.user)
+        except IntegrityError:
+            raise ValidationError(
+                {"start": "This time slot has just been booked by another patient"}
+            )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def partial_update(self, request, pk=None):
@@ -187,30 +223,43 @@ class AppointmentViewSet(
         appointment = self.get_object()
 
         if self.request.method == "GET":
-            prescription = appointment.prescription_set.prefetch_related(
-                "details"
-            ).filter(active=True)
+            prescriptions = appointment.prescription_set.filter(
+                active=True
+            ).prefetch_related(
+                Prefetch(
+                    "details",
+                    queryset=PrescriptionDetail.objects.select_related("medicine"),
+                )
+            )
             return Response(
-                self.get_serializer(prescription, many=True).data,
+                self.get_serializer(prescriptions, many=True).data,
                 status=status.HTTP_200_OK,
             )
 
         data = request.data
-        s = self.get_serializer(data=data)
+        s = self.get_serializer(data=data, context={"appointment": appointment})
         s.is_valid(raise_exception=True)
         s.save(appointment=appointment)
         return Response(s.data, status=status.HTTP_201_CREATED)
 
     @action(methods=["get", "post"], url_path="services", detail=True)
-    def services(self, request):
+    def services(self, request, pk=None):
         appointment = self.get_object()
 
         if request.method == "GET":
-            q = appointment.services.filter(active=True).select_related("service")
+            q = appointment.services.filter(active=True).select_related(
+                "service", "test_result"
+            )
             return Response(
                 AppointmentServiceSerializer(q, many=True).data,
                 status=status.HTTP_200_OK,
             )
+        serializer = AppointmentServiceSerializer(
+            data=request.data, context={"appointment": appointment}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(
         detail=True,
@@ -271,7 +320,7 @@ class AppointmentViewSet(
                         {
                             "order_id": order_id,
                             "amount": amount,
-                            "msg": "Thanh toán thành công",
+                            "msg": "Payment successful",
                         },
                         status=status.HTTP_200_OK,
                     )
@@ -281,28 +330,65 @@ class AppointmentViewSet(
                         {
                             "order_id": order_id,
                             "amount": amount,
-                            "msg": "Thanh toán thất bại",
+                            "msg": f"Payment failed with response code: {vnp_ResponseCode}",
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
             else:
                 return Response(
-                    {"msg": "Sai chữ ký bảo mật!"}, status=status.HTTP_400_BAD_REQUEST
+                    {"msg": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST
                 )
 
         return Response(
-            {"msg": "Không có dữ liệu trả về"}, status=status.HTTP_400_BAD_REQUEST
+            {"msg": "No response data received"}, status=status.HTTP_400_BAD_REQUEST
         )
 
 
 class AppointmentServiceViewSet(viewsets.GenericViewSet):
-    queryset = AppointmentService.objects.filter(active=True)
+    queryset = AppointmentService.objects.filter(active=True).select_related(
+        "appointment"
+    )
     serializer_class = AppointmentServiceSerializer
     permission_classes = [perms.AppointmentDoctor]
 
+    def partial_update(self, request, pk=None):
+        service = self.get_object()
+        appointment = service.appointment
+        serializer = self.get_serializer(
+            service,
+            data=request.data,
+            partial=True,
+            context={"appointment": appointment},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-class PrescriptionViewSet(viewsets.GenericViewSet):
+    @action(methods=["get", "post"], url_path="results", detail=True)
+    def test_results(self, request, pk=None):
+        appointment_service = self.get_object()
+        if request.method == "GET":
+            try:
+                result = appointment_service.test_result
+                return Response(
+                    TestResultSerializer(result).data, status=status.HTTP_200_OK
+                )
+            except TestResult.DoesNotExist:
+                return Response(
+                    {"error": "No test result found for this appointment service"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        serializer = TestResultSerializer(
+            data=request.data,
+            context={"request": request, "appointment_service": appointment_service},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class PrescriptionViewSet(viewsets.GenericViewSet, generics.RetrieveAPIView):
     queryset = Prescription.objects.filter(active=True)
     permission_classes = [perms.AppointmentDoctor]
 
@@ -380,7 +466,7 @@ class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
         symptoms = request.data.get("symptoms")
         if not symptoms:
             return Response(
-                {"err_msg": "Vui lòng cung cấp triệu chứng"},
+                {"error": "Please provide symptoms for recommendation"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
@@ -390,13 +476,13 @@ class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
                     SpecialtySerializer(specialty).data, status=status.HTTP_200_OK
                 )
             return Response(
-                {"err_msg": "Không tìm thấy chuyên khoa phù hợp!"},
+                {"error": "No suitable specialty found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
         except Exception as ex:
             print(ex)
             return Response(
-                {"err_msg": str(ex)},
+                {"error": str(ex)},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -429,7 +515,7 @@ class MedicineCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = UserSerializer
-    parser_classes = [parsers.MultiPartParser]
+    parser_classes = [parsers.MultiPartParser, parsers.JSONParser]
 
     @action(
         methods=["get", "patch"],
@@ -461,17 +547,19 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 )
             except PatientProfile.DoesNotExist:
                 return Response(
-                    {"err_msg": "Người dùng chưa có hồ sơ bệnh nhân."},
+                    {"error": "User does not have a patient profile yet"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
         if request.method == "POST":
             if PatientProfile.objects.filter(user=request.user).exists():
                 return Response(
-                    {"err_msg": "Người dùng đã có hồ sơ bệnh nhân."},
+                    {"error": "User already has a patient profile"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            serializer = PatientProfileSerializer(data=request.data)
+            serializer = PatientProfileSerializer(
+                data=request.data, context={"request": self.request}
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -481,7 +569,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 profile = PatientProfile.objects.get(user=request.user)
             except PatientProfile.DoesNotExist:
                 return Response(
-                    {"err_msg": "Người dùng chưa có hồ sơ bệnh nhân."},
+                    {"error": "User does not have a patient profile yet"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
             serializer = PatientProfileSerializer(

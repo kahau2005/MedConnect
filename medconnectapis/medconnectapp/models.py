@@ -103,6 +103,7 @@ class Disease(BaseModel):
 class Appointment(BaseModel):
     class AppointmentStatus(models.TextChoices):
         SCHEDULED = "SCHEDULED", "Đã đặt lịch"
+        PENDING = "PENDING", "Đang khám"
         COMPLETED = "COMPLETED", "Đã khám"
         CANCELED = "CANCELED", "Đã hủy"
 

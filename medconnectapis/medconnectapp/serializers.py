@@ -36,6 +36,13 @@ class PrescriptionDetailListSerializer(ListSerializer):
 
     def create(self, validated_data):
         prescription = self.context["prescription"]
+        appointment = prescription.appointment
+        if appointment.status != Appointment.AppointmentStatus.PENDING:
+            raise serializers.ValidationError(
+                {
+                    "status": "Medicines can only be prescribed when the appointment is in PENDING status"
+                }
+            )
 
         medicine_ids = [
             item["medicine_id"] for item in validated_data if "medicine_id" in item
@@ -49,23 +56,23 @@ class PrescriptionDetailListSerializer(ListSerializer):
 
             if len(medicine_map) != len(set(medicine_ids)):
                 raise serializers.ValidationError(
-                    {"medicine": "Có id thuốc không tồn tại"}
+                    {"medicine": "There are some medicine IDs that do not exist"}
                 )
 
             for item in validated_data:
                 medicine_id = item["medicine_id"]
                 quantity = item["quantity"]
-                medicine = medicine_map.get[medicine_id]
+                medicine = medicine_map.get(medicine_id)
 
                 if not medicine:
                     raise serializers.ValidationError(
-                        {"medicine": f"Không tìm thấy thuốc #{medicine_id}"}
+                        {"medicine": f"Medicine #{medicine_id} does not exist"}
                     )
 
                 if medicine.stock < quantity:
                     raise serializers.ValidationError(
                         {
-                            "quantity": f"Thuốc {medicine.name} không đủ số lượng (chỉ còn {medicine.stock} {medicine.unit})."
+                            "quantity": f"{medicine.name} does not have enough stock (only {medicine.stock} {medicine.unit} left)."
                         }
                     )
 
@@ -87,8 +94,13 @@ class PrescriptionDetailListSerializer(ListSerializer):
         return details
 
 
+class PrescriptionDetailMedicineSerializer(ModelSerializer):
+    class Meta:
+        model = Medicine
+        fields = ["id", "name"]
+
+
 class PrescriptionDetailSerializer(ModelSerializer):
-    medicine = serializers.IntegerField(source="medicine_id")
     quantity = serializers.IntegerField(min_value=1)
     dose = serializers.IntegerField(min_value=1)
     frequency = serializers.IntegerField(min_value=1)
@@ -118,8 +130,38 @@ class PrescriptionDetailSerializer(ModelSerializer):
         }
         list_serializer_class = PrescriptionDetailListSerializer
 
+    def to_internal_value(self, data):
+        obj = super().to_internal_value(data)
+        medicine_val = data.get("medicine", serializers.empty)
+        try:
+            medicine_id = int(medicine_val)
+        except TypeError, ValueError:
+            raise serializers.ValidationError({"medicine": "Invalid medicine ID"})
+        obj["medicine_id"] = medicine_id
+        return obj
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.medicine_id and instance.medicine:
+            data["medicine"] = {
+                "id": instance.medicine_id,
+                "name": instance.medicine.name,
+            }
+        else:
+            data["medicine"] = None
+
+        return data
+
     @transaction.atomic
     def update(self, instance, validated_data):
+        appointment = instance.prescription.appointment
+        if appointment.status != Appointment.AppointmentStatus.PENDING:
+            raise serializers.ValidationError(
+                {
+                    "status": "Prescribed medicines can only be updated when the appointment is in PENDING status"
+                }
+            )
+
         old_medicine_id = instance.medicine_id
         old_quantity = instance.quantity
         new_medicine_id = validated_data.get("medicine_id", old_medicine_id)
@@ -139,13 +181,13 @@ class PrescriptionDetailSerializer(ModelSerializer):
 
             if not new_medicine:
                 raise serializers.ValidationError(
-                    {"medicine": f"Không tìm thấy thuốc #{new_medicine_id}"}
+                    {"medicine": f"{new_medicine_id} not found"}
                 )
 
             if new_medicine.stock < new_quantity:
                 raise serializers.ValidationError(
                     {
-                        "quantity": f"Thuốc {new_medicine.name} không đủ tồn kho (chỉ còn {new_medicine.stock} {new_medicine.unit})."
+                        "quantity": f"{new_medicine.name} does not have enough stock (only {new_medicine.stock} {new_medicine.unit} left)."
                     }
                 )
             if old_medicine:
@@ -189,6 +231,16 @@ class SimplePrescriptionSerializer(ModelSerializer):
             "updated_at": {"read_only": True},
         }
 
+    def validate(self, attrs):
+        appointment = self.context.get("appointment")
+        if appointment and appointment.status != Appointment.AppointmentStatus.PENDING:
+            raise serializers.ValidationError(
+                {
+                    "status": "Prescription can only be added when the appointment is in PENDING status"
+                }
+            )
+        return attrs
+
 
 class AppointmentSerializer(ModelSerializer):
     class Meta:
@@ -206,11 +258,12 @@ class AppointmentSerializer(ModelSerializer):
         if request and request.user:
             user = request.user
 
-            if user and user.role == User.UserRole.PATIENT:
-                if not hasattr(user, "patient_profile"):
-                    raise serializers.ValidationError(
-                        {"err_msg": "Bạn cần cập nhật hồ sơ y tế trước khi đặt lịch"}
-                    )
+            if not hasattr(user, "patient_profile"):
+                raise serializers.ValidationError(
+                    {
+                        "error": "Please complete your patient profile before booking an appointment."
+                    }
+                )
 
         doctor = attrs.get("doctor")
         start = attrs.get("start")
@@ -218,7 +271,7 @@ class AppointmentSerializer(ModelSerializer):
             now = timezone.now()
             if start <= now:
                 raise serializers.ValidationError(
-                    {"start": "Không được phép đặt lịch ở quá khứ"}
+                    {"start": "Can not book an appointment in the past"}
                 )
 
         if doctor:
@@ -227,16 +280,16 @@ class AppointmentSerializer(ModelSerializer):
             ).first()
             if not schedule:
                 raise serializers.ValidationError(
-                    {"start": "Bác sĩ không có ca làm việc vào ngày này"}
+                    {
+                        "start": "The doctor does not have a schedule on the selected date."
+                    }
                 )
 
             shift_end_time = schedule.start_time + timedelta(hours=schedule.hours)
             appointment_end_time = start + timedelta(minutes=schedule.duration)
             if start < schedule.start_time or appointment_end_time > shift_end_time:
                 raise serializers.ValidationError(
-                    {
-                        "start": "Thời gian đặt lịch không nằm trong khung giờ làm việc của bác sĩ."
-                    }
+                    {"start": "The selected time is outside the doctor working hours"}
                 )
 
             is_overlapping = Appointment.objects.filter(
@@ -248,7 +301,9 @@ class AppointmentSerializer(ModelSerializer):
             )
             if is_overlapping.exists():
                 raise serializers.ValidationError(
-                    {"start": "Khung giờ bạn tính đặt đã có người khác đặt trước"}
+                    {
+                        "start": "The doctor already has an appointment at the selected time"
+                    }
                 )
         return attrs
 
@@ -266,61 +321,22 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
 
     def validate_status(self, value):
         if self.instance:
-            if self.instance.status != Appointment.AppointmentStatus.SCHEDULED:
-                raise serializers.ValidationError(
-                    {"status": "Chỉ có thể cập nhật lịch khám ở trạng thái SCHEDULED"}
-                )
-            if (
-                value != Appointment.AppointmentStatus.CANCELED
-                or value != Appointment.AppointmentStatus.COMPLETED
+            if self.instance.status not in (
+                Appointment.AppointmentStatus.SCHEDULED,
+                Appointment.AppointmentStatus.PENDING,
             ):
                 raise serializers.ValidationError(
-                    {"status": "Cập nhật trạng thái không hợp lệ"}
+                    {
+                        "status": "Only appointments with status SCHEDULED or PENDING can be updated"
+                    }
                 )
+            if value not in (
+                Appointment.AppointmentStatus.PENDING.value,
+                Appointment.AppointmentStatus.COMPLETED.value,
+                Appointment.AppointmentStatus.CANCELED.value,
+            ):
+                raise serializers.ValidationError({"status": "Invalid status update"})
         return value
-
-
-class DetailAppointmentSerializer(ModelSerializer):
-    class Meta:
-        model = Appointment
-        fields = "__all__"
-        extra_kwargs = {"user": {"read_only": True}}
-
-
-class AppointmentServiceSerializer(ModelSerializer):
-    class Meta:
-        model = AppointmentService
-        fields = "__all__"
-        extra_kwargs = {
-            "id": {"read_only": True},
-            "appointment": {"read_only": True},
-            "active": {"read_only": True},
-            "created_at": {"read_only": True},
-            "updated_at": {"read_only": True},
-            "unit_price": {"read_only": True},
-        }
-
-    def create(self, validated_data):
-        appointment = self.context["appointment"]
-        service = validated_data["service"]
-        quantity = validated_data["quantity"]
-
-        return AppointmentService.objects.create(
-            appointment=appointment,
-            service=service,
-            quantity=quantity,
-            unit_price=service.price,
-        )
-
-    def update(self, instance, validated_data):
-        service = validated_data.get("service", instance.service)
-        quantity = validated_data.get("quantity", instance.quantity)
-
-        instance.service = service
-        instance.quantity = quantity
-        instance.unit_price = service.price
-        instance.save()
-        return instance
 
 
 class TestResultSerializer(ModelSerializer):
@@ -338,8 +354,83 @@ class TestResultSerializer(ModelSerializer):
 
     def create(self, validated_data):
         request = self.context["request"]
+        appointment_service = self.context["appointment_service"]
+        appointment = appointment_service.appointment
+        if appointment.status != Appointment.AppointmentStatus.PENDING:
+            raise serializers.ValidationError(
+                {
+                    "status": "Test result can only be added to the appointment in PENDING status"
+                }
+            )
         validated_data["tested_by"] = request.user.doctor_profile
-        return super().create(validated_data)
+        return super().create(
+            {**validated_data, "appointment_service": appointment_service}
+        )
+
+
+class AppointmentServiceSerializer(ModelSerializer):
+    test_result = TestResultSerializer(read_only=True)
+
+    class Meta:
+        model = AppointmentService
+        fields = "__all__"
+        extra_kwargs = {
+            "id": {"read_only": True},
+            "appointment": {"read_only": True},
+            "created_at": {"read_only": True},
+            "updated_at": {"read_only": True},
+            "unit_price": {"read_only": True},
+        }
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.service_id and instance.service:
+            data["service"] = {
+                "id": instance.service_id,
+                "name": instance.service.name,
+            }
+        else:
+            data["service"] = None
+
+        return data
+
+    def create(self, validated_data):
+        appointment = self.context["appointment"]
+        service = validated_data["service"]
+        quantity = validated_data["quantity"]
+
+        if appointment.status != Appointment.AppointmentStatus.PENDING:
+            raise serializers.ValidationError(
+                {
+                    "status": "Services can only be added when the appointment in PENDING status"
+                }
+            )
+        return AppointmentService.objects.create(
+            appointment=appointment,
+            service=service,
+            quantity=quantity,
+            unit_price=service.price,
+        )
+
+    def update(self, instance, validated_data):
+        appointment = self.context["appointment"]
+        service = validated_data.get("service", instance.service)
+        quantity = validated_data.get("quantity", instance.quantity)
+        active = validated_data.get("active", instance.active)
+
+        if appointment.status != Appointment.AppointmentStatus.PENDING:
+            raise serializers.ValidationError(
+                {
+                    "status": "Services can only be updated when the appointment in PENDING status"
+                }
+            )
+
+        instance.service = service
+        instance.quantity = quantity
+        instance.unit_price = service.price
+        instance.active = active
+        instance.save()
+        return instance
 
 
 class DiseaseCategorySerializer(ModelSerializer):
@@ -351,6 +442,25 @@ class DiseaseCategorySerializer(ModelSerializer):
 class DiseaseSerializer(ModelSerializer):
     class Meta:
         model = Disease
+        fields = "__all__"
+
+
+class DetailAppointmentSerializer(ModelSerializer):
+    prescriptions = PrescriptionSerializer(
+        many=True, read_only=True, source="prescription_set"
+    )
+    services = AppointmentServiceSerializer(many=True, read_only=True)
+    diagnosis = DiseaseSerializer(many=False, read_only=True)
+
+    class Meta:
+        model = Appointment
+        fields = "__all__"
+        extra_kwargs = {"user": {"read_only": True}}
+
+
+class DetailServiceSerializer(ModelSerializer):
+    class Meta:
+        model = Service
         fields = "__all__"
 
 
@@ -419,12 +529,6 @@ class ServiceSerializer(ModelSerializer):
     class Meta:
         model = Service
         fields = ["name", "price", "description"]
-
-
-class DetailServiceSerializer(ModelSerializer):
-    class Meta:
-        model = Service
-        fields = "__all__"
 
 
 class MedicineCategorySerializer(ModelSerializer):
