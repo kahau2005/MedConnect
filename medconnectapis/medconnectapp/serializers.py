@@ -534,7 +534,20 @@ class UserSerializer(SimpleUserSerializer):
 class ServiceSerializer(ModelSerializer):
     class Meta:
         model = Service
-        fields = ["name", "price", "description"]
+        fields = ["id", "name", "price", "description", "image"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.image:
+            data["image"] = instance.image.url
+        return data
+
+
+class ServicePopularSerializer(ServiceSerializer):
+    total = serializers.IntegerField(read_only=True)
+
+    class Meta(ServiceSerializer.Meta):
+        fields = ServiceSerializer.Meta.fields + ["total"]
 
 
 class MedicineCategorySerializer(ModelSerializer):
