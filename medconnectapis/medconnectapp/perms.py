@@ -28,27 +28,36 @@ class IsDoctorOrAdmin(permissions.IsAuthenticated):
 
 
 class AppointmentOwner(permissions.IsAuthenticated):
-    def has_object_permission(self, request, view, appointment):
+    def has_object_permission(self, request, view, obj):
+        appointment = obj.appointment if hasattr(obj, "appointment") else obj
         return (
-            super().has_permission(request, view) and request.user == appointment.user
+            super().has_permission(request, view)
+            and request.user.id == appointment.user_id
         )
 
 
 class AppointmentOwnerOrDoctor(permissions.IsAuthenticated):
-    def has_object_permission(self, request, view, appointment):
-        return super().has_permission(requeset, view) and (
-            request.user == appointment.user
+    def has_object_permission(self, request, view, obj):
+        appointment = obj.appointment if hasattr(obj, "appointment") else obj
+        return super().has_permission(request, view) and (
+            request.user.id == appointment.user_id
             or (
                 request.user.role == User.UserRole.DOCTOR
-                and request.user == appointment.doctor.user
+                and request.user.id == appointment.doctor_id
             )
         )
 
 
 class AppointmentDoctor(permissions.IsAuthenticated):
-    def has_object_permission(self, request, view, appointment):
+    def has_object_permission(self, request, view, obj):
+        if hasattr(obj, "appointment"):
+            appointment = obj.appointment
+        elif hasattr(obj, "prescription"):
+            appointment = obj.prescription.appointment
+        else:
+            appointment = obj
         return (
             super().has_permission(request, view)
             and request.user.role == User.UserRole.DOCTOR
-            and request.user == appointment.doctor.user
+            and request.user.id == appointment.doctor_id
         )

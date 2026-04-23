@@ -25,7 +25,7 @@ class User(AbstractUser, BaseModel):
     role = models.CharField(
         max_length=20, choices=UserRole.choices, default=UserRole.PATIENT
     )
-    phone = models.TextField(max_length=10, null=False)
+    phone = models.CharField(max_length=10, null=False)
     avatar = CloudinaryField(null=True, default="d4outkeghzi4x3tsuclc.jpg")
 
     def __str__(self):
@@ -43,15 +43,20 @@ class PatientProfile(BaseModel):
         AB = "AB", "AB"
         O = "O", "O"
 
-    user = models.OneToOneField(User, on_delete=models.PROTECT, primary_key=True)
+    user = models.OneToOneField(
+        User, on_delete=models.PROTECT, primary_key=True, related_name="patient_profile"
+    )
     gender = models.CharField(max_length=10, choices=Gender.choices)
     dob = models.DateField(null=False)
     weight = models.FloatField(null=False)
     height = models.IntegerField(null=False)
-    allergies = models.TextField(null=True)
-    chronic_diseases = models.TextField(null=True)
+    allergies = models.TextField(null=True, blank=True)
+    chronic_diseases = models.TextField(null=True, blank=True)
     blood_type = models.CharField(max_length=2, choices=BloodType.choices, null=True)
-    address = models.TextField(null=True)
+    address = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.first_name} {self.user.last_name}"
 
 
 class Specialty(BaseModel):
@@ -70,7 +75,7 @@ class Doctor(models.Model):
         User, on_delete=models.PROTECT, primary_key=True, related_name="doctor_profile"
     )
     specialty = models.ForeignKey(Specialty, on_delete=models.PROTECT)
-    background = models.TextField(null=True)
+    background = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"Bác sĩ {self.user.first_name} {self.user.last_name}"
@@ -98,6 +103,7 @@ class Disease(BaseModel):
 class Appointment(BaseModel):
     class AppointmentStatus(models.TextChoices):
         SCHEDULED = "SCHEDULED", "Đã đặt lịch"
+        PENDING = "PENDING", "Đang khám"
         COMPLETED = "COMPLETED", "Đã khám"
         CANCELED = "CANCELED", "Đã hủy"
 
@@ -180,7 +186,9 @@ class MedicineCategory(BaseModel):
 
 class Medicine(BaseModel):
     name = models.CharField(max_length=100)
-    category = models.ForeignKey(MedicineCategory, on_delete=models.PROTECT)
+    category = models.ForeignKey(
+        MedicineCategory, on_delete=models.PROTECT, related_name="medicines", null=True
+    )
     stock = models.IntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=50)
@@ -206,6 +214,27 @@ class AppointmentService(BaseModel):
     service = models.ForeignKey(Service, on_delete=models.PROTECT)
     quantity = models.IntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+
+
+class TestResult(BaseModel):
+    class ResultType(models.TextChoices):
+        BLOOD = "BLOOD", "Xét nghiệm máu"
+        URINE = "URINE", "Xét nghiệm nước tiểu"
+        XRAY = "XRAY", "X-quang"
+        ULTRASOUND = "ULTRASOUND", "Siêu âm"
+        OTHER = "OTHER", "Khác"
+
+    appointment_service = models.OneToOneField(
+        AppointmentService, on_delete=models.PROTECT, related_name="test_result"
+    )
+    result_type = models.CharField(
+        max_length=20, choices=ResultType.choices, default=ResultType.OTHER
+    )
+    tested_by = models.ForeignKey(
+        Doctor, on_delete=models.PROTECT, related_name="test_results"
+    )
+    result_data = models.TextField(null=True, blank=True)
+    conclusion = models.TextField(null=True, blank=True)
 
 
 class Payment(BaseModel):
