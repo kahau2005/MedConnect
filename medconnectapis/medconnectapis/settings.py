@@ -170,7 +170,3 @@ LOGGING = {
         },
     },
 }
-
-OAUTH2_PROVIDER = {
-    "ACCESS_TOKEN_EXPIRE_SECONDS": 5259600,
-}

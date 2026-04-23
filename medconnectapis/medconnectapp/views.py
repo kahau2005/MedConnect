@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 from django.db import IntegrityError
-from django.db.models import Case, Count, Q, Value, When, Prefetch
+from django.db.models import Case, Count, F, Prefetch, Q, Sum, Value, When
 from django.db.models.fields import CharField
 from django.db.models.functions import ExtractYear, Now
 from django.shortcuts import render
@@ -28,8 +28,8 @@ from .models import (
     PrescriptionDetail,
     Service,
     Specialty,
-    User,
     TestResult,
+    User,
 )
 from .serializers import (
     AppointmentSerializer,
@@ -51,8 +51,8 @@ from .serializers import (
     SimplePrescriptionSerializer,
     SimpleUserSerializer,
     SpecialtySerializer,
-    UserSerializer,
     TestResultSerializer,
+    UserSerializer,
 )
 
 
@@ -489,6 +489,7 @@ class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
 
 class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = Service.objects.filter(active=True)
+    pagination_class = paginators.ServicePaginator
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -617,41 +618,34 @@ class DoctorScheduleViewSet(viewsets.ViewSet):
 class ReportViewSet(viewsets.ViewSet):
     permission_classes = [perms.IsAdmin]
 
-    @action(
-        methods=["get"],
-        url_path="patients",
-        detail=False,
-    )
+    @action(methods=["get"], url_path="patients", detail=False)
     def report_patients(self, request):
         age_expression = ExtractYear(Now()) - ExtractYear("dob")
+
         age_groups = (
             PatientProfile.objects.filter(active=True)
             .annotate(age=age_expression)
             .annotate(
-                age_group=(
-                    Case(
-                        When(age__lt=18, then=Value("Trẻ em (< 18)")),
-                        When(
-                            age__gte=18, age__lte=30, then=Value("Thanh niên (18 - 30)")
-                        ),
-                        When(
-                            age__gt=30, age__lte=60, then=Value("Trung niên (30 - 60)")
-                        ),
-                        When(age__gt=60, then=Value("Cao tuổi (> 60)")),
-                        output_field=CharField(),
-                    )
+                age_group=Case(
+                    When(age__lt=18, then=Value("Trẻ em (< 18)")),
+                    When(age__gte=18, age__lte=30, then=Value("Thanh niên (18 - 30)")),
+                    When(age__gt=30, age__lte=60, then=Value("Trung niên (30 - 60)")),
+                    When(age__gt=60, then=Value("Cao tuổi (> 60)")),
+                    output_field=CharField(),
                 )
             )
             .values("age_group")
             .annotate(total=Count("user_id"))
             .order_by("age_group")
         )
+
         gender_distribution = (
             PatientProfile.objects.filter(active=True)
             .values("gender")
             .annotate(total=Count("user_id"))
             .order_by("gender")
         )
+
         specialty_distribution = (
             Appointment.objects.filter(active=True)
             .values("doctor__specialty_id", "doctor__specialty__name")
@@ -659,17 +653,79 @@ class ReportViewSet(viewsets.ViewSet):
             .order_by("doctor__specialty__name")
         )
 
-        res = {
+        raw_data = {
             "age_groups": list(age_groups),
             "genders": list(gender_distribution),
-            "specialties": [
-                {
-                    "specialty_id": row["doctor__specialty_id"],
-                    "specialty_name": row["doctor__specialty__name"],
-                    "total": row["total"],
-                }
-                for row in specialty_distribution
-            ],
+            "specialties": list(specialty_distribution),
         }
-        serializer = serializers.ReportPatientSerializer(res)
+
+        serializer = serializers.ReportPatientSerializer(raw_data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=["get"], url_path="services", detail=False)
+    def report_services(self, request):
+        queryset = AppointmentService.objects.filter(active=True)
+
+        from_date = request.query_params.get("from_date")
+        to_date = request.query_params.get("to_date")
+
+        if from_date:
+            try:
+                parsed = datetime.strptime(from_date, "%Y-%m-%d").date()
+                queryset = queryset.filter(appointment__start__date__gte=parsed)
+            except Exception:
+                raise ValueError({"from_date": "Invalid from date"})
+
+        if to_date:
+            try:
+                parsed = datetime.strptime(to_date, "%Y-%m-%d").date()
+                queryset = queryset.filter(appointment__start__date__lte=parsed)
+            except Exception:
+                raise ValueError({"to_date": "Invalid to date"})
+
+        services = (
+            queryset.values("service_id", "service__name")
+            .annotate(
+                total_quantity=Sum("quantity"),
+                total_revenue=Sum(F("quantity") * F("unit_price")),
+                total_appointments=Count("appointment", distinct=True),
+            )
+            .order_by("-total_quantity")
+        )
+
+        serializer = serializers.ReportServiceSerializer({"services": services})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=["get"], url_path="diseases", detail=False)
+    def report_diseases(self, request):
+        queryset = Appointment.objects.filter(active=True)
+
+        from_date = request.query_params.get("from_date")
+        to_date = request.query_params.get("to_date")
+
+        if from_date:
+            try:
+                parsed = datetime.strptime(from_date, "%Y-%m-%d").date()
+                queryset = queryset.filter(start__date__gte=parsed)
+            except Exception:
+                raise ValueError({"from_date": "Invalid from date"})
+
+        if to_date:
+            try:
+                parsed = datetime.strptime(to_date, "%Y-%m-%d").date()
+                queryset = queryset.filter(start__date__lte=parsed)
+            except Exception:
+                raise ValueError({"to_date": "Invalid to date"})
+
+        disease_raw = (
+            queryset.values(
+                "diagnosis_id",
+                "diagnosis__name",
+                "diagnosis__disease_category__id",
+                "diagnosis__disease_category__name",
+            )
+            .annotate(total_appointments=Count("id"))
+            .order_by("diagnosis__disease_category__id", "-total_appointments")
+        )
+        serializer = serializers.ReportDiseaseSerializer(disease_raw, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
