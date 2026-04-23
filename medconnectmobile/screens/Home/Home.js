@@ -4,13 +4,14 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeTab from "./BottomNavigations/HomeTab";
 import { Icon } from "react-native-paper";
 import SpecialtyTab from "./BottomNavigations/SpecialtyTab";
+import ServicesTab from "./BottomNavigations/ServicesTab";
 
 const Home = () => {
   const Tab = createBottomTabNavigator();
   return (
     <Tab.Navigator screenOptions={{ headerShown: false }}>
       <Tab.Screen
-        name="HomeTab"
+        name="Home"
         component={HomeTab}
         options={{
           tabBarIcon: ({ color, size }) => (
@@ -19,7 +20,7 @@ const Home = () => {
         }}
       />
       <Tab.Screen
-        name="SpecialtyTab"
+        name="Specialty"
         component={SpecialtyTab}
         options={{
           tabBarIcon: ({ color, size }) => (
@@ -28,7 +29,16 @@ const Home = () => {
         }}
       />
       <Tab.Screen
-        name="ProfileTab"
+        name="Services"
+        component={ServicesTab}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon source="briefcase" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
         component={HomeTab}
         options={{
           tabBarIcon: ({ color, size }) => (

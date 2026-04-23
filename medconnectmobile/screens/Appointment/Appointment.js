@@ -13,6 +13,7 @@ import {
   DropdownSpecialtyItemMapper,
   DropdownDoctorItemMapper,
 } from "../../helpers/Mapper";
+import { useRoute } from "@react-navigation/native";
 
 const Appointment = () => {
   const [inputDate, setInputDate] = useState(undefined);
@@ -24,6 +25,9 @@ const Appointment = () => {
   const [specialtyValue, setSpecialtyValue] = useState("");
   const [doctorValue, setDoctorValue] = useState("");
 
+  const route = useRoute();
+  const { doctor, specialty } = route.params;
+
   const onDismiss = useCallback(() => {
     setShowTime(false);
   }, [setShowTime]);
@@ -32,27 +36,43 @@ const Appointment = () => {
     ({ hours, minutes }) => {
       setShowTime(false);
       setInputTime({ hours, minutes });
-      console.log({ hours, minutes });
     },
     [setShowTime],
   );
   const fetchSpecialties = async () => {
     let res = await Apis.get(endpoint["specialties"]);
-    setSpecialties(DropdownSpecialtyItemMapper(res.data));
+    setSpecialties(DropdownSpecialtyItemMapper(res.data.results));
   };
 
   const fetchDoctors = async (specialtyId) => {
     try {
-      let res = await Apis.get(endpoint.specialties + `${specialtyId}/doctors`);
-      setDoctors(DropdownDoctorItemMapper(res.data));
+      let res = await Apis.get(
+        endpoint.doctors + `?specialty_id=${specialtyId}`,
+      );
+      setDoctors(DropdownDoctorItemMapper(res.data.results));
     } catch (error) {
       console.log(error);
     }
   };
 
   useEffect(() => {
+    if (specialty && specialties.length > 0) {
+      setSpecialtyValue(String(specialty.id));
+    }
+  }, [specialties, specialty]);
+
+  useEffect(() => {
+    if (doctor && doctors.length > 0) {
+      setDoctorValue(String(doctor.id));
+    }
+  }, [doctors, doctor]);
+
+  useEffect(() => {
     if (specialtyValue) {
       fetchDoctors(specialtyValue);
+      if (!doctor || doctor.id !== Number(specialtyValue)) {
+        setDoctorValue("");
+      }
     }
   }, [specialtyValue]);
 

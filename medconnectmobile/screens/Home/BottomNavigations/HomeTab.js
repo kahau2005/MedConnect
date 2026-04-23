@@ -9,22 +9,26 @@ const HomeTab = () => {
     {
       title: "Cardiology",
       description: "Heart specialists",
-      image: require("../../../assets/imgs/banner_doctor.png"),
+      image:
+        "http://res.cloudinary.com/dsc8rzpbg/image/upload/Orthopedic-pana_feiopk.png",
     },
     {
       title: "Dermatology",
       description: "Skin specialists",
-      image: require("../../../assets/imgs/banner_doctor.png"),
+      image:
+        "http://res.cloudinary.com/dsc8rzpbg/image/upload/Orthopedic-pana_feiopk.png",
     },
     {
       title: "Neurology",
       description: "Brain specialists",
-      image: require("../../../assets/imgs/banner_doctor.png"),
+      image:
+        "http://res.cloudinary.com/dsc8rzpbg/image/upload/Orthopedic-pana_feiopk.png",
     },
     {
       title: "Pediatrics",
       description: "Child specialists",
-      image: require("../../../assets/imgs/banner_doctor.png"),
+      image:
+        "http://res.cloudinary.com/dsc8rzpbg/image/upload/Orthopedic-pana_feiopk.png",
     },
   ];
   return (
