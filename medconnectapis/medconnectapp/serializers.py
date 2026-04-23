@@ -598,7 +598,6 @@ class ServiceUsageSerializer(serializers.Serializer):
     service_id = serializers.IntegerField()
     service_name = serializers.CharField(source="service__name")
     total_quantity = serializers.IntegerField()
-    total_revenue = serializers.DecimalField(max_digits=15, decimal_places=2)
     total_appointments = serializers.IntegerField()
 
 

@@ -496,6 +496,16 @@ class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
             return DetailServiceSerializer
         return ServiceSerializer
 
+    @action(methods=["get"], url_path="popular", detail=False)
+    def popular_services(self, request):
+        popular = (
+            AppointmentService.objects.filter(active=True)
+            .values("service_id", "service__name")
+            .annotate(total=Count("id"))
+            .order_by("-total")[:5]
+        )
+        return Response(popular, status=status.HTTP_200_OK)
+
 
 class MedicineViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     def get_serializer_class(self):
@@ -687,7 +697,6 @@ class ReportViewSet(viewsets.ViewSet):
             queryset.values("service_id", "service__name")
             .annotate(
                 total_quantity=Sum("quantity"),
-                total_revenue=Sum(F("quantity") * F("unit_price")),
                 total_appointments=Count("appointment", distinct=True),
             )
             .order_by("-total_quantity")
