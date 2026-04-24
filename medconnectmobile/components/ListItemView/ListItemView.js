@@ -18,14 +18,15 @@ const ListItemView = ({ searchTitle, items, clickProcess, setItemId }) => {
             title={item.name}
             description={item.description}
             image={
-              item.image === null
+              item.image === undefined || item.image === null
                 ? require("../../assets/imgs/banner_doctor.png")
                 : { uri: item.image }
             }
             clickProcess={() => {
-              clickProcess(item.id);
+              clickProcess(item);
               console.log("Clicked item ID:", item.id);
             }}
+            price={item.price}
           />
         ))}
       </ScrollView>

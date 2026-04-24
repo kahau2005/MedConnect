@@ -6,6 +6,7 @@ const SimpleCardStyle = StyleSheet.create({
     width: 200,
     padding: 15,
     borderRadius: 10,
+    justifyContent: "space-between",
   },
   title: {
     fontSize: 15,
@@ -20,6 +21,13 @@ const SimpleCardStyle = StyleSheet.create({
     width: "100%",
     height: 100,
     objectFit: "contain",
+  },
+  price: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#3E64FF",
+    textAlign: "right",
+    marginTop: 5,
   },
 });
 

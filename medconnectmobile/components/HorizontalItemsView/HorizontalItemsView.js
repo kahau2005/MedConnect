@@ -17,6 +17,7 @@ const HorizontalItemsView = ({ title, items }) => {
             title={item.title}
             description={item.description}
             image={item.image}
+            price={item.price}
           />
         ))}
       </ScrollView>

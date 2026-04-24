@@ -53,11 +53,13 @@ const CustomToolBar = ({
           gap: 30,
         }}
       >
-        <IconButton
-          style={{ backgroundColor: "white", width: 40, height: 40 }}
-          icon={"arrow-left"}
-          onPress={backAction}
-        ></IconButton>
+        {backAction && (
+          <IconButton
+            style={{ backgroundColor: "white", width: 40, height: 40 }}
+            icon={"arrow-left"}
+            onPress={backAction}
+          ></IconButton>
+        )}
         <Searchbar
           style={{ flex: 1, backgroundColor: "white" }}
           placeholder="Tìm kiếm bác sĩ..."

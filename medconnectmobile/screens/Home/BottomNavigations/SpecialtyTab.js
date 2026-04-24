@@ -10,14 +10,27 @@ const SpecialtyTab = ({ navigation }) => {
   const [specialties, setSpecialties] = useState([]);
   const [doctors, setDoctors] = useState([]);
 
+  const [specialtySelected, setSpecialtySelectedId] = useState({});
+  const [doctorSelected, setDoctorSelectedId] = useState({});
+
   const handleBackAction = () => {
     setView("Specialties");
   };
 
-  const handleClick = async (id) => {
+  const handleDoctorClick = (doctor) => {
+    setDoctorSelectedId(doctor);
+    navigation.navigate("Appointment", {
+      doctor: doctor,
+      specialty: specialtySelected,
+    });
+  };
+
+  const handleSpecialtyClick = async (specialty) => {
     try {
-      let res = await Apis.get(endpoint.specialties + `${id}/doctors`);
-      const formattedDoctors = res.data.map((doctor) => ({
+      let res = await Apis.get(
+        endpoint.doctors + `?specialty_id=${specialty.id}&offset=0`,
+      );
+      const formattedDoctors = res.data.results.map((doctor) => ({
         id: doctor.user_id,
         name: `${doctor.last_name} ${doctor.first_name}`,
         description: doctor.background,
@@ -25,6 +38,7 @@ const SpecialtyTab = ({ navigation }) => {
       }));
       setDoctors(formattedDoctors);
       setView("Doctors");
+      setSpecialtySelectedId({ id: specialty.id, value: specialty.name });
     } catch (error) {
       console.log(error);
     }
@@ -34,7 +48,7 @@ const SpecialtyTab = ({ navigation }) => {
     const fetchSpecialties = async () => {
       try {
         let res = await Apis.get(endpoint.specialties);
-        setSpecialties(res.data);
+        setSpecialties(res.data.results);
       } catch (error) {
         console.log(error);
       }
@@ -53,15 +67,13 @@ const SpecialtyTab = ({ navigation }) => {
     >
       <View style={{ marginTop: 10 }}>
         {view === "Specialties" && (
-          <ListItemView items={specialties} clickProcess={handleClick} />
+          <ListItemView
+            items={specialties}
+            clickProcess={handleSpecialtyClick}
+          />
         )}
         {view === "Doctors" && (
-          <ListItemView
-            items={doctors}
-            clickProcess={() => {
-              navigation.navigate("Appointment", { doctorId: doctors.id });
-            }}
-          />
+          <ListItemView items={doctors} clickProcess={handleDoctorClick} />
         )}
       </View>
     </CollapsingToolBar>
