@@ -1,78 +1,55 @@
 import hashlib
 import hmac
-import os
-import urllib.parse
-
+import requests
+import json
+from datetime import datetime
 from medconnectapp.models import Specialty
 
 # from google import genai
 
-
-class VNPay:
-    def __init__(self):
-        self.requestData = {}
-        self.responseData = {}
-
-    def get_mac(self, secret_key, data):
-        hashValue = hmac.new(
-            secret_key.encode("utf-8"), data.encode("utf-8"), hashlib.sha512
-        ).hexdigest()
-        return hashValue
-
-    def get_payment_url(self, vnpay_payment_url, secret_key):
-        inputData = sorted(self.requestData.items())
-        queryString = ""
-        hasData = ""
-        seq = 0
-
-        for key, val in inputData:
-            if seq == 1:
-                queryString = (
-                    queryString + "&" + key + "=" + urllib.parse.quote_plus(str(val))
-                )
-                hasData = (
-                    hasData + "&" + str(key) + "=" + urllib.parse.quote_plus(str(val))
-                )
-            else:
-                seq = 1
-                queryString = key + "=" + urllib.parse.quote_plus(str(val))
-                hasData = str(key) + "=" + urllib.parse.quote_plus(str(val))
-
-        secureHash = self.get_mac(secret_key, hasData)
-        return vnpay_payment_url + "?" + queryString + "&vnp_SecureHash=" + secureHash
-
-    def validate_response(self, secret_key):
-        vnp_SecureHash = self.responseData.pop("vnp_SecureHash", None)
-        self.responseData.pop("vnp_SecureHashType", None)
-
-        inputData = sorted(self.responseData.items())
-        hasData = ""
-        seq = 0
-        for key, val in inputData:
-            if str(key).startswith("vnp_"):
-                if seq == 1:
-                    hasData = (
-                        hasData
-                        + "&"
-                        + str(key)
-                        + "="
-                        + urllib.parse.quote_plus(str(val))
-                    )
-                else:
-                    seq = 1
-                    hasData = str(key) + "=" + urllib.parse.quote_plus(str(val))
-
-        hashValue = self.get_mac(secret_key, hasData)
-        return vnp_SecureHash == hashValue
+ZALOPAY_CONFIG = {
+    "APP_ID": 2553,
+    "KEY1": "PcY4iZIKFCIdgZvA6ueMcMHHUbRLYjPL",
+    "KEY2": "kLtgPl8YESV1829stjKEM7T02wLdWeE2",
+    "ENDPOINT": "https://sb-openapi.zalopay.vn/v2",
+}
 
 
-def get_client_ip(request):
-    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(",")[0]
-    else:
-        ip = request.META.get("REMOTE_ADDR")
-    return ip
+def create_order(amount, order_id, description=""):
+    app_id = ZALOPAY_CONFIG["APP_ID"]
+    key1 = ZALOPAY_CONFIG["KEY1"]
+    endpoint = f"{ZALOPAY_CONFIG['ENDPOINT']}/create"
+
+    trans_id = f"{datetime.now().strftime('%y%m%d')}_{order_id}"
+    now = datetime.now()
+    app_time = int(now.timestamp() * 1000)
+
+    embed_data = json.dumps({})
+    item = json.dumps([])
+
+    params = {
+        "app_id": app_id,
+        "app_trans_id": trans_id,
+        "app_user": "demo_user",
+        "app_time": app_time,
+        "amount": amount,
+        "description": description,
+        "item": item,
+        "embed_data": embed_data,
+        "bank_code": "",
+        "callback_url": "",
+    }
+    data_str = f"{app_id}|{trans_id}|{params.get('app_user')}|{amount}|{app_time}|{embed_data}|{item}"
+
+    mac = hmac.new(key1.encode(), data_str.encode(), hashlib.sha256).hexdigest()
+    params["mac"] = mac
+
+    response = requests.post(endpoint, data=params)
+    result = response.json()
+
+    result["app_trans_id"] = trans_id
+    print(params)
+    return result
 
 
 # client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))

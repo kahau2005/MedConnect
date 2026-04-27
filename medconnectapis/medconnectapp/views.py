@@ -1,17 +1,16 @@
-import os
 from datetime import datetime
 
 from django.db import IntegrityError
-from django.db.models import Case, Count, F, Prefetch, Q, Sum, Value, When
+from django.db.models import Case, Count, Prefetch, Q, Sum, Value, When
 from django.db.models.fields import CharField
 from django.db.models.functions import ExtractYear, Now
-from django.shortcuts import render
 from django.utils import timezone
 from rest_framework import generics, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from . import paginators, perms, serializers, utils
 from .models import (
@@ -47,13 +46,13 @@ from .serializers import (
     PatientProfileSerializer,
     PrescriptionDetailSerializer,
     PrescriptionSerializer,
+    ServicePopularSerializer,
     ServiceSerializer,
     SimplePrescriptionSerializer,
     SimpleUserSerializer,
     SpecialtySerializer,
     TestResultSerializer,
     UserSerializer,
-    ServicePopularSerializer,
 )
 
 
@@ -261,89 +260,6 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(
-        detail=True,
-        methods=["post"],
-        url_path="payment",
-        permission_classes=[perms.AppointmentOwner],
-    )
-    def payment_view(self, request, pk=None):
-        appointment = self.get_object()
-        if request.method == "POST":
-            order_id = str(appointment.id)
-            amount = 100000
-            order_desc = "Thanh toan don hang 12345"
-            ipaddr = utils.get_client_ip(request)
-
-            vnp = utils.VNPay()
-            vnp.requestData["vnp_Version"] = "2.1.0"
-            vnp.requestData["vnp_Command"] = "pay"
-            vnp.requestData["vnp_TmnCode"] = os.getenv("VNPAY_TMN_CODE")
-            vnp.requestData["vnp_Amount"] = str(int(amount) * 100)
-            vnp.requestData["vnp_CurrCode"] = "VND"
-            vnp.requestData["vnp_TxnRef"] = order_id
-            vnp.requestData["vnp_OrderInfo"] = order_desc
-            vnp.requestData["vnp_OrderType"] = "billpayment"
-            vnp.requestData["vnp_Locale"] = "vn"
-            vnp.requestData["vnp_CreateDate"] = datetime.now().strftime("%Y%m%d%H%M%S")
-            vnp.requestData["vnp_IpAddr"] = ipaddr
-            vnp.requestData["vnp_ReturnUrl"] = os.getenv("VNPAY_RETURN_URL")
-
-            vnpay_payment_url = vnp.get_payment_url(
-                os.getenv("VNPAY_PAYMENT_URL"), os.getenv("VNPAY_HASH_SECRET")
-            )
-            return Response(
-                {"payment_url": vnpay_payment_url}, status=status.HTTP_200_OK
-            )
-
-        return render(request, "payment_form.html")
-
-    @action(
-        detail=False,
-        methods=["get"],
-        url_path="payment/vnpay_return",
-        permission_classes=[AllowAny],
-    )
-    def payment_return_view(self, request):
-        inputData = request.GET
-        if inputData:
-            vnp = utils.VNPay()
-            vnp.responseData = inputData.dict()
-            order_id = inputData.get("vnp_TxnRef")
-            amount = int(inputData.get("vnp_Amount")) / 100
-            order_desc = inputData.get("vnp_OrderInfo")
-            vnp_ResponseCode = inputData.get("vnp_ResponseCode")
-
-            if vnp.validate_response(os.getenv("VNPAY_HASH_SECRET")):
-                if vnp_ResponseCode == "00":
-                    return Response(
-                        {
-                            "order_id": order_id,
-                            "amount": amount,
-                            "msg": "Payment successful",
-                        },
-                        status=status.HTTP_200_OK,
-                    )
-
-                else:
-                    return Response(
-                        {
-                            "order_id": order_id,
-                            "amount": amount,
-                            "msg": f"Payment failed with response code: {vnp_ResponseCode}",
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-            else:
-                return Response(
-                    {"msg": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST
-                )
-
-        return Response(
-            {"msg": "No response data received"}, status=status.HTTP_400_BAD_REQUEST
-        )
 
 
 class AppointmentServiceViewSet(viewsets.GenericViewSet):
@@ -743,3 +659,37 @@ class ReportViewSet(viewsets.ViewSet):
         )
         serializer = serializers.ReportDiseaseSerializer(disease_raw, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class TestQRView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        amount = request.query_params.get("amount", "50000")
+        try:
+            amount = int(amount)
+        except ValueError:
+            return Response({"error": "amount phải là số nguyên"}, status=400)
+
+        if amount <= 0:
+            return Response({"error": "amount phải > 0"}, status=400)
+
+        order_id = datetime.now().strftime("%H%M%S")
+
+        result = utils.create_order(
+            amount=amount, order_id=order_id, description="Thanh toán test"
+        )
+
+        if result.get("return_code") == 1:
+            return Response(
+                {
+                    "order_url": result["order_url"],
+                    "order_token": result.get("zp_trans_token"),
+                    "app_trans_id": result.get("app_trans_id"),
+                    "amount": amount,
+                }
+            )
+        else:
+            return Response(
+                {"error": "Tạo đơn hàng thất bại", "detail": result}, status=500
+            )
