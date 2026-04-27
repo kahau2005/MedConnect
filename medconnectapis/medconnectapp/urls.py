@@ -26,6 +26,7 @@ router.register(
 router.register("reports", views.ReportViewSet, "report")
 router.register("doctors", views.DoctorViewSet, "doctor")
 router.register("schedules", views.DoctorScheduleViewSet, "schedule")
+router.register("tests", views.TestQRView, "test")
 urlpatterns = [
     path("", include(router.urls)),
 ]
