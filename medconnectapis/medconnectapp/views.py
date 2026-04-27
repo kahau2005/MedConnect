@@ -743,3 +743,38 @@ class ReportViewSet(viewsets.ViewSet):
         )
         serializer = serializers.ReportDiseaseSerializer(disease_raw, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class TestQRView(viewsets.ViewSet):
+    permission_classes = []
+
+    @action(methods=["get"], url_path="payment", detail=False)
+    def payment(self, request):
+        amount = request.query_params.get("amount", "50000")
+        try:
+            amount = int(amount)
+        except ValueError:
+            return Response({"error": "amount phải là số nguyên"}, status=400)
+
+        if amount <= 0:
+            return Response({"error": "amount phải > 0"}, status=400)
+
+        order_id = datetime.now().strftime("%H%M%S")
+
+        result = utils.create_order(
+            amount=amount, order_id=order_id, description="Thanh toán test"
+        )
+
+        if result.get("return_code") == 1:
+            return Response(
+                {
+                    "order_url": result["order_url"],
+                    "order_token": result.get("zp_trans_token"),
+                    "app_trans_id": result.get("app_trans_id"),
+                    "amount": amount,
+                }
+            )
+        else:
+            return Response(
+                {"error": "Tạo đơn hàng thất bại", "detail": result}, status=500
+            )
