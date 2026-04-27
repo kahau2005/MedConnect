@@ -3,6 +3,7 @@ import BannerCard from "../../../components/BannerCard/BannerCard";
 import CallAction from "../../../components/CallAction/CallAction";
 import SimpleCardView from "../../../components/SimpleCardView/SimpleCardView";
 import HorizontalItemsView from "../../../components/HorizontalItemsView/HorizontalItemsView";
+import ZaloPayTestButton from "../../../components/ZaloPayTestButton";
 
 const HomeTab = () => {
   const specialties = [
@@ -34,6 +35,7 @@ const HomeTab = () => {
   return (
     <ScrollView>
       <BannerCard />
+      <ZaloPayTestButton />
       <CallAction
         title="STI Problems?"
         subtitle="Find suitable specialists here"

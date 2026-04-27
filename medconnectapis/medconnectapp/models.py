@@ -250,6 +250,11 @@ class Payment(BaseModel):
         max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
     )
     total_amount = models.DecimalField(null=False, max_digits=10, decimal_places=2)
+    zalo_app_trans_id = models.CharField(
+        max_length=50, null=True, blank=True, unique=True
+    )
+    zalo_order_token = models.TextField(null=True, blank=True)
+    zalo_order_url = models.TextField(null=True, blank=True)
 
 
 class ChatRoom(BaseModel):
