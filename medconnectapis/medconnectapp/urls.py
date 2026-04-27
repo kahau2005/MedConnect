@@ -26,8 +26,6 @@ router.register(
 router.register("reports", views.ReportViewSet, "report")
 router.register("doctors", views.DoctorViewSet, "doctor")
 router.register("schedules", views.DoctorScheduleViewSet, "schedule")
-
 urlpatterns = [
     path("", include(router.urls)),
-    path("api/test-qr/", views.TestQRView.as_view(), name="test-qr"),
 ]
