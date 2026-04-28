@@ -4,10 +4,13 @@ import {
   Text,
   ActivityIndicator,
   Alert,
-  Linking,
   StyleSheet,
+  NativeModules, // Thêm NativeModules
 } from "react-native";
 import API, { endpoint } from "../configs/Apis";
+
+// Lấy module ZaloPay đã định nghĩa bên Native (Java)
+const { ZaloPayModule } = NativeModules;
 
 const ZaloPayTestButton = () => {
   const [loading, setLoading] = useState(false);
@@ -15,33 +18,34 @@ const ZaloPayTestButton = () => {
   const handlePayment = async () => {
     setLoading(true);
     try {
-      // 1. Gọi xuống backend Django (địa chỉ 192.168.100.26:8000)
+      // 1. Gọi xuống backend Django lấy data
       const response = await API.get(endpoint.test);
 
-      const orderUrl = response.data.order_url;
+      // Lấy zp_trans_token (backend bạn đang trả về với key là order_token)
+      const zpTransToken = response.data.order_token;
 
-      if (orderUrl) {
-        // 2. Kiểm tra xem điện thoại có thể mở được link này không
-        const supported = await Linking.canOpenURL(orderUrl);
+      if (zpTransToken) {
+        // 2. Gọi hàm payOrder của Native Module thay vì dùng Linking
+        const result = await ZaloPayModule.payOrder(zpTransToken);
 
-        if (supported) {
-          // 3. Hệ điều hành sẽ tự bung app ZaloPay Sandbox lên
-          await Linking.openURL(orderUrl);
-        } else {
-          Alert.alert(
-            "Lỗi",
-            "Không thể mở được ZaloPay. Bạn đã cài app Sandbox chưa?",
-          );
+        if (result === "SUCCESS") {
+          Alert.alert("Thành công", "Thanh toán ZaloPay thành công!");
+          // Xử lý logic sau khi thanh toán thành công (vd: refresh giỏ hàng, chuyển màn hình...)
         }
       } else {
-        Alert.alert("Lỗi API", "Không lấy được order_url từ server");
+        Alert.alert("Lỗi API", "Không lấy được order_token từ server");
       }
     } catch (error) {
-      console.log("Lỗi thanh toán:", error);
-      Alert.alert(
-        "Lỗi kết nối",
-        "Không thể gọi tới backend Django. Hãy check lại IP/Port.",
-      );
+      // Bắt các lỗi văng ra từ file Java (Promise.reject)
+      if (error.code === "CANCELED") {
+        Alert.alert("Thông báo", "Bạn đã hủy quá trình thanh toán.");
+      } else {
+        console.log("Lỗi thanh toán:", error);
+        Alert.alert(
+          "Lỗi",
+          error.message || "Không thể gọi tới backend hoặc ZaloPay bị lỗi.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -56,7 +60,7 @@ const ZaloPayTestButton = () => {
       {loading ? (
         <ActivityIndicator color="#fff" />
       ) : (
-        <Text style={styles.buttonText}>Test ZaloPay Sandbox</Text>
+        <Text style={styles.buttonText}>Test ZaloPay Sandbox (App-to-App)</Text>
       )}
     </TouchableOpacity>
   );
@@ -64,19 +68,17 @@ const ZaloPayTestButton = () => {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: "#0068ff", // Màu xanh đặc trưng của ZaloPay
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    backgroundColor: "#0068FF", // Màu xanh Zalo
+    padding: 15,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    margin: 10,
-    elevation: 3, // Tạo bóng nhẹ trên Android
+    marginTop: 20,
   },
   buttonText: {
-    color: "#ffffff",
-    fontSize: 16,
+    color: "#fff",
     fontWeight: "bold",
+    fontSize: 16,
   },
 });
 

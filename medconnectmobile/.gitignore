@@ -38,4 +38,21 @@ yarn-error.*
 
 # generated native folders
 /ios
-/android
+# /android
+
+# Thư mục build
+build/
+.gradle/
+app/build/
+.cxx/
+
+.idea/
+*.iml
+.DS_Store
+
+local.properties
+
+*.keystore
+!debug.keystore
+
+*.log
