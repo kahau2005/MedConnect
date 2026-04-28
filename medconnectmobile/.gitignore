@@ -40,7 +40,6 @@ yarn-error.*
 /ios
 # /android
 
-# Thư mục build
 build/
 .gradle/
 app/build/
@@ -56,3 +55,6 @@ local.properties
 !debug.keystore
 
 *.log
+.settings/
+.classpath
+.project
