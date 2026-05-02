@@ -1,5 +1,6 @@
-from django.conf import settings
 import json
+
+from django.conf import settings
 
 
 class OAuthMiddleware:

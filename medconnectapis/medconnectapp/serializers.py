@@ -16,13 +16,13 @@ from .models import (
     Medicine,
     MedicineCategory,
     PatientProfile,
+    Payment,
     Prescription,
     PrescriptionDetail,
     Service,
     Specialty,
     TestResult,
     User,
-    Payment,
 )
 
 

@@ -121,6 +121,10 @@ cloudinary.config(
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 
+ZALOPAY_APP_ID = os.getenv("ZALOPAY_APP_ID")
+ZALOPAY_KEY1 = os.getenv("ZALOPAY_KEY1")
+ZALOPAY_KEY2 = os.getenv("ZALOPAY_KEY2")
+
 pymysql.version_info = (2, 2, 7)
 pymysql.install_as_MySQLdb()
 # Password validation

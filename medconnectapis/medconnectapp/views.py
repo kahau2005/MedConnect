@@ -1,11 +1,10 @@
-import json
 import os
 from datetime import datetime
 
 import firebase_admin
 from django.conf import settings
 from django.db import IntegrityError, transaction
-from django.db.models import Case, Count, F, Prefetch, Q, Sum, Value, When
+from django.db.models import Case, Count, Prefetch, Q, Sum, Value, When
 from django.db.models.fields import CharField
 from django.db.models.functions import ExtractYear, Now
 from django.utils import timezone

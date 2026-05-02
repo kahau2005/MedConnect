@@ -1,17 +1,19 @@
-import os
 import hashlib
 import hmac
-import requests
 import json
 from datetime import datetime
+
+import requests
+from django.conf import settings
+
 from medconnectapp.models import Specialty
 
 # from google import genai
 
 ZALOPAY_CONFIG = {
-    "APP_ID": os.getenv("ZALOPAY_APP_ID"),
-    "KEY1": os.getenv("ZALOPAY_KEY1"),
-    "KEY2": os.getenv("ZALOPAY_KEY2"),
+    "APP_ID": settings.ZALOPAY_APP_ID,
+    "KEY1": settings.ZALOPAY_KEY1,
+    "KEY2": settings.ZALOPAY_KEY2,
     "ENDPOINT": "https://sb-openapi.zalopay.vn/v2",
 }
 
