@@ -22,6 +22,7 @@ from .models import (
     Specialty,
     TestResult,
     User,
+    Payment,
 )
 
 
@@ -40,7 +41,7 @@ class PrescriptionDetailListSerializer(ListSerializer):
         if appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError(
                 {
-                    "status": "Medicines can only be prescribed when the appointment is in PENDING status"
+                    "status": "Thuốc chỉ có thể được kê vào đơn thuốc khi lịch khám ở trạng thái ĐANG KHÁM "
                 }
             )
 
@@ -56,7 +57,7 @@ class PrescriptionDetailListSerializer(ListSerializer):
 
             if len(medicine_map) != len(set(medicine_ids)):
                 raise serializers.ValidationError(
-                    {"medicine": "There are some medicine IDs that do not exist"}
+                    {"medicine": "Có id thuốc không tồn tại"}
                 )
 
             for item in validated_data:
@@ -66,13 +67,13 @@ class PrescriptionDetailListSerializer(ListSerializer):
 
                 if not medicine:
                     raise serializers.ValidationError(
-                        {"medicine": f"Medicine #{medicine_id} does not exist"}
+                        {"medicine": f"Thuốc #{medicine_id} không tồn tại"}
                     )
 
                 if medicine.stock < quantity:
                     raise serializers.ValidationError(
                         {
-                            "quantity": f"{medicine.name} does not have enough stock (only {medicine.stock} {medicine.unit} left)."
+                            "quantity": f"Thuốc {medicine.name} không đủ số lượng (chỉ còn {medicine.stock} {medicine.unit} trong kho)."
                         }
                     )
 
@@ -136,7 +137,7 @@ class PrescriptionDetailSerializer(ModelSerializer):
         try:
             medicine_id = int(medicine_val)
         except TypeError, ValueError:
-            raise serializers.ValidationError({"medicine": "Invalid medicine ID"})
+            raise serializers.ValidationError({"medicine": "ID thuốc không hợp lệ"})
         obj["medicine_id"] = medicine_id
         return obj
 
@@ -158,7 +159,7 @@ class PrescriptionDetailSerializer(ModelSerializer):
         if appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError(
                 {
-                    "status": "Prescribed medicines can only be updated when the appointment is in PENDING status"
+                    "status": "Thuốc chỉ có thể được cập nhật khi lịch khám ở trạng thái ĐANG KHÁM"
                 }
             )
 
@@ -181,13 +182,13 @@ class PrescriptionDetailSerializer(ModelSerializer):
 
             if not new_medicine:
                 raise serializers.ValidationError(
-                    {"medicine": f"{new_medicine_id} not found"}
+                    {"medicine": f"{new_medicine_id} không tồn tại"}
                 )
 
             if new_medicine.stock < new_quantity:
                 raise serializers.ValidationError(
                     {
-                        "quantity": f"{new_medicine.name} does not have enough stock (only {new_medicine.stock} {new_medicine.unit} left)."
+                        "quantity": f"Thuốc {new_medicine.name} không đủ số lượng (chỉ còn {new_medicine.stock} {new_medicine.unit} trong kho)."
                     }
                 )
             if old_medicine:
@@ -236,7 +237,7 @@ class SimplePrescriptionSerializer(ModelSerializer):
         if appointment and appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError(
                 {
-                    "status": "Prescription can only be added when the appointment is in PENDING status"
+                    "status": "Đơn thuốc chỉ có thể được tạo khi lịch khám ở trạng thái ĐANG KHÁM"
                 }
             )
         return attrs
@@ -251,7 +252,16 @@ class AppointmentSerializer(ModelSerializer):
             "active": {"read_only": True},
         }
         model = Appointment
-        fields = ["id", "user", "doctor", "status", "start"]
+        fields = [
+            "id",
+            "user",
+            "doctor",
+            "status",
+            "start",
+            "reason",
+            "symptoms",
+            "note",
+        ]
 
     def validate(self, attrs):
         request = self.context.get("request")
@@ -260,9 +270,7 @@ class AppointmentSerializer(ModelSerializer):
 
             if not hasattr(user, "patient_profile"):
                 raise serializers.ValidationError(
-                    {
-                        "error": "Please complete your patient profile before booking an appointment."
-                    }
+                    {"error": "Vui lòng tạo hồ sơ bệnh nhân trước khi đặt lịch khám"}
                 )
 
         doctor = attrs.get("doctor")
@@ -271,7 +279,7 @@ class AppointmentSerializer(ModelSerializer):
             now = timezone.now()
             if start <= now:
                 raise serializers.ValidationError(
-                    {"start": "Can not book an appointment in the past"}
+                    {"start": "Không thể đặt lịch khám ở thời điểm quá khứ"}
                 )
 
         if doctor:
@@ -281,7 +289,7 @@ class AppointmentSerializer(ModelSerializer):
             if not schedule:
                 raise serializers.ValidationError(
                     {
-                        "start": "The doctor does not have a schedule on the selected date."
+                        "start": "Bác sĩ không làm việc vào ngày đã chọn, vui lòng chọn ngày khác"
                     }
                 )
 
@@ -289,7 +297,9 @@ class AppointmentSerializer(ModelSerializer):
             appointment_end_time = start + timedelta(minutes=schedule.duration)
             if start < schedule.start_time or appointment_end_time > shift_end_time:
                 raise serializers.ValidationError(
-                    {"start": "The selected time is outside the doctor working hours"}
+                    {
+                        "start": "Thời gian bắt đầu không hợp lệ, vui lòng chọn thời gian trong ca làm việc của bác sĩ"
+                    }
                 )
 
             is_overlapping = Appointment.objects.filter(
@@ -302,7 +312,7 @@ class AppointmentSerializer(ModelSerializer):
             if is_overlapping.exists():
                 raise serializers.ValidationError(
                     {
-                        "start": "The doctor already has an appointment at the selected time"
+                        "start": "Thời gian đã có lịch khám khác, vui lòng chọn thời gian khác"
                     }
                 )
         return attrs
@@ -322,20 +332,18 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
     def validate_status(self, value):
         if self.instance:
             if self.instance.status not in (
-                Appointment.AppointmentStatus.SCHEDULED,
-                Appointment.AppointmentStatus.PENDING,
+                Appointment.AppointmentStatus.SCHEDULED.value,
+                Appointment.AppointmentStatus.PENDING.value,
             ):
                 raise serializers.ValidationError(
-                    {
-                        "status": "Only appointments with status SCHEDULED or PENDING can be updated"
-                    }
+                    "Chỉ có thể cập nhật trạng thái khi lịch khám ở trạng thái ĐÃ ĐẶT LỊCH hoặc ĐANG KHÁM"
                 )
             if value not in (
                 Appointment.AppointmentStatus.PENDING.value,
                 Appointment.AppointmentStatus.COMPLETED.value,
                 Appointment.AppointmentStatus.CANCELED.value,
             ):
-                raise serializers.ValidationError({"status": "Invalid status update"})
+                raise serializers.ValidationError("Trạng thái cập nhật không hợp lệ")
         return value
 
 
@@ -359,7 +367,7 @@ class TestResultSerializer(ModelSerializer):
         if appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError(
                 {
-                    "status": "Test result can only be added to the appointment in PENDING status"
+                    "status": "Kết quả xét nghiệm chỉ có thể được tạo khi lịch khám ở trạng thái ĐANG KHÁM"
                 }
             )
         validated_data["tested_by"] = request.user.doctor_profile
@@ -402,7 +410,7 @@ class AppointmentServiceSerializer(ModelSerializer):
         if appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError(
                 {
-                    "status": "Services can only be added when the appointment in PENDING status"
+                    "status": "Dịch vụ chỉ có thể được thêm vào lịch khám khi lịch khám ở trạng thái ĐANG KHÁM"
                 }
             )
         return AppointmentService.objects.create(
@@ -421,7 +429,7 @@ class AppointmentServiceSerializer(ModelSerializer):
         if appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError(
                 {
-                    "status": "Services can only be updated when the appointment in PENDING status"
+                    "status": "Dịch vụ chỉ có thể được cập nhật khi lịch khám ở trạng thái ĐANG KHÁM"
                 }
             )
 
@@ -660,3 +668,37 @@ class ReportDiseaseSerializer(serializers.Serializer):
 
     class Meta:
         list_serializer_class = ReportDiseaseListSerializer
+
+
+class PaymentReceiptSerializer(ModelSerializer):
+    items = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Payment
+        fields = ["id", "status", "total_amount", "items", "created_at", "updated_at"]
+
+    def get_items(self, obj):
+        items = []
+        for appointment_service in obj.appointment.services.all():
+            items.append(
+                {
+                    "name": appointment_service.service.name,
+                    "quantity": appointment_service.quantity,
+                    "unit_price": appointment_service.unit_price,
+                    "type": "SERVICE",
+                }
+            )
+
+        for prescription in obj.appointment.prescription_set.all():
+            for detail in prescription.details.all():
+                items.append(
+                    {
+                        "name": detail.medicine.name,
+                        "quantity": detail.quantity,
+                        "unit_price": detail.unit_price,
+                        "total": detail.quantity * detail.unit_price,
+                        "type": "MEDICINE",
+                    }
+                )
+
+        return items

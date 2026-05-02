@@ -1,3 +1,4 @@
+import os
 import hashlib
 import hmac
 import requests
@@ -8,19 +9,23 @@ from medconnectapp.models import Specialty
 # from google import genai
 
 ZALOPAY_CONFIG = {
-    "APP_ID": 2553,
-    "KEY1": "PcY4iZIKFCIdgZvA6ueMcMHHUbRLYjPL",
-    "KEY2": "kLtgPl8YESV1829stjKEM7T02wLdWeE2",
+    "APP_ID": os.getenv("ZALOPAY_APP_ID"),
+    "KEY1": os.getenv("ZALOPAY_KEY1"),
+    "KEY2": os.getenv("ZALOPAY_KEY2"),
     "ENDPOINT": "https://sb-openapi.zalopay.vn/v2",
 }
 
 
-def create_order(amount, order_id, description=""):
+def create_order(
+    order_id,
+    amount,
+    description="",
+    callback_url="https://dreaded-chain-securely.ngrok-free.dev/payments/zalopay-callback/",
+):
     app_id = ZALOPAY_CONFIG["APP_ID"]
     key1 = ZALOPAY_CONFIG["KEY1"]
     endpoint = f"{ZALOPAY_CONFIG['ENDPOINT']}/create"
-
-    trans_id = f"{datetime.now().strftime('%y%m%d')}_{order_id}"
+    trans_id = f"{datetime.now().strftime('%y%m%d_%H%M%S')}_{order_id}"
     now = datetime.now()
     app_time = int(now.timestamp() * 1000)
 
@@ -32,24 +37,60 @@ def create_order(amount, order_id, description=""):
         "app_trans_id": trans_id,
         "app_user": "demo_user",
         "app_time": app_time,
-        "amount": amount,
+        "amount": int(amount),
         "description": description,
         "item": item,
         "embed_data": embed_data,
         "bank_code": "",
-        "callback_url": "",
+        "callback_url": callback_url,
     }
+
     data_str = f"{app_id}|{trans_id}|{params.get('app_user')}|{amount}|{app_time}|{embed_data}|{item}"
 
-    mac = hmac.new(key1.encode(), data_str.encode(), hashlib.sha256).hexdigest()
+    mac = hmac.new(
+        key1.encode("utf-8"), data_str.encode("utf-8"), hashlib.sha256
+    ).hexdigest()
     params["mac"] = mac
 
     response = requests.post(endpoint, data=params)
     result = response.json()
 
     result["app_trans_id"] = trans_id
-    print(params)
     return result
+
+
+def verify_callback(data):
+
+    mac = data.get("mac")
+    data_str = data.get("data")
+
+    if not mac or not data_str:
+        return False, "Thiếu mac hoặc data trong request"
+
+    mac_key2 = hmac.new(
+        ZALOPAY_CONFIG["KEY2"].encode("utf-8"), data_str.encode("utf-8"), hashlib.sha256
+    ).hexdigest()
+
+    if mac == mac_key2:
+        return True, json.loads(data_str)
+
+    return False, "Mac nhận được không đúng"
+
+
+def query_order(app_trans_id):
+    app_id = ZALOPAY_CONFIG["APP_ID"]
+    key1 = ZALOPAY_CONFIG["KEY1"]
+    endpoint = f"{ZALOPAY_CONFIG['ENDPOINT']}/query"
+
+    data_str = f"{app_id}|{app_trans_id}|{key1}"
+    mac = hmac.new(
+        key1.encode("utf-8"), data_str.encode("utf-8"), hashlib.sha256
+    ).hexdigest()
+
+    params = {"app_id": app_id, "app_trans_id": app_trans_id, "mac": mac}
+
+    response = requests.post(endpoint, data=params)
+    return response.json()
 
 
 # client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))

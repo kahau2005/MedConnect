@@ -1,12 +1,15 @@
+import json
 import os
 from datetime import datetime
 
-from django.db import IntegrityError
+import firebase_admin
+from django.conf import settings
+from django.db import IntegrityError, transaction
 from django.db.models import Case, Count, F, Prefetch, Q, Sum, Value, When
 from django.db.models.fields import CharField
 from django.db.models.functions import ExtractYear, Now
-from django.shortcuts import render
 from django.utils import timezone
+from firebase_admin import credentials, messaging
 from rest_framework import generics, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -24,6 +27,7 @@ from .models import (
     Medicine,
     MedicineCategory,
     PatientProfile,
+    Payment,
     Prescription,
     PrescriptionDetail,
     Service,
@@ -45,15 +49,16 @@ from .serializers import (
     MedicineCategorySerializer,
     MedicineSerializer,
     PatientProfileSerializer,
+    PaymentReceiptSerializer,
     PrescriptionDetailSerializer,
     PrescriptionSerializer,
+    ServicePopularSerializer,
     ServiceSerializer,
     SimplePrescriptionSerializer,
     SimpleUserSerializer,
     SpecialtySerializer,
     TestResultSerializer,
     UserSerializer,
-    ServicePopularSerializer,
 )
 
 
@@ -107,13 +112,17 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
                     parsed_from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
                     queryset = queryset.filter(start__date__gte=parsed_from_date)
                 except Exception:
-                    raise ValueError({"from_date": "Invalid from date"})
+                    raise ValueError(
+                        {"from_date": "Khoảng thời gian bắt đầu không hợp lệ"}
+                    )
             if to_date:
                 try:
                     parsed_to_date = datetime.strptime(to_date, "%Y-%m-%d").date()
                     queryset = queryset.filter(start__date__lte=parsed_to_date)
                 except Exception:
-                    raise ValueError({"to_date": "Invalid to date"})
+                    raise ValueError(
+                        {"to_date": "Khoảng thời gian kết thúc không hợp lệ"}
+                    )
             if kw:
                 queryset = queryset.filter(
                     Q(reason__icontains=kw)
@@ -204,7 +213,9 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
             serializer.save(user=request.user)
         except IntegrityError:
             raise ValidationError(
-                {"start": "This time slot has just been booked by another patient"}
+                {
+                    "start": "Khung giờ này đã có cuộc hẹn khác, vui lòng chọn khung giờ khác"
+                }
             )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -255,6 +266,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
                 AppointmentServiceSerializer(q, many=True).data,
                 status=status.HTTP_200_OK,
             )
+
         serializer = AppointmentServiceSerializer(
             data=request.data, context={"appointment": appointment}
         )
@@ -262,88 +274,59 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(
-        detail=True,
-        methods=["post"],
-        url_path="payment",
-        permission_classes=[perms.AppointmentOwner],
-    )
-    def payment_view(self, request, pk=None):
-        appointment = self.get_object()
-        if request.method == "POST":
-            order_id = str(appointment.id)
-            amount = 100000
-            order_desc = "Thanh toan don hang 12345"
-            ipaddr = utils.get_client_ip(request)
-
-            vnp = utils.VNPay()
-            vnp.requestData["vnp_Version"] = "2.1.0"
-            vnp.requestData["vnp_Command"] = "pay"
-            vnp.requestData["vnp_TmnCode"] = os.getenv("VNPAY_TMN_CODE")
-            vnp.requestData["vnp_Amount"] = str(int(amount) * 100)
-            vnp.requestData["vnp_CurrCode"] = "VND"
-            vnp.requestData["vnp_TxnRef"] = order_id
-            vnp.requestData["vnp_OrderInfo"] = order_desc
-            vnp.requestData["vnp_OrderType"] = "billpayment"
-            vnp.requestData["vnp_Locale"] = "vn"
-            vnp.requestData["vnp_CreateDate"] = datetime.now().strftime("%Y%m%d%H%M%S")
-            vnp.requestData["vnp_IpAddr"] = ipaddr
-            vnp.requestData["vnp_ReturnUrl"] = os.getenv("VNPAY_RETURN_URL")
-
-            vnpay_payment_url = vnp.get_payment_url(
-                os.getenv("VNPAY_PAYMENT_URL"), os.getenv("VNPAY_HASH_SECRET")
+    @action(methods=["post"], url_path="payments", detail=True)
+    def payments(self, request, pk=None):
+        appointment = (
+            Appointment.objects.filter(active=True)
+            .prefetch_related(
+                Prefetch(
+                    "services",
+                    queryset=AppointmentService.objects.filter(
+                        active=True
+                    ).select_related("service"),
+                ),
+                Prefetch(
+                    "prescription_set",
+                    queryset=Prescription.objects.filter(active=True).prefetch_related(
+                        Prefetch(
+                            "details",
+                            queryset=PrescriptionDetail.objects.filter(
+                                active=True
+                            ).select_related("medicine"),
+                        )
+                    ),
+                ),
             )
-            return Response(
-                {"payment_url": vnpay_payment_url}, status=status.HTTP_200_OK
-            )
-
-        return render(request, "payment_form.html")
-
-    @action(
-        detail=False,
-        methods=["get"],
-        url_path="payment/vnpay_return",
-        permission_classes=[AllowAny],
-    )
-    def payment_return_view(self, request):
-        inputData = request.GET
-        if inputData:
-            vnp = utils.VNPay()
-            vnp.responseData = inputData.dict()
-            order_id = inputData.get("vnp_TxnRef")
-            amount = int(inputData.get("vnp_Amount")) / 100
-            order_desc = inputData.get("vnp_OrderInfo")
-            vnp_ResponseCode = inputData.get("vnp_ResponseCode")
-
-            if vnp.validate_response(os.getenv("VNPAY_HASH_SECRET")):
-                if vnp_ResponseCode == "00":
-                    return Response(
-                        {
-                            "order_id": order_id,
-                            "amount": amount,
-                            "msg": "Payment successful",
-                        },
-                        status=status.HTTP_200_OK,
-                    )
-
-                else:
-                    return Response(
-                        {
-                            "order_id": order_id,
-                            "amount": amount,
-                            "msg": f"Payment failed with response code: {vnp_ResponseCode}",
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-            else:
-                return Response(
-                    {"msg": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST
-                )
-
-        return Response(
-            {"msg": "No response data received"}, status=status.HTTP_400_BAD_REQUEST
+            .get(pk=pk)
         )
+
+        service_total = 0
+        for service in appointment.services.all():
+            service_total += service.quantity * service.unit_price
+
+        prescription_total = 0
+        for prescription in appointment.prescription_set.all():
+            for detail in prescription.details.all():
+                prescription_total += detail.quantity * detail.unit_price
+
+        total_amount = service_total + prescription_total
+
+        payment, created = Payment.objects.get_or_create(
+            appointment=appointment, defaults={"total_amount": total_amount}
+        )
+
+        if (
+            not created
+            and payment.status == Payment.PaymentStatus.PENDING
+            and payment.total_amount != total_amount
+        ):
+            payment.total_amount = total_amount
+            payment.save()
+
+        payment.appointment = appointment
+
+        serializer = PaymentReceiptSerializer(payment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class AppointmentServiceViewSet(viewsets.GenericViewSet):
@@ -377,16 +360,23 @@ class AppointmentServiceViewSet(viewsets.GenericViewSet):
                 )
             except TestResult.DoesNotExist:
                 return Response(
-                    {"error": "No test result found for this appointment service"},
+                    {"error": "Không tìm thấy kết quả xét nghiệm cho dịch vụ này"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
+
         serializer = TestResultSerializer(
             data=request.data,
             context={"request": request, "appointment_service": appointment_service},
         )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response(
+                {"error": "Kết quả xét nghiệm cho dịch vụ này đã tồn tại"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class PrescriptionViewSet(viewsets.GenericViewSet, generics.RetrieveAPIView):
@@ -467,7 +457,9 @@ class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
         symptoms = request.data.get("symptoms")
         if not symptoms:
             return Response(
-                {"error": "Please provide symptoms for recommendation"},
+                {
+                    "error": "Vui lòng cung cấp triệu chứng để được gợi ý chuyên khoa phù hợp"
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
@@ -477,7 +469,7 @@ class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
                     SpecialtySerializer(specialty).data, status=status.HTTP_200_OK
                 )
             return Response(
-                {"error": "No suitable specialty found"},
+                {"error": "Không tìm thấy chuyên khoa phù hợp!"},
                 status=status.HTTP_404_NOT_FOUND,
             )
         except Exception as ex:
@@ -563,14 +555,14 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 )
             except PatientProfile.DoesNotExist:
                 return Response(
-                    {"error": "User does not have a patient profile yet"},
+                    {"error": "Người dùng chưa có hồ sơ bệnh nhân"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
         if request.method == "POST":
             if PatientProfile.objects.filter(user=request.user).exists():
                 return Response(
-                    {"error": "User already has a patient profile"},
+                    {"error": "Người dùng đã có hồ sơ bệnh nhân, không cần tạo mới"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             serializer = PatientProfileSerializer(
@@ -585,7 +577,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 profile = PatientProfile.objects.get(user=request.user)
             except PatientProfile.DoesNotExist:
                 return Response(
-                    {"error": "User does not have a patient profile yet"},
+                    {"error": "Người dùng chưa có hồ sơ bệnh nhân"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
             serializer = PatientProfileSerializer(
@@ -689,14 +681,14 @@ class ReportViewSet(viewsets.ViewSet):
                 parsed = datetime.strptime(from_date, "%Y-%m-%d").date()
                 queryset = queryset.filter(appointment__start__date__gte=parsed)
             except Exception:
-                raise ValueError({"from_date": "Invalid from date"})
+                raise ValueError({"from_date": "Khoảng thời gian bắt đầu không hợp lệ"})
 
         if to_date:
             try:
                 parsed = datetime.strptime(to_date, "%Y-%m-%d").date()
                 queryset = queryset.filter(appointment__start__date__lte=parsed)
             except Exception:
-                raise ValueError({"to_date": "Invalid to date"})
+                raise ValueError({"to_date": "Khoảng thời gian kết thúc không hợp lệ"})
 
         services = (
             queryset.values("service_id", "service__name")
@@ -722,14 +714,14 @@ class ReportViewSet(viewsets.ViewSet):
                 parsed = datetime.strptime(from_date, "%Y-%m-%d").date()
                 queryset = queryset.filter(start__date__gte=parsed)
             except Exception:
-                raise ValueError({"from_date": "Invalid from date"})
+                raise ValueError({"from_date": "Khoảng thời gian bắt đầu không hợp lệ"})
 
         if to_date:
             try:
                 parsed = datetime.strptime(to_date, "%Y-%m-%d").date()
                 queryset = queryset.filter(start__date__lte=parsed)
             except Exception:
-                raise ValueError({"to_date": "Invalid to date"})
+                raise ValueError({"to_date": "Khoảng thời gian kết thúc không hợp lệ"})
 
         disease_raw = (
             queryset.values(
@@ -778,3 +770,148 @@ class TestQRView(viewsets.ViewSet):
             return Response(
                 {"error": "Tạo đơn hàng thất bại", "detail": result}, status=500
             )
+
+
+if not firebase_admin._apps:
+    cred_path = os.path.join(settings.BASE_DIR, "firebase-credentials.json")
+    cred = credentials.Certificate(cred_path)
+    firebase_admin.initialize_app(cred)
+
+
+class TestNotificationView(viewsets.GenericViewSet):
+    def get(self, request):
+        device_token = "fQK6UGALQtKyXxAxEk4RfS:APA91bGaNDC6VdDzJwBeIOIphH3iXuAZJpx36VKWCyPa4qOgxUdGpATe3qP7UiJio2IJuibW995ajt_xY6fI1I7MUsouvhh0geawMlysxYXPTn36js1ZEUU"
+
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title="Nhắc nhở từ MedConnect",
+                body="Đã đến giờ uống thuốc nha bạn ơi!",
+            ),
+            token=device_token,
+        )
+
+        try:
+            response = messaging.send(message)
+            return Response(
+                {
+                    "status": "success",
+                    "message": "Đã gửi thông báo thành công!",
+                    "fcm_response": response,
+                }
+            )
+        except Exception as e:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Gửi thông báo thất bại",
+                    "error": str(e),
+                }
+            )
+
+
+class PaymentViewSet(viewsets.GenericViewSet):
+    permission_classes = [perms.AppointmentOwner]
+    queryset = Payment.objects.filter(active=True).select_related("appointment")
+
+    @action(methods=["post"], url_path="zalopay", detail=True)
+    def pay(self, request, pk=None):
+        payment = self.get_object()
+
+        if payment.status == Payment.PaymentStatus.PAID:
+            return Response(
+                {"error": "Hóa đơn đã được thanh toán"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if payment.total_amount == 0:
+            payment.status = Payment.PaymentStatus.PAID
+            payment.save()
+
+            payment.appointment.prescription_set.filter(active=True).update(
+                status=Prescription.PrescriptionStatus.PAID
+            )
+            return Response(
+                {
+                    "message": "Thanh toán thành công! Không có khoản phí nào cần thanh toán."
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        description = f"Thanh toán hóa đơn cho lịch khám #{payment.appointment.id}"
+        zalopay_res = utils.create_order(
+            order_id=payment.id,
+            amount=int(payment.total_amount),
+            description=description,
+        )
+
+        if zalopay_res.get("return_code") == 1:
+            payment.app_trans_id = zalopay_res["app_trans_id"]
+            payment.save()
+
+            return Response(
+                {
+                    "order_url": zalopay_res["order_url"],
+                    "zp_trans_token": zalopay_res["zp_trans_token"],
+                    "app_trans_id": zalopay_res["app_trans_id"],
+                },
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(
+                {"error": "Tạo đơn hàng thất bại", "detail": zalopay_res},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(
+        methods=["post"],
+        url_path="zalopay-callback",
+        detail=False,
+        permission_classes=[AllowAny],
+    )
+    def callback(self, request):
+        res = {}
+        try:
+            is_valid, data = utils.verify_callback(request.data)
+            if not is_valid:
+                res["return_code"] = -1
+                res["return_message"] = f"Xác thực callback thất bại: {data}"
+                return Response(res)
+
+            app_trans_id = data["app_trans_id"]
+            zp_trans_id = data["zp_trans_id"]
+            payment_id = app_trans_id.split("_")[-1]
+
+            with transaction.atomic():
+                payment = Payment.objects.select_related("appointment").get(
+                    id=payment_id
+                )
+
+                payment.status = Payment.PaymentStatus.PAID
+                payment.zp_trans_id = zp_trans_id
+                payment.app_trans_id = app_trans_id
+                payment.save(
+                    update_fields=[
+                        "status",
+                        "app_trans_id",
+                        "zp_trans_id",
+                        "updated_at",
+                    ]
+                )
+
+                appointment = payment.appointment
+                appointment.status = Appointment.AppointmentStatus.COMPLETED
+                appointment.save(update_fields=["status", "updated_at"])
+                appointment.prescription_set.filter(active=True).update(
+                    status=Prescription.PrescriptionStatus.PAID
+                )
+
+            res["return_code"] = 1
+            res["return_message"] = "Thanh toán thành công"
+
+        except Payment.DoesNotExist:
+            res["return_code"] = 0
+            res["return_message"] = "Không tìm thấy đơn thanh toán"
+        except Exception as e:
+            res["return_code"] = 0
+            res["return_message"] = str(e)
+
+        return Response(res, status=status.HTTP_200_OK)
