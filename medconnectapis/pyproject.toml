@@ -23,6 +23,7 @@ dependencies = [
     "djangorestframework-stubs==3.16.8",
     "drf-yasg==1.21.15",
     "faker>=40.13.0",
+    "firebase-admin>=7.4.0",
     "google-auth==2.49.1",
     "google-genai==1.70.0",
     "h11==0.16.0",
