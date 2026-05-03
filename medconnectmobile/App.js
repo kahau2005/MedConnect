@@ -11,6 +11,9 @@ import {
   MD3LightTheme,
   PaperProvider,
 } from "react-native-paper";
+import Specialty from "./screens/Specialty/Specialty";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Doctor from "./screens/Doctor/Doctor";
 
 const Stack = createNativeStackNavigator();
 
@@ -36,18 +39,22 @@ const theme = {
 
 export default function App() {
   return (
-    <PaperProvider theme={theme}>
-      <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName="Home"
-          screenOptions={{
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="Home" component={Home} />
-          <Stack.Screen name="Appointment" component={Appointment} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </PaperProvider>
+    <SafeAreaView style={{ flex: 1 }}>
+      <PaperProvider theme={theme}>
+        <NavigationContainer>
+          <Stack.Navigator
+            initialRouteName="Home"
+            screenOptions={{
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="Home" component={Home} />
+            <Stack.Screen name="Appointment" component={Appointment} />
+            <Stack.Screen name="Specialty" component={Specialty} />
+            <Stack.Screen name="Doctor" component={Doctor} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </PaperProvider>
+    </SafeAreaView>
   );
 }

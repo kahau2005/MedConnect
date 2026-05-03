@@ -4,23 +4,11 @@ import { Dropdown } from "react-native-element-dropdown";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { Icon } from "react-native-paper";
 
-const DropdownComponent = ({ data, label, value, setValue }) => {
+const DropdownComponent = ({ data, value, setValue }) => {
   const [isFocus, setIsFocus] = useState(false);
-
-  const renderLabel = () => {
-    if (value || isFocus) {
-      return (
-        <Text style={[styles.label, isFocus && { color: "blue" }]}>
-          {label}
-        </Text>
-      );
-    }
-    return null;
-  };
 
   return (
     <View style={styles.container}>
-      {renderLabel()}
       <Dropdown
         style={[styles.dropdown, isFocus && { borderColor: "blue" }]}
         placeholderStyle={styles.placeholderStyle}
@@ -50,9 +38,7 @@ const DropdownComponent = ({ data, label, value, setValue }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-  },
+  container: {},
   dropdown: {
     height: 50,
     borderColor: "gray",

@@ -8,6 +8,7 @@ import CallActionBooking from "../../../components/CallActionBooking/CallActionB
 import Style from "../Style";
 import { IconButton } from "react-native-paper";
 import IconButtonCustom from "../../../components/IconButtonCustom/IconButtonCustom";
+import { useNavigation } from "@react-navigation/native";
 
 const doctors = [
   {
@@ -33,7 +34,12 @@ const doctors = [
   },
 ];
 
-const HomeTab = () => {
+const HomeTab = ({ navigation }) => {
+  const handleButtonClick = (viewName) => {
+    navigation.navigate(viewName);
+    console.log(`Navigating to ${viewName} view`);
+  };
+
   return (
     <ScrollView>
       <View style={Style.background}>
@@ -44,8 +50,16 @@ const HomeTab = () => {
         <View style={Style.action}>
           <CallActionBooking />
           <View style={Style.icon_group}>
-            <IconButtonCustom iconName="doctor" title="Bác sĩ" />
-            <IconButtonCustom iconName="hospital" title="Chuyên khoa" />
+            <IconButtonCustom
+              iconName="doctor"
+              title="Bác sĩ"
+              setItemClicked={() => handleButtonClick("Doctor")}
+            />
+            <IconButtonCustom
+              iconName="hospital"
+              title="Chuyên khoa"
+              setItemClicked={() => handleButtonClick("Specialty")}
+            />
             <IconButtonCustom iconName="face-agent" title="Dịch vụ" />
           </View>
         </View>

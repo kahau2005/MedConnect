@@ -4,6 +4,10 @@ export default StyleSheet.create({
   container: {
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#039aa1",
+    borderRadius: 10,
+    borderColor: "white",
+    width: "30%",
   },
   icon: {
     width: 40,
@@ -11,7 +15,10 @@ export default StyleSheet.create({
     tintColor: "white",
   },
   text: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "bold",
+    color: "white",
+    textShadowColor: "rgb(0, 0, 0)",
+    paddingBottom: 8,
   },
 });
