@@ -3,7 +3,7 @@ import { View, Text } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Button } from "react-native-paper";
 import { DatePickerInput, TimePickerModal } from "react-native-paper-dates";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import AppointmentStyle from "./Style";
 import InputText from "../../components/InputText/InputText";
 import ButtonStyle from "../../components/Button/Style";
@@ -90,7 +90,30 @@ const Appointment = () => {
     >
       <SafeAreaProvider style={AppointmentStyle.container}>
         <View>
-          <Text style={AppointmentStyle.label}>Chọn ngày và giờ hẹn</Text>
+          <InputText
+            label={"Chọn chuyên khoa"}
+            CustomInput={
+              <DropdownComponent
+                data={specialties}
+                label="Chọn chuyên khoa"
+                value={specialtyValue}
+                setValue={setSpecialtyValue}
+              />
+            }
+          />
+          <InputText
+            label={"Chọn bác sĩ"}
+            CustomInput={
+              <DropdownComponent
+                data={doctors}
+                label="Chọn bác sĩ"
+                value={doctorValue}
+                setValue={setDoctorValue}
+              />
+            }
+          />
+        </View>
+        <View>
           <InputText
             label="Chọn ngày hẹn"
             CustomInput={
@@ -138,32 +161,6 @@ const Appointment = () => {
                   minutes={0}
                 />
               </>
-            }
-          />
-        </View>
-
-        <View>
-          <Text style={AppointmentStyle.label}>Chuyên khoa & Bác sĩ</Text>
-          <InputText
-            label={"Chọn chuyên khoa"}
-            CustomInput={
-              <DropdownComponent
-                data={specialties}
-                label="Chọn chuyên khoa"
-                value={specialtyValue}
-                setValue={setSpecialtyValue}
-              />
-            }
-          />
-          <InputText
-            label={"Chọn bác sĩ"}
-            CustomInput={
-              <DropdownComponent
-                data={doctors}
-                label="Chọn bác sĩ"
-                value={doctorValue}
-                setValue={setDoctorValue}
-              />
             }
           />
         </View>
