@@ -1,6 +1,8 @@
-from medconnectapp.views import PrescriptionDetailViewSet
+from django.urls import include, path
 from rest_framework import routers
-from django.urls import path, include
+
+from medconnectapp.views import PrescriptionDetailViewSet
+
 from . import views
 
 router = routers.DefaultRouter()
@@ -27,7 +29,6 @@ router.register("reports", views.ReportViewSet, "report")
 router.register("doctors", views.DoctorViewSet, "doctor")
 router.register("schedules", views.DoctorScheduleViewSet, "schedule")
 router.register("payments", views.PaymentViewSet, "payment")
-router.register("tests", views.TestNotificationView, "test")
 urlpatterns = [
     path("", include(router.urls)),
 ]

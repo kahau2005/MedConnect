@@ -1,3 +1,5 @@
+import nh3
+import re
 from datetime import timedelta
 
 from django.db import transaction
@@ -23,6 +25,7 @@ from .models import (
     Specialty,
     TestResult,
     User,
+    FCMDevice,
 )
 
 
@@ -133,12 +136,13 @@ class PrescriptionDetailSerializer(ModelSerializer):
 
     def to_internal_value(self, data):
         obj = super().to_internal_value(data)
-        medicine_val = data.get("medicine", serializers.empty)
-        try:
-            medicine_id = int(medicine_val)
-        except TypeError, ValueError:
-            raise serializers.ValidationError({"medicine": "ID thuốc không hợp lệ"})
-        obj["medicine_id"] = medicine_id
+        if "medicine" in data:
+            medicine_val = data.get("medicine", serializers.empty)
+            try:
+                medicine_id = int(medicine_val)
+            except TypeError, ValueError:
+                raise serializers.ValidationError({"medicine": "ID thuốc không hợp lệ"})
+            obj["medicine_id"] = medicine_id
         return obj
 
     def to_representation(self, instance):
@@ -250,6 +254,8 @@ class AppointmentSerializer(ModelSerializer):
             "user": {"read_only": True},
             "status": {"read_only": True},
             "active": {"read_only": True},
+            "symptoms": {"read_only": True},
+            "diagnosis": {"read_only": True},
         }
         model = Appointment
         fields = [
@@ -260,7 +266,7 @@ class AppointmentSerializer(ModelSerializer):
             "start",
             "reason",
             "symptoms",
-            "note",
+            "diagnosis",
         ]
 
     def validate(self, attrs):
@@ -315,6 +321,14 @@ class AppointmentSerializer(ModelSerializer):
                         "start": "Thời gian đã có lịch khám khác, vui lòng chọn thời gian khác"
                     }
                 )
+        input_fields = ["reason", "symptoms"]
+        for field in input_fields:
+            if field in attrs and isinstance(attrs[field], str):
+                cleaned = nh3.clean(attrs[field], tags=set()).strip()
+                if not cleaned and attrs[field]:
+                    raise serializers.ValidationError(
+                        f"Dữ liệu của {field} không hợp lệ"
+                    )
         return attrs
 
 
@@ -327,6 +341,8 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
             "start": {"read_only": True},
             "active": {"read_only": True},
             "status": {"read_only": False},
+            "symptoms": {"read_only": False},
+            "diagnosis": {"read_only": False},
         }
 
     def validate_status(self, value):
@@ -359,6 +375,18 @@ class TestResultSerializer(ModelSerializer):
             "created_at": {"read_only": True},
             "updated_at": {"read_only": True},
         }
+
+    def validate(self, attrs):
+        input_fields = ["result_data", "conclusion"]
+
+        for field in input_fields:
+            if field in attrs and isinstance(attrs[field], str):
+                cleaned = nh3.clean(attrs[field], tags=set()).strip()
+                if not cleaned and attrs[field]:
+                    raise serializers.ValidationError(
+                        f"Dữ liệu của {field} không hợp lệ"
+                    )
+        return attrs
 
     def create(self, validated_data):
         request = self.context["request"]
@@ -507,6 +535,20 @@ class PatientProfileSerializer(ModelSerializer):
             "address",
         ]
 
+    def validate(self, attrs):
+        input_fields = ["allergies", "chronic_diseases", "address"]
+        for field in input_fields:
+            if field in attrs and isinstance(attrs[field], str):
+                cleaned = nh3.clean(attrs[field], tags=set()).strip()
+
+                if not cleaned and attrs[field]:
+                    raise serializers.ValidationError(
+                        f"Dữ liệu của {field} không hợp lệ"
+                    )
+                attrs[field] = cleaned
+
+        return attrs
+
 
 class DetailPatientProfileSerializer(ModelSerializer):
     class Meta:
@@ -519,12 +561,57 @@ class SimpleUserSerializer(ModelSerializer):
         model = User
         fields = ["id", "first_name", "last_name", "email", "phone", "avatar"]
 
+    def validate_phone(self, value):
+        if not re.match(r"^\d{10}$", value):
+            raise serializers.ValidationError("Số điện thoại không hợp lệ")
+        return value
+
+    def validate_avatar(self, value):
+        if value:
+            if not value.content_type.startswith("image/"):
+                raise serializers.ValidationError("Định dạng file avatar không hợp lệ")
+            if value.size > 10 * 1024 * 1024:
+                raise serializers.ValidationError(
+                    "Ảnh có kích thước quá lớn, vui lòng chọn ảnh dưới 10MB"
+                )
+        return value
+
+    def validate(self, attrs):
+        input_fields = ["first_name", "last_name"]
+        for field in input_fields:
+            if field in attrs and isinstance(attrs[field], str):
+                cleaned = nh3.clean(attrs[field], tags=set()).strip()
+
+                if not cleaned and attrs[field]:
+                    raise serializers.ValidationError(
+                        f"Dữ liệu của {field} không hợp lệ"
+                    )
+                attrs[field] = cleaned
+        return attrs
+
 
 class UserSerializer(SimpleUserSerializer):
     class Meta:
         model = SimpleUserSerializer.Meta.model
         fields = SimpleUserSerializer.Meta.fields + ["username", "password"]
-        extra_kwargs = {"password": {"write_only": True}}
+        extra_kwargs = {
+            "password": {"write_only": True, "required": True},
+            "username": {"required": True, "allow_blank": False},
+            "first_name": {"required": True, "allow_blank": False},
+            "last_name": {"required": True, "allow_blank": False},
+            "email": {"required": True, "allow_blank": False},
+        }
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        if "username" in attrs and isinstance(attrs["username"], str):
+            cleaned = nh3.clean(attrs["username"], tags=set()).strip()
+            if not cleaned:
+                raise serializers.ValidationError("Dữ liệu của username không hợp lệ")
+            attrs["username"] = cleaned
+
+        return attrs
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -597,6 +684,12 @@ class DoctorScheduleSerializer(ModelSerializer):
     class Meta:
         model = DoctorSchedule
         fields = "__all__"
+
+
+class FCMDeviceSerializer(ModelSerializer):
+    class Meta:
+        model = FCMDevice
+        fields = ["id", "token", "device_type"]
 
 
 class PatientAgeGroupSerializer(serializers.Serializer):
