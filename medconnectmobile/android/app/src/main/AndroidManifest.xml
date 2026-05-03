@@ -25,6 +25,10 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="demozpdk"/>
+<<<<<<< HEAD
+=======
+        <data android:scheme="exp+medconnectmobile"/>
+>>>>>>> 059118623929114958be8782d29ad86e846ba25c
       </intent-filter>
     </activity>
   </application>

@@ -33,6 +33,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
+OAUTH2_PROVIDER = {
+    "OAUTH2_BACKEND_CLASS": "oauth2_provider.oauth2_backends.JSONOAuthLibCore"
+}
 # Application definition
 
 INSTALLED_APPS = [
@@ -66,6 +69,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "medconnectapp.middleware.OAuthMiddleware",
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = ["*"]
@@ -113,6 +117,13 @@ cloudinary.config(
     api_key=os.getenv("CLOUDINARY_API_KEY"),
     api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )
+
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+
+ZALOPAY_APP_ID = os.getenv("ZALOPAY_APP_ID")
+ZALOPAY_KEY1 = os.getenv("ZALOPAY_KEY1")
+ZALOPAY_KEY2 = os.getenv("ZALOPAY_KEY2")
 
 pymysql.version_info = (2, 2, 7)
 pymysql.install_as_MySQLdb()

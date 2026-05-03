@@ -242,6 +242,7 @@ class Payment(BaseModel):
     class PaymentStatus(models.TextChoices):
         PENDING = "PENDING", "Đang đợi thanh toán"
         PAID = "PAID", "Đã thanh toán"
+        FAILED = "FAILED", "Thất bại"
 
     appointment = models.OneToOneField(
         Appointment, on_delete=models.PROTECT, related_name="payment"
@@ -250,6 +251,8 @@ class Payment(BaseModel):
         max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
     )
     total_amount = models.DecimalField(null=False, max_digits=10, decimal_places=2)
+    app_trans_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    zp_trans_id = models.CharField(max_length=255, null=True, blank=True)
 
 
 class ChatRoom(BaseModel):
