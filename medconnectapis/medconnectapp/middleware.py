@@ -16,5 +16,5 @@ class OAuthMiddleware:
                 body["client_secret"] = settings.CLIENT_SECRET
                 request._body = json.dumps(body).encode("utf-8")
             except json.JSONDecodeError:
-                raise json.JSONDecodeError
-            return self.get_response(request)
+                pass
+        return self.get_response(request)

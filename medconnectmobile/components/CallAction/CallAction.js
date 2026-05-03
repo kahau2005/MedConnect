@@ -13,7 +13,7 @@ const CallAction = ({ title, subtitle }) => {
       <IconButton
         style={CallActionStyles.button}
         icon="chevron-right"
-        size={32} // Tăng kích thước icon ở đây (Mặc định thường là 24)
+        size={32}
         onPress={() => console.log("Pressed")}
       />
     </View>
