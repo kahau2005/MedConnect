@@ -1,19 +1,19 @@
-import os
 from datetime import datetime
 
-import firebase_admin
-from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Case, Count, Prefetch, Q, Sum, Value, When
 from django.db.models.fields import CharField
 from django.db.models.functions import ExtractYear, Now
 from django.utils import timezone
-from firebase_admin import credentials, messaging
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit
+from oauth2_provider.views.base import TokenView
 from rest_framework import generics, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from . import paginators, perms, serializers, utils
 from .models import (
@@ -23,6 +23,7 @@ from .models import (
     DiseaseCategory,
     Doctor,
     DoctorSchedule,
+    FCMDevice,
     Medicine,
     MedicineCategory,
     PatientProfile,
@@ -45,6 +46,7 @@ from .serializers import (
     DiseaseCategorySerializer,
     DiseaseSerializer,
     DoctorSerializer,
+    FCMDeviceSerializer,
     MedicineCategorySerializer,
     MedicineSerializer,
     PatientProfileSerializer,
@@ -62,7 +64,7 @@ from .serializers import (
 
 
 class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [perms.AppointmentOwnerOrDoctor]
     pagination_class = paginators.AppointmentPaginator
 
     def get_queryset(self):
@@ -146,19 +148,27 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         return AppointmentSerializer
 
     def get_permissions(self):
-        if self.action in ["prescriptions"]:
-            if self.request.method == "GET":
-                return [perms.AppointmentOwnerOrDoctor()]
-            elif self.request.method == "POST":
-                return [perms.AppointmentDoctor()]
-        elif self.action in ["partial_update"]:
-            return [perms.AppointmentOwnerOrDoctor()]
-        elif self.action in ["services"]:
-            if self.request.method == "GET":
-                return [perms.AppointmentOwnerOrDoctor()]
-            elif self.request.method == "POST":
-                return [perms.AppointmentDoctor()]
+        if self.action == "create":
+            return [IsAuthenticated()]
+        elif (
+            self.action in ["services", "prescriptions"]
+            and self.request.method == "POST"
+        ):
+            return [perms.AppointmentDoctor()]
+        elif self.action == "partial_update":
+            return [perms.AppointmentDoctor()]
+        elif self.action == "payments":
+            return [perms.AppointmentOwner()]
         return super().get_permissions()
+
+    def get_throttles(self):
+        if self.action == "create":
+            self.throttle_scope = "booking"
+        elif self.action == "checkout":
+            self.throttle_scope = "checkout"
+        else:
+            self.throttle_scope = "appointment"
+        return [ScopedRateThrottle()]
 
     def retrieve(self, request, pk=None):
         appointment = self.get_object()
@@ -273,8 +283,8 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(methods=["post"], url_path="payments", detail=True)
-    def payments(self, request, pk=None):
+    @action(methods=["post"], url_path="checkout", detail=True)
+    def checkout(self, request, pk=None):
         appointment = (
             Appointment.objects.filter(active=True)
             .prefetch_related(
@@ -335,6 +345,10 @@ class AppointmentServiceViewSet(viewsets.GenericViewSet):
     serializer_class = AppointmentServiceSerializer
     permission_classes = [perms.AppointmentDoctor]
 
+    def get_throttles(self):
+        self.throttle_scope = "appointment_service"
+        return [ScopedRateThrottle()]
+
     def partial_update(self, request, pk=None):
         service = self.get_object()
         appointment = service.appointment
@@ -389,7 +403,14 @@ class PrescriptionViewSet(viewsets.GenericViewSet, generics.RetrieveAPIView):
             return SimplePrescriptionSerializer
         return PrescriptionSerializer
 
-    def partial_update(self, request, pk):
+    def get_throttles(self):
+        if self.action == "details":
+            self.throttle_scope = "prescription_details"
+        else:
+            self.throttle_scope = "prescription"
+        return [ScopedRateThrottle()]
+
+    def partial_update(self, request, pk=None):
         prescription = self.get_object()
         serializer = self.get_serializer(prescription, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -418,6 +439,7 @@ class PrescriptionDetailViewSet(viewsets.GenericViewSet):
     queryset = PrescriptionDetail.objects.filter(active=True)
     serializer_class = PrescriptionDetailSerializer
     permission_classes = [perms.AppointmentDoctor]
+    throttle_scope = "prescription_details"
 
     def partial_update(self, request, pk=None):
         detail = self.get_object()
@@ -433,55 +455,27 @@ class DiseaseCategoryViewSet(
     queryset = DiseaseCategory.objects.filter(active=True)
     serializer_class = DiseaseCategorySerializer
     permission_classes = [perms.IsDoctorOrAdmin]
+    throttle_scope = "disease_category"
 
 
 class DiseaseViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = Disease.objects.filter(active=True)
     serializer_class = DiseaseSerializer
     permission_classes = [perms.IsDoctorOrAdmin]
+    throttle_scope = "disease"
 
 
 class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Specialty.objects.filter(active=True)
     serializer_class = SpecialtySerializer
     pagination_class = paginators.SpecialtyPaginator
-
-    @action(
-        methods=["post"],
-        url_path="recommend",
-        detail=False,
-        permission_classes=[IsAuthenticated],
-    )
-    def recommend(self, request):
-        symptoms = request.data.get("symptoms")
-        if not symptoms:
-            return Response(
-                {
-                    "error": "Vui lòng cung cấp triệu chứng để được gợi ý chuyên khoa phù hợp"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        try:
-            specialty = utils.get_recommend_specialty(symptoms=symptoms)
-            if specialty:
-                return Response(
-                    SpecialtySerializer(specialty).data, status=status.HTTP_200_OK
-                )
-            return Response(
-                {"error": "Không tìm thấy chuyên khoa phù hợp!"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        except Exception as ex:
-            print(ex)
-            return Response(
-                {"error": str(ex)},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+    throttle_scope = "specialty"
 
 
 class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = Service.objects.filter(active=True)
     pagination_class = paginators.ServicePaginator
+    throttle_scope = "service"
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -504,25 +498,41 @@ class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
 
 
 class MedicineViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
+    queryset = Medicine.objects.filter(active=True)
+    permission_classes = [perms.IsDoctorOrAdmin]
+    throttle_scope = "medicine"
+
     def get_serializer_class(self):
         if self.action == "retrieve":
             return DetailMedicineSerializer
         return MedicineSerializer
-
-    queryset = Medicine.objects.filter(active=True)
-    permission_classes = [perms.IsDoctorOrAdmin]
 
 
 class MedicineCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = MedicineCategory.objects.filter(active=True)
     serializer_class = MedicineCategorySerializer
     permission_classes = [perms.IsDoctorOrAdmin]
+    throttle_scope = "medicine_category"
 
 
-class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
+@method_decorator(ratelimit(key="ip", rate="5/m"), name="dispatch")
+class RateLimitLoginView(TokenView):
+    pass
+
+
+class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = UserSerializer
     parser_classes = [parsers.MultiPartParser, parsers.JSONParser]
+
+    def get_throttles(self):
+        if self.action == "create":
+            self.throttle_scope = "register_rate"
+        elif self.action == "current_user":
+            self.throttle_scope = "current_user"
+        elif self.action == "patient_profile":
+            self.throttle_scope = "patient_profile"
+        return [ScopedRateThrottle()]
 
     @action(
         methods=["get", "patch"],
@@ -586,11 +596,24 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(methods=["post"], url_path="register-device", detail=False)
+    def register_device(self, request):
+        serializer = FCMDeviceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data["token"]
+        device_type = serializer.validated_data["device_type"]
+        FCMDevice.objects.update_or_create(
+            token=token,
+            default={"user": request.user, "device_type": device_type, "active": True},
+        )
+        return Response({"message": "Đăng ký thiết bị thành công"})
+
 
 class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = Doctor.objects.filter(user__is_active=True)
     serializer_class = DoctorSerializer
     pagination_class = paginators.DoctorPaginator
+    throttle_scope = "doctor"
 
     def get_queryset(self):
         queryset = super().get_queryset().select_related("user", "specialty")
@@ -610,6 +633,7 @@ class DoctorScheduleViewSet(viewsets.ViewSet):
     queryset = DoctorSchedule.objects.filter(active=True)
     serializer_class = serializers.DoctorScheduleSerializer
     permission_classes = [perms.IsDoctor]
+    throttle_scope = "doctor_schedule"
 
     def list(self, request):
         doctor = request.user.doctor_profile
@@ -623,6 +647,7 @@ class DoctorScheduleViewSet(viewsets.ViewSet):
 
 class ReportViewSet(viewsets.ViewSet):
     permission_classes = [perms.IsAdmin]
+    throttle_scope = "report"
 
     @action(methods=["get"], url_path="patients", detail=False)
     def report_patients(self, request):
@@ -736,81 +761,11 @@ class ReportViewSet(viewsets.ViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class TestQRView(viewsets.ViewSet):
-    permission_classes = []
-
-    @action(methods=["get"], url_path="payment", detail=False)
-    def payment(self, request):
-        amount = request.query_params.get("amount", "50000")
-        try:
-            amount = int(amount)
-        except ValueError:
-            return Response({"error": "amount phải là số nguyên"}, status=400)
-
-        if amount <= 0:
-            return Response({"error": "amount phải > 0"}, status=400)
-
-        order_id = datetime.now().strftime("%H%M%S")
-
-        result = utils.create_order(
-            amount=amount, order_id=order_id, description="Thanh toán test"
-        )
-
-        if result.get("return_code") == 1:
-            return Response(
-                {
-                    "order_url": result["order_url"],
-                    "order_token": result.get("zp_trans_token"),
-                    "app_trans_id": result.get("app_trans_id"),
-                    "amount": amount,
-                }
-            )
-        else:
-            return Response(
-                {"error": "Tạo đơn hàng thất bại", "detail": result}, status=500
-            )
-
-
-if not firebase_admin._apps:
-    cred_path = os.path.join(settings.BASE_DIR, "firebase-credentials.json")
-    cred = credentials.Certificate(cred_path)
-    firebase_admin.initialize_app(cred)
-
-
-class TestNotificationView(viewsets.GenericViewSet):
-    def get(self, request):
-        device_token = "fQK6UGALQtKyXxAxEk4RfS:APA91bGaNDC6VdDzJwBeIOIphH3iXuAZJpx36VKWCyPa4qOgxUdGpATe3qP7UiJio2IJuibW995ajt_xY6fI1I7MUsouvhh0geawMlysxYXPTn36js1ZEUU"
-
-        message = messaging.Message(
-            notification=messaging.Notification(
-                title="Nhắc nhở từ MedConnect",
-                body="Đã đến giờ uống thuốc nha bạn ơi!",
-            ),
-            token=device_token,
-        )
-
-        try:
-            response = messaging.send(message)
-            return Response(
-                {
-                    "status": "success",
-                    "message": "Đã gửi thông báo thành công!",
-                    "fcm_response": response,
-                }
-            )
-        except Exception as e:
-            return Response(
-                {
-                    "status": "error",
-                    "message": "Gửi thông báo thất bại",
-                    "error": str(e),
-                }
-            )
-
-
 class PaymentViewSet(viewsets.GenericViewSet):
     permission_classes = [perms.AppointmentOwner]
     queryset = Payment.objects.filter(active=True).select_related("appointment")
+    serializer_class = PaymentReceiptSerializer
+    throttle_scope = "payment"
 
     @action(methods=["post"], url_path="zalopay", detail=True)
     def pay(self, request, pk=None):
@@ -914,3 +869,34 @@ class PaymentViewSet(viewsets.GenericViewSet):
             res["return_message"] = str(e)
 
         return Response(res, status=status.HTTP_200_OK)
+
+
+# class TestNotificationView(viewsets.GenericViewSet):
+#     def get(self, request):
+#         device_token = "fQK6UGALQtKyXxAxEk4RfS:APA91bGaNDC6VdDzJwBeIOIphH3iXuAZJpx36VKWCyPa4qOgxUdGpATe3qP7UiJio2IJuibW995ajt_xY6fI1I7MUsouvhh0geawMlysxYXPTn36js1ZEUU"
+#
+#         message = messaging.Message(
+#             notification=messaging.Notification(
+#                 title="Nhắc nhở từ MedConnect",
+#                 body="Đã đến giờ uống thuốc nha bạn ơi!",
+#             ),
+#             token=device_token,
+#         )
+#
+#         try:
+#             response = messaging.send(message)
+#             return Response(
+#                 {
+#                     "status": "success",
+#                     "message": "Đã gửi thông báo thành công!",
+#                     "fcm_response": response,
+#                 }
+#             )
+#         except Exception as e:
+#             return Response(
+#                 {
+#                     "status": "error",
+#                     "message": "Gửi thông báo thất bại",
+#                     "error": str(e),
+#                 }
+#             )

@@ -1,14 +1,13 @@
 import hashlib
 import hmac
 import json
+import os
 from datetime import datetime
 
+import firebase_admin
 import requests
 from django.conf import settings
-
-from medconnectapp.models import Specialty
-
-# from google import genai
+from firebase_admin import credentials, messaging
 
 ZALOPAY_CONFIG = {
     "APP_ID": settings.ZALOPAY_APP_ID,
@@ -21,7 +20,7 @@ ZALOPAY_CONFIG = {
 def create_order(
     order_id,
     amount,
-    description="",
+    description=None,
     callback_url="https://dreaded-chain-securely.ngrok-free.dev/payments/zalopay-callback/",
 ):
     app_id = ZALOPAY_CONFIG["APP_ID"]
@@ -79,53 +78,28 @@ def verify_callback(data):
     return False, "Mac nhận được không đúng"
 
 
-def query_order(app_trans_id):
-    app_id = ZALOPAY_CONFIG["APP_ID"]
-    key1 = ZALOPAY_CONFIG["KEY1"]
-    endpoint = f"{ZALOPAY_CONFIG['ENDPOINT']}/query"
-
-    data_str = f"{app_id}|{app_trans_id}|{key1}"
-    mac = hmac.new(
-        key1.encode("utf-8"), data_str.encode("utf-8"), hashlib.sha256
-    ).hexdigest()
-
-    params = {"app_id": app_id, "app_trans_id": app_trans_id, "mac": mac}
-
-    response = requests.post(endpoint, data=params)
-    return response.json()
+if not firebase_admin._apps:
+    cred_path = os.path.join(settings.BASE_DIR, "firebase-credentials.json")
+    cred = credentials.Certificate(cred_path)
+    firebase_admin.initialize_app(cred)
 
 
-# client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-# def get_recommend_specialty(symptoms):
-#     specialties = Specialty.objects.all()
-#     if not specialties.exists():
-#         return None
-#
-#     specialty_names = [s.name for s in specialties]
-#     specialty_list_str = ", ".join(specialty_names)
-#
-#     prompt = f"""
-#     Act as a medical routing assistant.
-#     Available specialties in our clinic: [{specialty_list_str}].
-#     Patient symptoms: "{symptoms}".
-#
-#     Analyze the symptoms and determine the most appropriate specialty from the exact list provided.
-#     Rules:
-#     1. Reply ONLY with the exact name of the specialty.
-#     2. Do not add any extra text, punctuation, or explanation.
-#     3. If the symptoms do not match any specialty, reply with "General Practice" or "Unknown".
-#     """
-#
-#     try:
-#         response = client.models.generate_content(
-#             model="gemini-2.5-flash",
-#             contents=prompt,
-#         )
-#         predicted_specialty_name = response.text
-#
-#         recommended_specialty = Specialty.objects.filter(
-#             name__iexact=predicted_specialty_name
-#         ).first()
-#         return recommended_specialty
-#     except Exception as ex:
-#         raise Exception(str(ex))
+def send_push_notification(user, title, body, data=None):
+    devices = user.fcm_devices.filter(active=True)
+    tokens = list(devices.values_list("token", flat=True))
+
+    if not tokens:
+        return False
+
+    message = messaging.MulticastMessage(
+        notification=messaging.Notification(title=title, body=body),
+        data=data if data else {},
+        tokens=tokens,
+    )
+
+    try:
+        response = messaging.send_each_for_multicast(message)
+        return response
+    except Exception as ex:
+        print(str(ex))
+        return None
