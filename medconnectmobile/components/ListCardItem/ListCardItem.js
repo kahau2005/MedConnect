@@ -1,16 +1,24 @@
-import { Image, Text, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
+import Style from "./Style";
 
 const ListCardItem = ({ item, onPress }) => {
   return (
-    <View>
+    <TouchableOpacity
+      style={Style.cardContainer}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
       <Image
         source={{ uri: item?.avatar }}
-        style={{ width: 100, height: 100 }}
+        style={Style.image}
+        resizeMode="cover"
       />
-      <Text>
-        {item?.first_name} {item?.last_name}
-      </Text>
-    </View>
+      <View style={Style.textContainer}>
+        <Text style={Style.nameText} numberOfLines={2}>
+          {item?.first_name} {item?.last_name}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 

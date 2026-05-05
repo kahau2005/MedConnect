@@ -1,6 +1,4 @@
 import { View, Text } from "react-native";
-import CollapsingToolBar from "../../../components/CollapsingToolBar/CollapsingToolBar";
-import CustomToolBar from "../../../components/ToolBar/CustomToolBar";
 import HorizontalItemsView from "../../../components/HorizontalItemsView/HorizontalItemsView";
 import { List } from "react-native-paper";
 import ListItemView from "../../../components/ListItemView/ListItemView";
@@ -38,12 +36,11 @@ const ServicesTab = () => {
     fetchPopularServices();
   }, []);
 
-  // Thêm đoạn này vào component của bạn để theo dõi
   useEffect(() => {
     console.log("---------Popular Services State (Sau khi re-render)---------");
     console.log(popularServices);
     console.log("---------------------------------------");
-  }, [popularServices]); // Hook này sẽ chạy mỗi khi popularServices thay đổi
+  }, [popularServices]);
   return (
     <CollapsingToolBar
       headerMaxHeight={220}
