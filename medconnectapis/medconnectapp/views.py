@@ -628,6 +628,25 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPI
             )
         return queryset
 
+    @action(
+        methods=["get"], url_path="popular", detail=False, permission_classes=[AllowAny]
+    )
+    def popular(self, request):
+        queryset = self.get_queryset()
+
+        popular_doctors = queryset.annotate(
+            appointment_count=Count(
+                "doctor_appointments",
+                filter=Q(
+                    doctor_appointments__active=True,
+                    doctor_appointments__status=Appointment.AppointmentStatus.COMPLETED,
+                ),
+            )
+        ).order_by("-appointment_count")[:4]
+
+        serializer = self.get_serializer(popular_doctors, many=True)
+        return Response(serializer.data)
+
 
 class DoctorScheduleViewSet(viewsets.ViewSet):
     queryset = DoctorSchedule.objects.filter(active=True)

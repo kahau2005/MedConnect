@@ -39,6 +39,7 @@ OAUTH2_PROVIDER = {
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -106,6 +107,7 @@ TASKS = {
     }
 }
 
+
 CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = ["*"]
 
@@ -129,7 +131,8 @@ TEMPLATES = [
 ]
 
 
-WSGI_APPLICATION = "medconnectapis.wsgi.application"
+# WSGI_APPLICATION = "medconnectapis.wsgi.application"
+ASGI_APPLICATION = "medconnectapis.asgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
