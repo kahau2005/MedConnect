@@ -6,6 +6,7 @@ import { Icon } from "react-native-paper";
 import ServicesTab from "./BottomNavigations/ServicesTab";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "./Style";
+import AdvisoryTab from "./BottomNavigations/AdvisoryTab";
 
 const Home = () => {
   const Tab = createBottomTabNavigator();
@@ -22,8 +23,8 @@ const Home = () => {
       />
 
       <Tab.Screen
-        name="Services"
-        component={ServicesTab}
+        name="Tư vấn"
+        component={AdvisoryTab}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon source="briefcase" size={size} color={color} />

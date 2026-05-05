@@ -14,6 +14,8 @@ import {
 import Specialty from "./screens/Specialty/Specialty";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Doctor from "./screens/Doctor/Doctor";
+import Service from "./screens/Service/Service";
+import Payment from "./screens/Payment/Payment";
 
 const Stack = createNativeStackNavigator();
 
@@ -39,22 +41,27 @@ const theme = {
 
 export default function App() {
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <PaperProvider theme={theme}>
-        <NavigationContainer>
-          <Stack.Navigator
-            initialRouteName="Home"
-            screenOptions={{
-              headerShown: false,
-            }}
-          >
-            <Stack.Screen name="Home" component={Home} />
-            <Stack.Screen name="Appointment" component={Appointment} />
-            <Stack.Screen name="Specialty" component={Specialty} />
-            <Stack.Screen name="Doctor" component={Doctor} />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </PaperProvider>
-    </SafeAreaView>
+    <PaperProvider theme={theme}>
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName="Home"
+          screenOptions={{
+            headerShown: true,
+            headerTitleAlign: "center",
+          }}
+        >
+          <Stack.Screen
+            name="Home"
+            component={Home}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="Appointment" component={Appointment} />
+          <Stack.Screen name="Specialty" component={Specialty} />
+          <Stack.Screen name="Doctor" component={Doctor} />
+          <Stack.Screen name="Service" component={Service} />
+          <Stack.Screen name="Payment" component={Payment} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </PaperProvider>
   );
 }

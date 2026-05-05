@@ -7,5 +7,5 @@ export const endpoint = {
   test: "/tests/payment/?amount=1000",
 };
 export default axios.create({
-  baseURL: "http://192.168.0.161:8000/",
+  baseURL: "http://192.168.46.69:8000/",
 });
