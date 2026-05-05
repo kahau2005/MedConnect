@@ -7,7 +7,7 @@ class AppointmentPaginator(pagination.LimitOffsetPagination):
 
 
 class SpecialtyPaginator(pagination.LimitOffsetPagination):
-    default_limit = 12
+    default_limit = 10
     max_limit = 40
 
 

@@ -120,7 +120,6 @@ class Appointment(BaseModel):
     reason = models.TextField(null=True, blank=True)
     symptoms = models.TextField(null=True, blank=True)
     diagnosis = models.ForeignKey(Disease, on_delete=models.PROTECT, default=1)
-    note = models.TextField(null=True, blank=True)
     active_start = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -253,6 +252,15 @@ class Payment(BaseModel):
     total_amount = models.DecimalField(null=False, max_digits=10, decimal_places=2)
     app_trans_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
     zp_trans_id = models.CharField(max_length=255, null=True, blank=True)
+
+
+class FCMDevice(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="fcm_devices")
+    token = models.CharField(max_length=255, unique=True)
+    device_type = models.CharField(max_length=20, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.device_type}"
 
 
 class ChatRoom(BaseModel):

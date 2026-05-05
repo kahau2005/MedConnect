@@ -11,7 +11,6 @@ class OAuthMiddleware:
         if request.path == "/o/token/" and request.method == "POST":
             try:
                 body = json.loads(request.body)
-                body["grant_type"] = "password"
                 body["client_id"] = settings.CLIENT_ID
                 body["client_secret"] = settings.CLIENT_SECRET
                 request._body = json.dumps(body).encode("utf-8")

@@ -40,6 +40,42 @@ const theme = {
 };
 
 export default function App() {
+  useEffect(() => {
+    const setupFirebase = async () => {
+      try {
+        const messagingInstance = getMessaging();
+
+        const authStatus = await requestPermission(messagingInstance);
+
+        const isAuthorized = authStatus === 1 || authStatus === 2;
+
+        if (isAuthorized) {
+          const token = await getToken(messagingInstance);
+          console.log("========== FCM TOKEN ==========");
+          console.log(token);
+          console.log("===============================");
+
+          const unsubscribe = onMessage(
+            messagingInstance,
+            async (remoteMessage) => {
+              Alert.alert(
+                remoteMessage.notification?.title || "MedConnect",
+                remoteMessage.notification?.body || "Bạn có thông báo mới!",
+              );
+            },
+          );
+
+          return unsubscribe;
+        } else {
+          console.log("Người dùng đã từ chối nhận thông báo.");
+        }
+      } catch (error) {
+        console.error("Lỗi setup FCM:", error);
+      }
+    };
+
+    setupFirebase();
+  }, []);
   return (
     <PaperProvider theme={theme}>
       <NavigationContainer>

@@ -52,12 +52,39 @@ INSTALLED_APPS = [
     "oauth2_provider",
     "medconnectapp.apps.MedconnectappConfig",
     "corsheaders",
+    "django_tasks",
+    "django_tasks_db",
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
-    )
+    ),
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "register": "3/m",
+        "login": "5/m",
+        "current_user": "10/m",
+        "patient_profile": "10/m",
+        "checkout": "3/m",
+        "payment": "3/m",
+        "booking": "10/h",
+        "appointment": "10/m",
+        "appointment_service": "10/m",
+        "prescription": "10/m",
+        "prescription_details": "5/m",
+        "disease_category": "20/m",
+        "disease": "20/m",
+        "specialty": "20/m",
+        "service": "20/m",
+        "medicine_category": "20/m",
+        "medicine": "20/m",
+        "doctor": "20/m",
+        "doctor_schedule": "20/m",
+        "report": "10/m",
+    },
 }
 
 MIDDLEWARE = [
@@ -71,6 +98,14 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "medconnectapp.middleware.OAuthMiddleware",
 ]
+
+TASKS = {
+    "default": {
+        "BACKEND": "django_tasks_db.DatabaseBackend",
+        "QUEUES": ["default"],
+    }
+}
+
 CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = ["*"]
 
