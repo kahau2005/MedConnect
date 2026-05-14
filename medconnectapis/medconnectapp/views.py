@@ -1,9 +1,12 @@
+import json
 from datetime import datetime
 
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Case, Count, Prefetch, Q, Sum, Value, When
 from django.db.models.fields import CharField
 from django.db.models.functions import ExtractYear, Now
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
@@ -14,11 +17,14 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
+from stream_chat import StreamChat
 
 from . import paginators, perms, serializers, utils
 from .models import (
     Appointment,
     AppointmentService,
+    ChatMessage,
+    ChatRoom,
     Disease,
     DiseaseCategory,
     Doctor,
@@ -336,6 +342,64 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
 
         serializer = PaymentReceiptSerializer(payment)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(methods=["post"], url_path="chat-rooms", detail=True)
+    def chat_rooms(self, request, pk=None):
+        queryset = self.get_queryset().select_related("user", "doctor__user")
+        appointment = get_object_or_404(queryset, pk=pk)
+
+        chat_room, created = ChatRoom.objects.get_or_create(appointment=appointment)
+        stream_channel_id = f"appointment_{appointment.id}"
+
+        if created:
+            chat_client = StreamChat(
+                api_key=settings.STREAM_API_KEY, api_secret=settings.STREAM_API_SECRET
+            )
+
+            doctor_id = str(appointment.doctor_id)
+            user_id = str(appointment.user_id)
+            chat_client.upsert_users(
+                [
+                    {
+                        "id": user_id,
+                        "name": f"{appointment.user.first_name} {appointment.user.last_name}",
+                        "role": "user",
+                    },
+                    {
+                        "id": doctor_id,
+                        "name": f"{appointment.doctor.user.first_name} {appointment.doctor.user.last_name}",
+                        "role": "user",
+                    },
+                ]
+            )
+
+            channel = chat_client.channel("messaging", stream_channel_id)
+            channel.create(
+                doctor_id,
+                {
+                    "name": f"Lịch khám {appointment.id}",
+                    "members": [user_id, doctor_id],
+                    "appointment_id": appointment.id,
+                },
+            )
+
+        return Response(
+            {
+                "message": "Phòng chat đã được tạo",
+                "chat_room_id": chat_room.id,
+                "stream_channel_id": stream_channel_id,
+                "stream_channel_type": "messaging",
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    @action(methods=["get"], url_path="video-call-info", detail=True)
+    def video_call_info(self, request, pk=None):
+        appointment = self.get_object()
+        call_id = f"call_{appointment.id}"
+        return Response(
+            {"call_id": call_id, "call_type": "default"}, status=status.HTTP_200_OK
+        )
 
 
 class AppointmentServiceViewSet(viewsets.GenericViewSet):
@@ -890,32 +954,48 @@ class PaymentViewSet(viewsets.GenericViewSet):
         return Response(res, status=status.HTTP_200_OK)
 
 
-# class TestNotificationView(viewsets.GenericViewSet):
-#     def get(self, request):
-#         device_token = "fQK6UGALQtKyXxAxEk4RfS:APA91bGaNDC6VdDzJwBeIOIphH3iXuAZJpx36VKWCyPa4qOgxUdGpATe3qP7UiJio2IJuibW995ajt_xY6fI1I7MUsouvhh0geawMlysxYXPTn36js1ZEUU"
-#
-#         message = messaging.Message(
-#             notification=messaging.Notification(
-#                 title="Nhắc nhở từ MedConnect",
-#                 body="Đã đến giờ uống thuốc nha bạn ơi!",
-#             ),
-#             token=device_token,
-#         )
-#
-#         try:
-#             response = messaging.send(message)
-#             return Response(
-#                 {
-#                     "status": "success",
-#                     "message": "Đã gửi thông báo thành công!",
-#                     "fcm_response": response,
-#                 }
-#             )
-#         except Exception as e:
-#             return Response(
-#                 {
-#                     "status": "error",
-#                     "message": "Gửi thông báo thất bại",
-#                     "error": str(e),
-#                 }
-#             )
+class StreamViewSet(viewsets.GenericViewSet):
+    @action(
+        methods=["get"],
+        url_path="token",
+        detail=False,
+        permission_classes=[IsAuthenticated],
+    )
+    def token(self, request):
+        chat_client = StreamChat(
+            api_key=settings.STREAM_API_KEY, api_secret=settings.STREAM_API_SECRET
+        )
+
+        user_id = str(request.user.id)
+        token = chat_client.create_token(user_id)
+        return Response({"stream_token": token}, status=status.HTTP_200_OK)
+
+    @action(methods=["post"], url_path="webhook", detail=False, permission_classes=[])
+    def webhook(self, request):
+        if not utils.verify_stream_webhook(request):
+            return Response(
+                {"error": "Chữ ký Stream không hợp lệ"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        data = json.loads(request.body)
+        event_type = data.get("type")
+        msg_json = data.get("message")
+
+        if event_type == "message.new":
+            channel_id = data.get("channel_id")
+            appointment_id = channel_id.split("_")[-1]
+
+            try:
+                room = ChatRoom.objects.get(appointment_id=appointment_id)
+                ChatMessage.objects.create(
+                    room=room,
+                    chat_type=ChatMessage.MessageType.TEXT,
+                    sender_id=msg_json["user"]["id"],
+                    stream_id=msg_json["id"],
+                    content=msg_json["text"],
+                )
+            except ChatRoom.DoesNotExist:
+                pass
+        elif event_type == "message.deleted":
+            ChatMessage.objects.filter(stream_id=msg_json["id"]).update(active=False)
+        return Response({}, status=status.HTTP_200_OK)

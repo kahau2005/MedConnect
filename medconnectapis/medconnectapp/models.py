@@ -304,6 +304,7 @@ class ChatMessage(BaseModel):
     room = models.ForeignKey(
         ChatRoom, on_delete=models.PROTECT, related_name="messages"
     )
+    stream_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     sender = models.ForeignKey(
         User, on_delete=models.PROTECT, related_name="user_messages"
     )
