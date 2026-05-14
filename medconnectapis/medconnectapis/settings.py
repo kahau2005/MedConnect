@@ -106,12 +106,6 @@ TASKS = {
     }
 }
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "InMemoryChannelLayer",
-    }
-}
-
 CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = ["*"]
 
