@@ -103,3 +103,17 @@ def send_push_notification(user, title, body, data=None):
     except Exception as ex:
         print(str(ex))
         return None
+
+
+def verify_stream_webhook(request):
+    signature = request.headers.get("x-signature")
+    body = request.body
+
+    if not signature or not body:
+        return False
+
+    expected_signature = hmac.new(
+        settings.STREAM_API_SECRET.encode("utf-8"), msg=body, digestmod=hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(signature, expected_signature)

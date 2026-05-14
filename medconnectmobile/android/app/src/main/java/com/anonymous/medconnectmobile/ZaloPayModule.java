@@ -31,7 +31,6 @@ public class ZaloPayModule extends ReactContextBaseJavaModule {
             return;
         }
 
-        // "demozpdk://app" phải khớp với scheme bạn đã khai báo trong AndroidManifest
         ZaloPaySDK.getInstance().payOrder(currentActivity, zpTransToken, "demozpdk://app", new PayOrderListener() {
             @Override
             public void onPaymentSucceeded(String transactionId, String transToken, String appTransID) {

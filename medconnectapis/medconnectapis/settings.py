@@ -39,7 +39,6 @@ OAUTH2_PROVIDER = {
 # Application definition
 
 INSTALLED_APPS = [
-    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -107,7 +106,6 @@ TASKS = {
     }
 }
 
-
 CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = ["*"]
 
@@ -131,8 +129,7 @@ TEMPLATES = [
 ]
 
 
-# WSGI_APPLICATION = "medconnectapis.wsgi.application"
-ASGI_APPLICATION = "medconnectapis.asgi.application"
+WSGI_APPLICATION = "medconnectapis.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -162,6 +159,9 @@ CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 ZALOPAY_APP_ID = os.getenv("ZALOPAY_APP_ID")
 ZALOPAY_KEY1 = os.getenv("ZALOPAY_KEY1")
 ZALOPAY_KEY2 = os.getenv("ZALOPAY_KEY2")
+
+STREAM_API_KEY = os.getenv("STREAM_API_KEY")
+STREAM_API_SECRET = os.getenv("STREAM_API_SECRET")
 
 pymysql.version_info = (2, 2, 7)
 pymysql.install_as_MySQLdb()
