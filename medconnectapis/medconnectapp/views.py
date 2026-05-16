@@ -3,9 +3,9 @@ from datetime import datetime
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
-from django.db.models import Case, Count, Prefetch, Q, Sum, Value, When
+from django.db.models import Case, Count, Prefetch, Q, Sum, Value, When, Avg, FloatField
 from django.db.models.fields import CharField
-from django.db.models.functions import ExtractYear, Now
+from django.db.models.functions import ExtractYear, Now, Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -40,32 +40,7 @@ from .models import (
     Specialty,
     TestResult,
     User,
-)
-from .serializers import (
-    AppointmentSerializer,
-    AppointmentServiceSerializer,
-    AppointmentUpdateSerializer,
-    DetailAppointmentSerializer,
-    DetailMedicineSerializer,
-    DetailPatientProfileSerializer,
-    DetailServiceSerializer,
-    DiseaseCategorySerializer,
-    DiseaseSerializer,
-    DoctorSerializer,
-    FCMDeviceSerializer,
-    MedicineCategorySerializer,
-    MedicineSerializer,
-    PatientProfileSerializer,
-    PaymentReceiptSerializer,
-    PrescriptionDetailSerializer,
-    PrescriptionSerializer,
-    ServicePopularSerializer,
-    ServiceSerializer,
-    SimplePrescriptionSerializer,
-    SimpleUserSerializer,
-    SpecialtySerializer,
-    TestResultSerializer,
-    UserSerializer,
+    VideoCallLog,
 )
 
 
@@ -143,15 +118,15 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
 
     def get_serializer_class(self):
         if self.action == "retrieve":
-            return DetailAppointmentSerializer
+            return serializers.DetailAppointmentSerializer
         if self.action == "prescriptions":
             if self.request.method == "POST":
-                return SimplePrescriptionSerializer
+                return serializers.SimplePrescriptionSerializer
             elif self.request.method == "GET":
-                return PrescriptionSerializer
+                return serializers.PrescriptionSerializer
         if self.action == "partial_update":
-            return AppointmentUpdateSerializer
-        return AppointmentSerializer
+            return serializers.AppointmentUpdateSerializer
+        return serializers.AppointmentSerializer
 
     def get_permissions(self):
         if self.action == "create":
@@ -164,6 +139,8 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         elif self.action == "partial_update":
             return [perms.AppointmentDoctor()]
         elif self.action == "payments":
+            return [perms.AppointmentOwner()]
+        elif self.action == "review":
             return [perms.AppointmentOwner()]
         return super().get_permissions()
 
@@ -198,7 +175,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         ).distinct()
         doctors = Doctor.objects.filter(user_id__in=doctor_ids).select_related("user")
 
-        serializer = DoctorSerializer(doctors, many=True)
+        serializer = serializers.DoctorSerializer(doctors, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
@@ -278,11 +255,11 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
                 "service", "test_result"
             )
             return Response(
-                AppointmentServiceSerializer(q, many=True).data,
+                serializers.AppointmentServiceSerializer(q, many=True).data,
                 status=status.HTTP_200_OK,
             )
 
-        serializer = AppointmentServiceSerializer(
+        serializer = serializers.AppointmentServiceSerializer(
             data=request.data, context={"appointment": appointment}
         )
         serializer.is_valid(raise_exception=True)
@@ -340,8 +317,12 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
 
         payment.appointment = appointment
 
-        serializer = PaymentReceiptSerializer(payment)
+        serializer = serializers.PaymentReceiptSerializer(payment)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(methods=["post"], url_path="review", detail=True)
+    def review(self, request):
+        appointment = self.get_object()
 
     @action(methods=["post"], url_path="chat-rooms", detail=True)
     def chat_rooms(self, request, pk=None):
@@ -406,7 +387,7 @@ class AppointmentServiceViewSet(viewsets.GenericViewSet):
     queryset = AppointmentService.objects.filter(active=True).select_related(
         "appointment"
     )
-    serializer_class = AppointmentServiceSerializer
+    serializer_class = serializers.AppointmentServiceSerializer
     permission_classes = [perms.AppointmentDoctor]
 
     def get_throttles(self):
@@ -433,7 +414,8 @@ class AppointmentServiceViewSet(viewsets.GenericViewSet):
             try:
                 result = appointment_service.test_result
                 return Response(
-                    TestResultSerializer(result).data, status=status.HTTP_200_OK
+                    serializers.TestResultSerializer(result).data,
+                    status=status.HTTP_200_OK,
                 )
             except TestResult.DoesNotExist:
                 return Response(
@@ -441,7 +423,7 @@ class AppointmentServiceViewSet(viewsets.GenericViewSet):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-        serializer = TestResultSerializer(
+        serializer = serializers.TestResultSerializer(
             data=request.data,
             context={"request": request, "appointment_service": appointment_service},
         )
@@ -462,10 +444,10 @@ class PrescriptionViewSet(viewsets.GenericViewSet, generics.RetrieveAPIView):
 
     def get_serializer_class(self):
         if self.action in ["details"]:
-            return PrescriptionDetailSerializer
+            return serializers.PrescriptionDetailSerializer
         elif self.action in ["partial_update"]:
-            return SimplePrescriptionSerializer
-        return PrescriptionSerializer
+            return serializers.SimplePrescriptionSerializer
+        return serializers.PrescriptionSerializer
 
     def get_throttles(self):
         if self.action == "details":
@@ -501,7 +483,7 @@ class PrescriptionViewSet(viewsets.GenericViewSet, generics.RetrieveAPIView):
 
 class PrescriptionDetailViewSet(viewsets.GenericViewSet):
     queryset = PrescriptionDetail.objects.filter(active=True)
-    serializer_class = PrescriptionDetailSerializer
+    serializer_class = serializers.PrescriptionDetailSerializer
     permission_classes = [perms.AppointmentDoctor]
     throttle_scope = "prescription_details"
 
@@ -517,22 +499,21 @@ class DiseaseCategoryViewSet(
     viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView
 ):
     queryset = DiseaseCategory.objects.filter(active=True)
-    serializer_class = DiseaseCategorySerializer
+    serializer_class = serializers.DiseaseCategorySerializer
     permission_classes = [perms.IsDoctorOrAdmin]
     throttle_scope = "disease_category"
 
 
 class DiseaseViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = Disease.objects.filter(active=True)
-    serializer_class = DiseaseSerializer
+    serializer_class = serializers.DiseaseSerializer
     permission_classes = [perms.IsDoctorOrAdmin]
     throttle_scope = "disease"
 
 
 class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Specialty.objects.filter(active=True)
-    serializer_class = SpecialtySerializer
-    pagination_class = paginators.SpecialtyPaginator
+    serializer_class = serializers.SpecialtySerializer
     throttle_scope = "specialty"
 
 
@@ -543,10 +524,10 @@ class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
 
     def get_serializer_class(self):
         if self.action == "retrieve":
-            return DetailServiceSerializer
+            return serializers.DetailServiceSerializer
         if self.action == "popular_services":
-            return ServicePopularSerializer
-        return ServiceSerializer
+            return serializers.ServicePopularSerializer
+        return serializers.ServiceSerializer
 
     @action(methods=["get"], url_path="popular", detail=False)
     def popular_services(self, request):
@@ -568,13 +549,13 @@ class MedicineViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveA
 
     def get_serializer_class(self):
         if self.action == "retrieve":
-            return DetailMedicineSerializer
-        return MedicineSerializer
+            return serializers.DetailMedicineSerializer
+        return serializers.MedicineSerializer
 
 
 class MedicineCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = MedicineCategory.objects.filter(active=True)
-    serializer_class = MedicineCategorySerializer
+    serializer_class = serializers.MedicineCategorySerializer
     permission_classes = [perms.IsDoctorOrAdmin]
     throttle_scope = "medicine_category"
 
@@ -586,7 +567,7 @@ class RateLimitLoginView(TokenView):
 
 class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
-    serializer_class = UserSerializer
+    serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser, parsers.JSONParser]
 
     def get_throttles(self):
@@ -607,10 +588,10 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
     def current_user(self, request):
         u = request.user
         if request.method == "PATCH":
-            s = SimpleUserSerializer(u, data=request.data)
+            s = serializers.SimpleUserSerializer(u, data=request.data)
             s.is_valid(raise_exception=True)
             u = s.save()
-        return Response(UserSerializer(u).data, status=status.HTTP_200_OK)
+        return Response(serializers.UserSerializer(u).data, status=status.HTTP_200_OK)
 
     @action(
         detail=False,
@@ -623,7 +604,7 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
             try:
                 profile = PatientProfile.objects.get(user=request.user)
                 return Response(
-                    DetailPatientProfileSerializer(profile).data,
+                    serializers.DetailPatientProfileSerializer(profile).data,
                     status=status.HTTP_200_OK,
                 )
             except PatientProfile.DoesNotExist:
@@ -638,7 +619,7 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
                     {"error": "Người dùng đã có hồ sơ bệnh nhân, không cần tạo mới"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            serializer = PatientProfileSerializer(
+            serializer = serializers.PatientProfileSerializer(
                 data=request.data, context={"request": self.request}
             )
             serializer.is_valid(raise_exception=True)
@@ -653,7 +634,7 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
                     {"error": "Người dùng chưa có hồ sơ bệnh nhân"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
-            serializer = PatientProfileSerializer(
+            serializer = serializers.PatientProfileSerializer(
                 profile, data=request.data, partial=True
             )
             serializer.is_valid(raise_exception=True)
@@ -662,7 +643,7 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
 
     @action(methods=["post"], url_path="register-device", detail=False)
     def register_device(self, request):
-        serializer = FCMDeviceSerializer(data=request.data)
+        serializer = serializers.FCMDeviceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         token = serializer.validated_data["token"]
         device_type = serializer.validated_data["device_type"]
@@ -675,7 +656,7 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
 
 class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = Doctor.objects.filter(user__is_active=True)
-    serializer_class = DoctorSerializer
+    serializer_class = serializers.DoctorSerializer
     pagination_class = paginators.DoctorPaginator
     throttle_scope = "doctor"
 
@@ -698,15 +679,24 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPI
     def popular(self, request):
         queryset = self.get_queryset()
 
-        popular_doctors = queryset.annotate(
-            appointment_count=Count(
-                "doctor_appointments",
-                filter=Q(
-                    doctor_appointments__active=True,
-                    doctor_appointments__status=Appointment.AppointmentStatus.COMPLETED,
+        popular_doctors = (
+            queryset.annotate(
+                appointment_count=Count(
+                    "doctor_appointments",
+                    filter=Q(
+                        doctor_appointments__active=True,
+                        doctor_appointments__status=Appointment.AppointmentStatus.COMPLETED,
+                    ),
+                ),
+                avg_rating=Coalesce(
+                    Avg("doctor_appointments__review__rating"),
+                    0.0,
+                    output_field=FloatField(),
                 ),
             )
-        ).order_by("-appointment_count")[:4]
+            # .filter(avg_rating__gte=4.0)
+            .order_by("-avg_rating", "-appointment_count")[:4]
+        )
 
         serializer = self.get_serializer(popular_doctors, many=True)
         return Response(serializer.data)
@@ -847,7 +837,7 @@ class ReportViewSet(viewsets.ViewSet):
 class PaymentViewSet(viewsets.GenericViewSet):
     permission_classes = [perms.AppointmentOwner]
     queryset = Payment.objects.filter(active=True).select_related("appointment")
-    serializer_class = PaymentReceiptSerializer
+    serializer_class = serializers.PaymentReceiptSerializer
     throttle_scope = "payment"
 
     @action(methods=["post"], url_path="zalopay", detail=True)
@@ -987,7 +977,7 @@ class StreamViewSet(viewsets.GenericViewSet):
 
             try:
                 room = ChatRoom.objects.get(appointment_id=appointment_id)
-                ChatMessage.objects.create(
+                ChatMessage.objects.update_or_create(
                     room=room,
                     chat_type=ChatMessage.MessageType.TEXT,
                     sender_id=msg_json["user"]["id"],
@@ -998,4 +988,28 @@ class StreamViewSet(viewsets.GenericViewSet):
                 pass
         elif event_type == "message.deleted":
             ChatMessage.objects.filter(stream_id=msg_json["id"]).update(active=False)
+        elif event_type == "call.ended":
+            channel_id = data.get("channel_id")
+            appointment_id = channel_id.split("_")[-1]
+
+            try:
+                room = ChatRoom.objects.get(appointment_id=appointment_id)
+                call_log = VideoCallLog.objects.create(
+                    room=room,
+                    caller_id=msg_json.get("created_by", {}).get("id"),
+                    receiver_id=msg_json.get("session", {}).get("participants", [{}]),
+                    status=VideoCallLog.CallStatus.COMPLETED,
+                    start=msg_json.get("session", {}).get("started_at"),
+                    end=msg_json.get("session", {}).get("ended_at"),
+                )
+
+                ChatMessage.objects.create(
+                    room=room,
+                    chat_type=ChatMessage.MessageType.CALL,
+                    sender_id=msg_json.get("created_by", {}).get("id"),
+                    call_log=call_log,
+                    content="Cuộc gọi video đã kết thúc",
+                )
+            except ChatRoom.DoesNotExist:
+                pass
         return Response({}, status=status.HTTP_200_OK)

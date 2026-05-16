@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -49,7 +50,7 @@ class PatientProfile(BaseModel):
     gender = models.CharField(max_length=10, choices=Gender.choices)
     dob = models.DateField(null=False)
     weight = models.FloatField(null=False)
-    height = models.IntegerField(null=False)
+    height = models.PositiveSmallIntegerField(null=False)
     allergies = models.TextField(null=True, blank=True)
     chronic_diseases = models.TextField(null=True, blank=True)
     blood_type = models.CharField(max_length=2, choices=BloodType.choices, null=True)
@@ -84,8 +85,10 @@ class Doctor(models.Model):
 class DoctorSchedule(BaseModel):
     doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT)
     start_time = models.DateTimeField(null=False)
-    hours = models.IntegerField(default=1)
-    duration = models.IntegerField(default=15)
+    hours = models.PositiveSmallIntegerField(
+        default=1, validators=[MaxValueValidator(23)]
+    )
+    duration = models.PositiveSmallIntegerField(default=15)
 
 
 class DiseaseCategory(BaseModel):
@@ -143,6 +146,16 @@ class Appointment(BaseModel):
         super().save(*args, **kwargs)
 
 
+class Review(BaseModel):
+    appointment = models.OneToOneField(
+        Appointment, on_delete=models.PROTECT, related_name="review"
+    )
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    comment = models.TextField(null=True, blank=True)
+
+
 class Prescription(BaseModel):
     class PrescriptionStatus(models.TextChoices):
         PENDING = "PENDING", "Chờ xử lý"
@@ -165,11 +178,11 @@ class PrescriptionDetail(BaseModel):
     prescription = models.ForeignKey(
         Prescription, on_delete=models.PROTECT, related_name="details"
     )
-    medicine = models.ForeignKey("Medicine", on_delete=models.PROTECT, null=True)
-    quantity = models.IntegerField()
-    dose = models.IntegerField(null=False, default=1)
-    frequency = models.IntegerField(null=False, default=1)
-    duration_day = models.IntegerField(null=False, default=1)
+    medicine = models.ForeignKey("Medicine", on_delete=models.PROTECT, default=1)
+    quantity = models.PositiveSmallIntegerField(null=False, default=1)
+    dose = models.PositiveSmallIntegerField(null=False, default=1)
+    frequency = models.PositiveSmallIntegerField(null=False, default=1)
+    duration_day = models.PositiveSmallIntegerField(null=False, default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     instruction = models.CharField(
         null=True, max_length=20, choices=Instruction.choices
@@ -186,9 +199,9 @@ class MedicineCategory(BaseModel):
 class Medicine(BaseModel):
     name = models.CharField(max_length=100)
     category = models.ForeignKey(
-        MedicineCategory, on_delete=models.PROTECT, related_name="medicines", null=True
+        MedicineCategory, on_delete=models.PROTECT, related_name="medicines", default=1
     )
-    stock = models.IntegerField()
+    stock = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=50)
     expired = models.DateField()
@@ -212,7 +225,7 @@ class AppointmentService(BaseModel):
         Appointment, on_delete=models.PROTECT, related_name="services"
     )
     service = models.ForeignKey(Service, on_delete=models.PROTECT)
-    quantity = models.IntegerField()
+    quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
 
@@ -233,7 +246,7 @@ class TestResult(BaseModel):
     tested_by = models.ForeignKey(
         Doctor, on_delete=models.PROTECT, related_name="test_results"
     )
-    result_data = models.TextField(null=True, blank=True)
+    result_data = models.JSONField(null=True, blank=True)
     conclusion = models.TextField(null=True, blank=True)
 
 
