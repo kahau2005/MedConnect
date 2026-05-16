@@ -210,6 +210,22 @@ class Medicine(BaseModel):
         return self.name
 
 
+class MedicineAlert(BaseModel):
+    class AlertType(models.TextChoices):
+        LOW_STOCK = "LOW_STOCK", "Sắp hết hàng"
+        EXPIRING = "EXPIRING", "Sắp hết hạn"
+
+    medicine = models.ForeignKey(
+        Medicine, on_delete=models.CASCADE, related_name="alerts"
+    )
+    alert_type = models.CharField(max_length=20, choices=AlertType)
+    message = models.TextField()
+    is_resolved = models.BooleanField(default=False, verbose_name="Đã xử lý")
+
+    def __str__(self):
+        return f"{self.get_alert_type_display()} - {self.medicine.name}"
+
+
 class Service(BaseModel):
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)
