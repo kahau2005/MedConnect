@@ -84,25 +84,23 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 
 
-def send_push_notification(user, title, body, data=None):
-    devices = user.fcm_devices.filter(active=True)
-    tokens = list(devices.values_list("token", flat=True))
-
+def send_push_notification(tokens, title, body, data=None):
     if not tokens:
-        return False
+        return None
+
+    if isinstance(tokens, str):
+        tokens = [tokens]
 
     message = messaging.MulticastMessage(
-        notification=messaging.Notification(title=title, body=body),
-        data=data if data else {},
+        notification=messaging.Notification(
+            title=title,
+            body=body,
+        ),
+        data=data or {},
         tokens=tokens,
     )
-
-    try:
-        response = messaging.send_each_for_multicast(message)
-        return response
-    except Exception as ex:
-        print(str(ex))
-        return None
+    response = messaging.send_multicast(message)
+    return response
 
 
 def verify_stream_webhook(request):
