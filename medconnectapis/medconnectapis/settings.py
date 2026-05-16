@@ -52,8 +52,7 @@ INSTALLED_APPS = [
     "oauth2_provider",
     "medconnectapp.apps.MedconnectappConfig",
     "corsheaders",
-    "django_tasks",
-    "django_tasks_db",
+    "django_celery_beat",
 ]
 
 REST_FRAMEWORK = {
@@ -99,12 +98,6 @@ MIDDLEWARE = [
     "medconnectapp.middleware.OAuthMiddleware",
 ]
 
-TASKS = {
-    "default": {
-        "BACKEND": "django_tasks_db.DatabaseBackend",
-        "QUEUES": ["default"],
-    }
-}
 
 CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = ["*"]
@@ -159,6 +152,11 @@ CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 ZALOPAY_APP_ID = os.getenv("ZALOPAY_APP_ID")
 ZALOPAY_KEY1 = os.getenv("ZALOPAY_KEY1")
 ZALOPAY_KEY2 = os.getenv("ZALOPAY_KEY2")
+
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = None
+CELERY_TIMEZONE = "Asia/Ho_Chi_Minh"
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 STREAM_API_KEY = os.getenv("STREAM_API_KEY")
 STREAM_API_SECRET = os.getenv("STREAM_API_SECRET")

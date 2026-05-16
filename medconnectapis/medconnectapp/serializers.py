@@ -1,7 +1,7 @@
-import nh3
 import re
 from datetime import timedelta
 
+import nh3
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
@@ -15,6 +15,7 @@ from .models import (
     DiseaseCategory,
     Doctor,
     DoctorSchedule,
+    FCMDevice,
     Medicine,
     MedicineCategory,
     PatientProfile,
@@ -25,7 +26,7 @@ from .models import (
     Specialty,
     TestResult,
     User,
-    FCMDevice,
+    Review,
 )
 
 
@@ -363,6 +364,16 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
         return value
 
 
+class ReviewSerializer(ModelSerializer):
+    class Meta:
+        model = Review
+        fields = "__all__"
+
+    def validate_comment(self, value):
+        cleaned = nh3.clean(value, tags=set()).strip()
+        return cleaned
+
+
 class TestResultSerializer(ModelSerializer):
     class Meta:
         model = TestResult
@@ -377,14 +388,21 @@ class TestResultSerializer(ModelSerializer):
         }
 
     def validate(self, attrs):
-        input_fields = ["result_data", "conclusion"]
+        if "conclusion" in attrs and isinstance(attrs["conclusion"], str):
+            cleaned = nh3.clean(attrs["conclusion"], tags=set()).strip()
+            if not cleaned and attrs["conclusion"]:
+                raise serializers.ValidationError(
+                    {"error": "Dữ liệu conclusion không hợp lệ"}
+                )
 
-        for field in input_fields:
-            if field in attrs and isinstance(attrs[field], str):
-                cleaned = nh3.clean(attrs[field], tags=set()).strip()
-                if not cleaned and attrs[field]:
+        if "result_data" in attrs and attrs["result_data"]:
+            if not isinstance(attrs["result_data"], dict):
+                raise serializers.ValidationError({"error": "Result data phải là JSON"})
+
+            for key, value in attrs["result_data"].items():
+                if not isinstance(value, (str, int, float)):
                     raise serializers.ValidationError(
-                        f"Dữ liệu của {field} không hợp lệ"
+                        {"result_data": f"Giá trị của {key} không hợp lệ"}
                     )
         return attrs
 
@@ -664,9 +682,18 @@ class DetailMedicineSerializer(ModelSerializer):
 
 
 class DoctorSerializer(ModelSerializer):
+    avg_rating = serializers.FloatField(read_only=True)
+    appointment_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Doctor
-        fields = ["user_id", "background", "specialty_id"]
+        fields = [
+            "user_id",
+            "background",
+            "specialty_id",
+            "avg_rating",
+            "appointment_count",
+        ]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
