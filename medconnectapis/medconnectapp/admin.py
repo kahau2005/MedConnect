@@ -71,7 +71,7 @@ class MedicineAlertAdmin(admin.ModelAdmin):
     def mark_as_resolved(self, request, queryset):
         queryset.update(is_resolved=True)
 
-    mark_as_resolved.short_description = "Đánh dấu các cảnh báo đã chọn là Đã xử lý"
+    mark_as_resolved.short_description = "Đánh dấu đã xử lý"
 
 
 admin_site = MyAdminSite()
