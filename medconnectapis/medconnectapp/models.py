@@ -287,7 +287,7 @@ class ChatRoom(BaseModel):
 
 class VideoCallLog(BaseModel):
     class CallStatus(models.TextChoices):
-        CONNTECTED = "CONNTECTED", "Đã kết nối"
+        CONNECTED = "CONNECTED", "Đã kết nối"
         COMPLETED = "COMPLETED", "Đã kết thúc"
         MISSED = "MISSED", "Gọi nhỡ"
         REJECTED = "REJECTED", "Đã từ chối"
@@ -303,7 +303,7 @@ class VideoCallLog(BaseModel):
         User, on_delete=models.PROTECT, related_name="incoming_calls"
     )
     status = models.CharField(
-        max_length=20, choices=CallStatus.choices, default=CallStatus.CONNTECTED
+        max_length=20, choices=CallStatus.choices, default=CallStatus.CONNECTED
     )
     start = models.DateTimeField(null=False)
     end = models.DateTimeField(null=True, blank=True)
