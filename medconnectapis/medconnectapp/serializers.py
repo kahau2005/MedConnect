@@ -248,7 +248,44 @@ class SimplePrescriptionSerializer(ModelSerializer):
         return attrs
 
 
+class DoctorSerializer(ModelSerializer):
+    avg_rating = serializers.FloatField(read_only=True)
+    appointment_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Doctor
+        fields = [
+            "user_id",
+            "background",
+            "specialty_id",
+            "avg_rating",
+            "appointment_count",
+        ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        user = instance.user
+        data["id"] = instance.user_id
+        data["first_name"] = user.first_name
+        data["last_name"] = user.last_name
+        data["email"] = user.email
+        data["avatar"] = user.avatar.url if user and user.avatar else None
+
+        comment_content = getattr(instance, "comment_content", None)
+        comment_user = getattr(instance, "comment_user", None)
+
+        if comment_content:
+            data["comment"] = {"user": comment_user, "content": comment_content}
+        else:
+            data["comment"] = None
+
+        return data
+
+
 class AppointmentSerializer(ModelSerializer):
+    doctor_info = DoctorSerializer(source="doctor", read_only=True)
+
     class Meta:
         extra_kwargs = {
             "id": {"read_only": True},
@@ -262,7 +299,7 @@ class AppointmentSerializer(ModelSerializer):
         fields = [
             "id",
             "user",
-            "doctor",
+            "doctor_info",
             "status",
             "start",
             "reason",
@@ -730,41 +767,6 @@ class DetailMedicineSerializer(ModelSerializer):
     class Meta:
         model = Medicine
         fields = "__all__"
-
-
-class DoctorSerializer(ModelSerializer):
-    avg_rating = serializers.FloatField(read_only=True)
-    appointment_count = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = Doctor
-        fields = [
-            "user_id",
-            "background",
-            "specialty_id",
-            "avg_rating",
-            "appointment_count",
-        ]
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-
-        user = instance.user
-        data["id"] = instance.user_id
-        data["first_name"] = user.first_name
-        data["last_name"] = user.last_name
-        data["email"] = user.email
-        data["avatar"] = user.avatar.url if user and user.avatar else None
-
-        comment_content = getattr(instance, "comment_content", None)
-        comment_user = getattr(instance, "comment_user", None)
-
-        if comment_content:
-            data["comment"] = {"user": comment_user, "content": comment_content}
-        else:
-            data["comment"] = None
-
-        return data
 
 
 class DoctorScheduleSerializer(ModelSerializer):
