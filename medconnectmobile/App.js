@@ -1,4 +1,5 @@
-import React, { useCallback } from "react"; // Sửa lỗi 1
+import 'react-native-gesture-handler';
+import React, { useCallback, useEffect, useState } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
 import { Platform, View } from "react-native";
@@ -16,8 +17,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Doctor from "./screens/Doctor/Doctor";
 import Service from "./screens/Service/Service";
 import Payment from "./screens/Payment/Payment";
+import ChatStream from "./screens/ChatStream/ChatStream";
+
+import { Chat as StreamChatProvider, OverlayProvider } from 'stream-chat-react-native';
+import { StreamVideo, StreamVideoClient } from '@stream-io/video-react-native-sdk';
+import Apis, { endpoint } from './configs/Apis';
+
 
 const Stack = createNativeStackNavigator();
+
 
 const fontConfig = {
   customVariant: {
@@ -34,48 +42,14 @@ const fontConfig = {
   },
 };
 
+
 const theme = {
   ...MD3LightTheme,
   fonts: configureFonts({ config: fontConfig }),
 };
 
 export default function App() {
-  useEffect(() => {
-    const setupFirebase = async () => {
-      try {
-        const messagingInstance = getMessaging();
 
-        const authStatus = await requestPermission(messagingInstance);
-
-        const isAuthorized = authStatus === 1 || authStatus === 2;
-
-        if (isAuthorized) {
-          const token = await getToken(messagingInstance);
-          console.log("========== FCM TOKEN ==========");
-          console.log(token);
-          console.log("===============================");
-
-          const unsubscribe = onMessage(
-            messagingInstance,
-            async (remoteMessage) => {
-              Alert.alert(
-                remoteMessage.notification?.title || "MedConnect",
-                remoteMessage.notification?.body || "Bạn có thông báo mới!",
-              );
-            },
-          );
-
-          return unsubscribe;
-        } else {
-          console.log("Người dùng đã từ chối nhận thông báo.");
-        }
-      } catch (error) {
-        console.error("Lỗi setup FCM:", error);
-      }
-    };
-
-    setupFirebase();
-  }, []);
   return (
     <PaperProvider theme={theme}>
       <NavigationContainer>
@@ -96,6 +70,7 @@ export default function App() {
           <Stack.Screen name="Doctor" component={Doctor} />
           <Stack.Screen name="Service" component={Service} />
           <Stack.Screen name="Payment" component={Payment} />
+          <Stack.Screen name="ChatStream" component={ChatStream}/>
         </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>

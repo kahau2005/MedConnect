@@ -519,7 +519,6 @@ class SpecialtyViewSet(viewsets.ViewSet, generics.ListAPIView):
 
 class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = Service.objects.filter(active=True)
-    pagination_class = paginators.ServicePaginator
     throttle_scope = "service"
 
     def get_serializer_class(self):
