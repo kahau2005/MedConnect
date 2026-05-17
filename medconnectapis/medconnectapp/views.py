@@ -88,7 +88,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
             return queryset
 
         if self.action in ["list", "today"]:
-            queryset = queryset.select_related("user", "doctor")
+            queryset = queryset.select_related("user", "doctor__user")
             if user.role == User.UserRole.PATIENT:
                 queryset = queryset.filter(user=user)
             elif user.role == User.UserRole.DOCTOR:
