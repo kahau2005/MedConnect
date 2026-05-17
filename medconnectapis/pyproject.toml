@@ -90,6 +90,7 @@ dependencies = [
     "yarl==1.23.0",
     "celery[redis]>=5.6.3",
     "django-celery-beat>=2.9.0",
+    "pyrefly>=0.60.0",
 ]
 
 [tool.ruff]
