@@ -3,9 +3,21 @@ from datetime import datetime
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
-from django.db.models import Case, Count, Prefetch, Q, Sum, Value, When, Avg, FloatField
+from django.db.models import (
+    Avg,
+    Case,
+    Count,
+    FloatField,
+    Prefetch,
+    Q,
+    Sum,
+    Value,
+    When,
+    OuterRef,
+    Subquery,
+)
 from django.db.models.fields import CharField
-from django.db.models.functions import ExtractYear, Now, Coalesce
+from django.db.models.functions import Coalesce, ExtractYear, Now, Concat
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -683,6 +695,31 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPI
     def popular(self, request):
         queryset = self.get_queryset()
 
+        top_comment_subquery = (
+            Review.objects.filter(
+                appointment__doctor_id=OuterRef("user_id"), comment__isnull=False
+            )
+            .exclude(comment__exact="")
+            .order_by("-rating", "-created_at")
+            .values("comment")[:1]
+        )
+        top_comment_user = (
+            Review.objects.filter(
+                appointment__doctor_id=OuterRef("user_id"),
+                comment__isnull=False,
+            )
+            .exclude(comment__exact="")
+            .order_by("-rating", "-created_at")
+            .annotate(
+                full_name=Concat(
+                    "appointment__user__first_name",
+                    Value(" "),
+                    "appointment__user__last_name",
+                )
+            )
+            .values("full_name")[:1]
+        )
+
         popular_doctors = queryset.annotate(
             appointment_count=Count(
                 "doctor_appointments",
@@ -696,6 +733,8 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPI
                 0.0,
                 output_field=FloatField(),
             ),
+            comment_content=Subquery(top_comment_subquery),
+            comment_user=Subquery(top_comment_user),
         ).order_by("-avg_rating", "-appointment_count")[:4]
 
         serializer = self.get_serializer(popular_doctors, many=True)

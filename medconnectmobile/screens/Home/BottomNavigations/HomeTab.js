@@ -13,9 +13,8 @@ import Apis, { endpoint } from "../../../configs/Apis";
 
 const { width } = Dimensions.get("window");
 
-
 const HomeTab = ({ navigation }) => {
-  const [upcomingAppointment, setUpcomingAppointment] = useState(false); 
+  const [upcomingAppointment, setUpcomingAppointment] = useState(false);
   const [popularDoctor, setPopularDoctor] = useState([]);
 
   const handleButtonClick = (viewName) => {
@@ -24,13 +23,13 @@ const HomeTab = ({ navigation }) => {
 
   const loadPopularDoctor = async () => {
     const res = await Apis.get(endpoint.popular_dotor);
-    setPopularDoctor(res.data)
-    console.log(res.data)
-  }
+    setPopularDoctor(res.data);
+    console.log(res.data);
+  };
 
   useEffect(() => {
-    loadPopularDoctor()
-  }, [])
+    loadPopularDoctor();
+  }, []);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -134,12 +133,19 @@ const HomeTab = ({ navigation }) => {
           >
             <View style={styles.emptyCardContent}>
               <View style={styles.emptyIconBg}>
-                <MaterialCommunityIcons name="calendar-heart" size={28} color="#0066FF" />
+                <MaterialCommunityIcons
+                  name="calendar-heart"
+                  size={28}
+                  color="#0066FF"
+                />
               </View>
               <View style={styles.emptyTextContainer}>
-                <Text style={styles.emptyCardTitle}>Bạn chưa có lịch khám nào</Text>
+                <Text style={styles.emptyCardTitle}>
+                  Bạn chưa có lịch khám nào
+                </Text>
                 <Text style={styles.emptyCardSub}>
-                  Hãy chủ động bảo vệ sức khỏe. Đặt lịch hẹn với bác sĩ chuyên khoa ngay hôm nay.
+                  Hãy chủ động bảo vệ sức khỏe. Đặt lịch hẹn với bác sĩ chuyên
+                  khoa ngay hôm nay.
                 </Text>
               </View>
             </View>
@@ -170,7 +176,7 @@ const HomeTab = ({ navigation }) => {
             activeOpacity={0.8}
             onPress={() => handleButtonClick("DoctorDetail")}
           >
-            <Image source={{uri: doc.avatar}} style={styles.doctorImage} />
+            <Image source={{ uri: doc.avatar }} style={styles.doctorImage} />
             <View style={styles.doctorInfo}>
               <Text style={styles.doctorName} numberOfLines={1}>
                 {`${doc.first_name} ${doc.last_name}`}
@@ -178,7 +184,7 @@ const HomeTab = ({ navigation }) => {
               <Text style={styles.doctorSpec} numberOfLines={1}>
                 {doc.background}
               </Text>
-              
+
               <View style={styles.ratingRow}>
                 <MaterialCommunityIcons name="star" size={16} color="#FFB800" />
                 <Text style={styles.ratingText}>{doc.avg_rating}</Text>

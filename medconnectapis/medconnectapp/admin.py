@@ -14,27 +14,7 @@ from django_celery_beat.models import (
     SolarSchedule,
 )
 
-from medconnectapp.models import (
-    Appointment,
-    AppointmentService,
-    ChatMessage,
-    ChatRoom,
-    Disease,
-    DiseaseCategory,
-    Doctor,
-    DoctorSchedule,
-    Medicine,
-    MedicineCategory,
-    PatientProfile,
-    Payment,
-    Prescription,
-    PrescriptionDetail,
-    Service,
-    Specialty,
-    User,
-    VideoCallLog,
-    MedicineAlert,
-)
+from . import models
 
 
 class MyAdminSite(admin.AdminSite):
@@ -48,7 +28,7 @@ class SpecialtyForm(forms.ModelForm):
         self.fields["image"].required = False
 
     class Meta:
-        model = Specialty
+        model = models.Specialty
         fields = "__all__"
 
 
@@ -76,27 +56,27 @@ class MedicineAlertAdmin(admin.ModelAdmin):
 
 admin_site = MyAdminSite()
 
-admin_site.register(Specialty, MySpecialtyAdmin)
-admin_site.register(User, admin.ModelAdmin)
-admin_site.register(Doctor, admin.ModelAdmin)
-admin_site.register(PatientProfile, admin.ModelAdmin)
-admin_site.register(DoctorSchedule, admin.ModelAdmin)
-admin_site.register(MedicineCategory, admin.ModelAdmin)
-admin_site.register(Medicine, admin.ModelAdmin)
-admin_site.register(DiseaseCategory, admin.ModelAdmin)
-admin_site.register(Disease, admin.ModelAdmin)
-admin_site.register(Service, admin.ModelAdmin)
-admin_site.register(Appointment, admin.ModelAdmin)
-admin_site.register(Prescription, admin.ModelAdmin)
-admin_site.register(PrescriptionDetail, admin.ModelAdmin)
-admin_site.register(AppointmentService, admin.ModelAdmin)
-admin_site.register(Payment, admin.ModelAdmin)
-admin_site.register(ChatRoom, admin.ModelAdmin)
-admin_site.register(VideoCallLog, admin.ModelAdmin)
-admin_site.register(ChatMessage, admin.ModelAdmin)
+admin_site.register(models.Specialty, MySpecialtyAdmin)
+admin_site.register(models.User, admin.ModelAdmin)
+admin_site.register(models.Doctor, admin.ModelAdmin)
+admin_site.register(models.PatientProfile, admin.ModelAdmin)
+admin_site.register(models.DoctorSchedule, admin.ModelAdmin)
+admin_site.register(models.MedicineCategory, admin.ModelAdmin)
+admin_site.register(models.Medicine, admin.ModelAdmin)
+admin_site.register(models.DiseaseCategory, admin.ModelAdmin)
+admin_site.register(models.Disease, admin.ModelAdmin)
+admin_site.register(models.Service, admin.ModelAdmin)
+admin_site.register(models.Appointment, admin.ModelAdmin)
+admin_site.register(models.Prescription, admin.ModelAdmin)
+admin_site.register(models.PrescriptionDetail, admin.ModelAdmin)
+admin_site.register(models.AppointmentService, admin.ModelAdmin)
+admin_site.register(models.Payment, admin.ModelAdmin)
+admin_site.register(models.ChatRoom, admin.ModelAdmin)
+admin_site.register(models.VideoCallLog, admin.ModelAdmin)
+admin_site.register(models.ChatMessage, admin.ModelAdmin)
 admin_site.register(PeriodicTask, PeriodicTaskAdmin)
 admin_site.register(IntervalSchedule)
 admin_site.register(CrontabSchedule, CrontabScheduleAdmin)
 admin_site.register(SolarSchedule)
 admin_site.register(ClockedSchedule, ClockedScheduleAdmin)
-admin_site.register(MedicineAlert, MedicineAlertAdmin)
+admin_site.register(models.MedicineAlert, MedicineAlertAdmin)

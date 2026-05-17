@@ -1,9 +1,10 @@
-from medconnectapp.utils import send_push_notification
-from medconnectapp.models import Medicine, MedicineAlert, Appointment, FCMDevice, User
 from datetime import timedelta
+
 from celery import shared_task
 from django.utils import timezone
-import logging
+
+from medconnectapp.models import Appointment, FCMDevice, Medicine, MedicineAlert, User
+from medconnectapp.utils import send_push_notification
 
 
 @shared_task
