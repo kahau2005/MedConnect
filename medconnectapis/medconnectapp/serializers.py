@@ -22,11 +22,11 @@ from .models import (
     Payment,
     Prescription,
     PrescriptionDetail,
+    Review,
     Service,
     Specialty,
     TestResult,
     User,
-    Review,
 )
 
 
@@ -755,6 +755,15 @@ class DoctorSerializer(ModelSerializer):
         data["last_name"] = user.last_name
         data["email"] = user.email
         data["avatar"] = user.avatar.url if user and user.avatar else None
+
+        comment_content = getattr(instance, "comment_content", None)
+        comment_user = getattr(instance, "comment_user", None)
+
+        if comment_content:
+            data["comment"] = {"user": comment_user, "content": comment_content}
+        else:
+            data["comment"] = None
+
         return data
 
 
