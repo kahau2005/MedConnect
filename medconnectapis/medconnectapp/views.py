@@ -88,7 +88,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
             return queryset
 
         if self.action in ["list", "today"]:
-            queryset = queryset.select_related("user", "doctor")
+            queryset = queryset.select_related("user", "doctor__user")
             if user.role == User.UserRole.PATIENT:
                 queryset = queryset.filter(user=user)
             elif user.role == User.UserRole.DOCTOR:
@@ -588,7 +588,7 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
 
     def get_throttles(self):
         if self.action == "create":
-            self.throttle_scope = "register_rate"
+            self.throttle_scope = "register"
         elif self.action == "current_user":
             self.throttle_scope = "current_user"
         elif self.action == "patient_profile":
