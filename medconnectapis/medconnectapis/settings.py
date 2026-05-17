@@ -70,7 +70,7 @@ REST_FRAMEWORK = {
         "checkout": "3/m",
         "payment": "3/m",
         "booking": "10/h",
-        "appointment": "10/m",
+        "appointment": "20/m",
         "appointment_service": "10/m",
         "prescription": "10/m",
         "prescription_details": "5/m",

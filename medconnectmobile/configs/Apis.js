@@ -10,6 +10,8 @@ export const endpoint = {
   current_user: "/users/current-user/",
   patient_profile: "/users/current-user/patient-profile/",
   appointment: "/appointments/",
+  streamToken: "/stream/token/",
+  chat_room: (appointmentId) => `/appointments/${appointmentId}/chat-rooms/`,
 };
 
 export const authApis = (token) => {

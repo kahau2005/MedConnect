@@ -12,12 +12,20 @@ export default StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: "#111827" },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#111827",
+    flex: 1, // Thêm flex: 1 để chiếm không gian trống và tự xuống dòng khi quá dài
+    flexShrink: 1,
+    marginRight: 12, // Tạo khoảng cách an toàn với nút View để không bị đè chữ
+  },
   doctorToggleBtn: {
     backgroundColor: "#F3F4F6",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
+    flexShrink: 0, // Giữ nguyên kích thước nút View không cho bóp nhỏ
   },
   doctorToggleText: { fontSize: 12, fontWeight: "600", color: "#4B5563" },
 
@@ -81,7 +89,11 @@ export default StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 12,
   },
-  doctorInfoRow: { flexDirection: "row", flex: 1 },
+  doctorInfoRow: {
+    flexDirection: "row",
+    flex: 1,
+    marginRight: 12, // Tạo khoảng cách để phần thông tin không lấn chiếm chỗ của Badge trạng thái
+  },
   avatarPlaceholder: {
     width: 44,
     height: 44,
@@ -98,8 +110,17 @@ export default StyleSheet.create({
     marginBottom: 2,
   },
   doctorSpec: { fontSize: 13, color: "#6B7280" },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  statusText: { fontSize: 11, fontWeight: "700" },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    flexShrink: 0, // Đổi từ 1 thành 0 để khối bọc ngoài không bị co ép mất chữ
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "700",
+    flexShrink: 0, // Đảm bảo text hiển thị trọn vẹn
+  },
 
   cardMiddle: {
     flexDirection: "row",
@@ -130,6 +151,7 @@ export default StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
     marginLeft: 6,
+    flexShrink: 0, // Chống mất chữ ở nút Bắt đầu khám
   },
   completedActions: { flexDirection: "row", gap: 10 },
   actionBtnOutline: {
@@ -139,14 +161,24 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
-  actionBtnOutlineText: { color: "#374151", fontWeight: "600", fontSize: 13 },
+  actionBtnOutlineText: {
+    color: "#374151",
+    fontWeight: "600",
+    fontSize: 13,
+    flexShrink: 0, // Chống mất chữ ở nút Xem chi tiết
+  },
   actionBtnReview: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: "#FFF7E6",
   },
-  actionBtnReviewText: { color: "#FF9800", fontWeight: "700", fontSize: 13 },
+  actionBtnReviewText: {
+    color: "#FF9800",
+    fontWeight: "700",
+    fontSize: 13,
+    flexShrink: 0, // Chống mất chữ ở nút Đánh giá
+  },
 
   pagination: {
     flexDirection: "row",
@@ -350,6 +382,7 @@ export default StyleSheet.create({
     color: "#059669",
     fontSize: 12,
     fontWeight: "bold",
+    flexShrink: 0,
   },
   receiptRowTotal: {
     flexDirection: "row",

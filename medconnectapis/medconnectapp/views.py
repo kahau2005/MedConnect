@@ -380,6 +380,8 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
                     "appointment_id": appointment.id,
                 },
             )
+            if not created:
+                channel.add_members([user_id, doctor_id])
 
         return Response(
             {
@@ -997,7 +999,14 @@ class StreamViewSet(viewsets.GenericViewSet):
 
         user_id = str(request.user.id)
         token = chat_client.create_token(user_id)
-        return Response({"stream_token": token}, status=status.HTTP_200_OK)
+        
+        
+        return Response({
+            "stream_token": token,
+            "user_id": user_id,
+            "role": request.user.role,
+            "full_name": f"{request.user.first_name} {request.user.last_name}".strip()
+        }, status=status.HTTP_200_OK)
 
     @action(
         methods=["post"],

@@ -29,6 +29,11 @@ router.register("reports", views.ReportViewSet, "report")
 router.register("doctors", views.DoctorViewSet, "doctor")
 router.register("schedules", views.DoctorScheduleViewSet, "schedule")
 router.register("payments", views.PaymentViewSet, "payment")
+router.register("stream", views.StreamViewSet, basename="stream")
+
+urlpatterns = [
+    path("", include(router.urls)),
+]
 urlpatterns = [
     path("", include(router.urls)),
 ]

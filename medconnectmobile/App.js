@@ -1,9 +1,11 @@
 import "react-native-gesture-handler";
-import React, { useCallback, useEffect, useReducer, useState } from "react";
+import React, { useReducer } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
-import { Platform, View } from "react-native";
-import * as SplashScreen from "expo-splash-screen";
+import { Platform, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context"; // ← THÊM
+import { OverlayProvider } from "stream-chat-expo";
 
 import Home from "./screens/Home/Home";
 import Appointment from "./screens/Appointment/Appointment";
@@ -13,21 +15,10 @@ import {
   PaperProvider,
 } from "react-native-paper";
 import Specialty from "./screens/Specialty/Specialty";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Doctor from "./screens/Doctor/Doctor";
 import Service from "./screens/Service/Service";
 import Payment from "./screens/Payment/Payment";
 import ChatStream from "./screens/ChatStream/ChatStream";
-
-import {
-  Chat as StreamChatProvider,
-  OverlayProvider,
-} from "stream-chat-react-native";
-import {
-  StreamVideo,
-  StreamVideoClient,
-} from "@stream-io/video-react-native-sdk";
-import Apis, { endpoint } from "./configs/Apis";
 import Login from "./screens/Login/Login";
 import { UserContext } from "./contexts/UserContext";
 import UserReducer from "./reducers/UserReducer";
@@ -56,32 +47,45 @@ const theme = {
 
 export default function App() {
   const [user, dispatch] = useReducer(UserReducer, null);
+
   return (
-    <UserContext.Provider value={[user, dispatch]}>
-      <PaperProvider theme={theme}>
-        <NavigationContainer>
-          <Stack.Navigator
-            initialRouteName="Home"
-            screenOptions={{
-              headerShown: true,
-              headerTitleAlign: "center",
-            }}
-          >
-            <Stack.Screen
-              name="Home"
-              component={Home}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="Appointment" component={Appointment} />
-            <Stack.Screen name="Specialty" component={Specialty} />
-            <Stack.Screen name="Doctor" component={Doctor} />
-            <Stack.Screen name="Service" component={Service} />
-            <Stack.Screen name="Payment" component={Payment} />
-            <Stack.Screen name="ChatStream" component={ChatStream} />
-            <Stack.Screen name="Login" component={Login} />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </PaperProvider>
-    </UserContext.Provider>
+    // Thứ tự đúng:
+    // GestureHandlerRootView → SafeAreaProvider → OverlayProvider → phần còn lại
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <OverlayProvider>
+          <UserContext.Provider value={[user, dispatch]}>
+            <PaperProvider theme={theme}>
+              <NavigationContainer>
+                <Stack.Navigator
+                  initialRouteName="Home"
+                  screenOptions={{
+                    headerShown: true,
+                    headerTitleAlign: "center",
+                  }}
+                >
+                  <Stack.Screen
+                    name="Home"
+                    component={Home}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen name="Appointment" component={Appointment} />
+                  <Stack.Screen name="Specialty" component={Specialty} />
+                  <Stack.Screen name="Doctor" component={Doctor} />
+                  <Stack.Screen name="Service" component={Service} />
+                  <Stack.Screen name="Payment" component={Payment} />
+                  <Stack.Screen name="ChatStream" component={ChatStream} />
+                  <Stack.Screen name="Login" component={Login} />
+                </Stack.Navigator>
+              </NavigationContainer>
+            </PaperProvider>
+          </UserContext.Provider>
+        </OverlayProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});

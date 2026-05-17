@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   TextInput,
   Modal,
   Platform,
+  FlatList,
+  ActivityIndicator,
 } from "react-native";
 
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -17,7 +19,6 @@ import Style from "./Style";
 import Apis, { authApis, endpoint } from "../../../../configs/Apis";
 import { UserContext } from "../../../../contexts/UserContext";
 
-// Dữ liệu chi tiết tạm thời giữ nguyên để test Modal
 const mockDetailData = {
   diagnosis: "Viêm loét dạ dày - Bất thường X-Quang Phổi",
   services: [
@@ -46,15 +47,22 @@ const AllAppointmentTab = () => {
 
   const [isDoctorMode, setIsDoctorMode] = useState(false);
   const [activeFilter, setActiveFilter] = useState("ALL");
-  const [searchKw, setSearchKw] = useState("");
+
+  // State quản lý văn bản nhập realtime trên TextInput (Tránh lag UI)
+  const [searchTxt, setSearchTxt] = useState("");
+  // State từ khóa thực tế sau khi đã qua bộ lọc Debounce để gửi lên API
+  const [kw, setKw] = useState("");
+
+  const [offset, setOffset] = useState(0);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
-  // States chứa dữ liệu thực từ API
   const [appointment, setAppointment] = useState([]);
-  const [nextPage, setNextPage] = useState(null);
-  const [prevPage, setPrevPage] = useState(null);
   const [user] = useContext(UserContext);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  const isLoadingRef = useRef(false);
 
   const getStatusConfig = (status) => {
     switch (status) {
@@ -71,51 +79,126 @@ const AllAppointmentTab = () => {
     }
   };
 
-  // Helper tách thời gian ISO (2026-04-16T08:00:00Z) thành Ngày và Giờ
   const formatDateTime = (isoString) => {
     if (!isoString) return { date: "--/--/----", time: "--:--" };
     const d = new Date(isoString);
 
-    // Format Date: DD/MM/YYYY
     const date = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-
-    // Format Time: HH:MM AM/PM
     let hours = d.getHours();
     const minutes = String(d.getMinutes()).padStart(2, "0");
     const ampm = hours >= 12 ? "PM" : "AM";
     hours = hours % 12;
-    hours = hours ? hours : 12; // 0 giờ -> 12
+    hours = hours ? hours : 12;
     const time = `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
 
     return { date, time };
   };
 
-  // Nạp dữ liệu có truyền URL để hỗ trợ phân trang
-  // const loadAppointment = async () => {
-  //   try {
-  //     setLoading(true);
-  //     let result = await authApis.get(
-  //       `${endpoint.appointment}?offset=${offset}`,
-  //     );
-  //     setDoctors([...doctors, ...result.data.results]);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const loadAppointment = async (isLoadMore = false) => {
+    // Chặn ngay lập tức nếu đang có request API khác đang chạy
+    if (
+      isLoadingRef.current ||
+      (!hasMore && isLoadMore) ||
+      !user ||
+      !user.access_token
+    )
+      return;
 
-  const loadAppointment = async (url = endpoint.appointment) => {
-    if (!user || !user.access_token) return;
+    isLoadingRef.current = true; // Khóa request
+    setLoading(true); // Cập nhật UI
+
     try {
-      const res = await authApis(user.access_token).get(url);
+      const statusParam = activeFilter === "ALL" ? "" : activeFilter;
 
-      // Sửa lại thành res.data.results theo chuẩn API JSON bạn cung cấp
-      setAppointment(res.data.results);
-      setNextPage(res.data.next);
-      setPrevPage(res.data.previous);
+      const res = await authApis(user.access_token).get(
+        `${endpoint.appointment}?offset=${offset}&kw=${kw}&status=${statusParam}`,
+      );
+
+      const newData = res.data.results || [];
+
+      if (isLoadMore) {
+        setAppointment((prev) => {
+          // MÀNG LỌC AN TOÀN: Loại bỏ những phần tử bị trùng ID trước khi gộp
+          const existingIds = new Set(prev.map((item) => item.id));
+          const filteredNewData = newData.filter(
+            (item) => !existingIds.has(item.id),
+          );
+          return [...prev, ...filteredNewData];
+        });
+      } else {
+        setAppointment(newData);
+      }
+
+      if (!res.data.next || newData.length === 0) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
     } catch (error) {
-      console.error("Lỗi lấy danh sách lịch hẹn:", error);
+      console.error("Lỗi load appointment:", error);
+    } finally {
+      isLoadingRef.current = false; // Mở khóa request
+      setLoading(false);
     }
   };
+  const handleGoToChat = async (appointmentId) => {
+    try {
+      const response = await authApis(user.access_token).post(
+        endpoint.chat_room(appointmentId),
+      );
+
+      if (response.status === 201 || response.status === 200) {
+        nav.navigate("ChatStream", { appointmentId: appointmentId });
+      }
+    } catch (error) {
+      console.error("Lỗi khi khởi tạo phòng chat:", error);
+      // Hiển thị cụ thể lỗi trả về từ Server để nhận biết nhanh
+      const errorMsg = error.response
+        ? `Status: ${error.response.status}`
+        : error.message;
+      Alert.alert("Lỗi phòng chat", `Không thể kết nối: ${errorMsg}`);
+    }
+  };
+
+  // ==========================================
+  // 1. KỸ THUẬT DEBOUNCE TÌM KIẾM (500ms)
+  // ==========================================
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      setKw(searchTxt);
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTxt]);
+
+  // ==========================================
+  // 2. XỬ LÝ KHI TỪ KHÓA TÌM KIẾM HOẶC TRẠNG THÁI THAY ĐỔI
+  // ==========================================
+  useEffect(() => {
+    if (!user) return;
+
+    setHasMore(true);
+
+    if (offset === 0) {
+      // Nếu đang ở trang 0 sẵn, chủ động tải lại list
+      loadAppointment(false);
+    } else {
+      // Đưa về 0 (Hành động này sẽ kích hoạt useEffect bên dưới chạy)
+      setOffset(0);
+    }
+  }, [user, kw, activeFilter]);
+
+  // ==========================================
+  // 3. QUẢN LÝ TIẾN TRÌNH PHÂN TRANG (OFFSET THAY ĐỔI)
+  // ==========================================
+  useEffect(() => {
+    if (!user) return;
+
+    // Chỉ load thêm dữ liệu khi offset lớn hơn 0
+    if (offset > 0) {
+      loadAppointment(true);
+    }
+  }, [offset, user]);
 
   const openDetail = (item) => {
     if (item.status === "COMPLETED") {
@@ -124,10 +207,179 @@ const AllAppointmentTab = () => {
     }
   };
 
-  useEffect(() => {
-    loadAppointment();
-  }, [user]);
+  // ==========================================
+  // VIEW KHI NGƯỜI DÙNG CHƯA ĐĂNG NHẬP
+  // ==========================================
+  if (!user) {
+    return (
+      <SafeAreaView style={[Style.container, { backgroundColor: "#F9FAFB" }]}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 24,
+          }}
+        >
+          {/* Decorative Background Elements */}
+          <View
+            style={{
+              position: "absolute",
+              top: "10%",
+              left: -40,
+              width: 160,
+              height: 160,
+              borderRadius: 80,
+              backgroundColor: "rgba(0, 102, 255, 0.04)",
+            }}
+          />
+          <View
+            style={{
+              position: "absolute",
+              bottom: "15%",
+              right: -50,
+              width: 220,
+              height: 220,
+              borderRadius: 110,
+              backgroundColor: "rgba(0, 208, 132, 0.04)",
+            }}
+          />
 
+          {/* Icon Header with Layered Glow */}
+          <View
+            style={{
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 35,
+            }}
+          >
+            <View
+              style={{
+                width: 140,
+                height: 140,
+                borderRadius: 70,
+                backgroundColor: "rgba(0, 102, 255, 0.08)",
+                position: "absolute",
+              }}
+            />
+            <View
+              style={{
+                width: 100,
+                height: 100,
+                borderRadius: 50,
+                backgroundColor: "rgba(0, 102, 255, 0.15)",
+                position: "absolute",
+              }}
+            />
+            <View
+              style={{
+                width: 70,
+                height: 70,
+                borderRadius: 35,
+                backgroundColor: "#0066FF",
+                justifyContent: "center",
+                alignItems: "center",
+                shadowColor: "#0066FF",
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.3,
+                shadowRadius: 10,
+                elevation: 8,
+              }}
+            >
+              <MaterialCommunityIcons
+                name="calendar-lock"
+                size={32}
+                color="#FFFFFF"
+              />
+            </View>
+          </View>
+
+          {/* Typography Content */}
+          <Text
+            style={{
+              fontSize: 24,
+              fontWeight: "800",
+              color: "#111827",
+              marginBottom: 12,
+              textAlign: "center",
+              letterSpacing: 0.3,
+            }}
+          >
+            Quản lý sức khỏe thông minh
+          </Text>
+          <Text
+            style={{
+              fontSize: 16,
+              color: "#6B7280",
+              textAlign: "center",
+              marginBottom: 40,
+              lineHeight: 24,
+            }}
+          >
+            Đăng nhập để đặt lịch khám, kết nối với bác sĩ chuyên khoa và theo
+            dõi hồ sơ y tế của bạn mọi lúc, mọi nơi.
+          </Text>
+
+          {/* Action Buttons */}
+          <View style={{ width: "100%", gap: 16 }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#0066FF",
+                width: "100%",
+                paddingVertical: 16,
+                borderRadius: 14,
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 10,
+                shadowColor: "#0066FF",
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.25,
+                shadowRadius: 8,
+                elevation: 6,
+              }}
+              onPress={() => nav.navigate("Login")}
+              activeOpacity={0.8}
+            >
+              <Feather name="log-in" size={20} color="#FFFFFF" />
+              <Text
+                style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700" }}
+              >
+                Đăng nhập ngay
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                width: "100%",
+                paddingVertical: 16,
+                borderRadius: 14,
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: "#FFFFFF",
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
+              }}
+              // Điều hướng tới màn hình đăng ký của bạn, đổi "Register" thành tên màn hình thực tế nếu khác
+              onPress={() => nav.navigate("Register")}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={{ color: "#374151", fontSize: 16, fontWeight: "600" }}
+              >
+                Chưa có tài khoản? Đăng ký
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ==========================================
+  // VIEW CHÍNH KHI ĐÃ ĐĂNG NHẬP
+  // ==========================================
   return (
     <SafeAreaView style={Style.container}>
       <View style={Style.header}>
@@ -148,8 +400,8 @@ const AllAppointmentTab = () => {
           <TextInput
             style={Style.searchInput}
             placeholder="Tìm kiếm theo tên, dịch vụ..."
-            value={searchKw}
-            onChangeText={setSearchKw}
+            value={searchTxt}
+            onChangeText={setSearchTxt}
           />
         </View>
         {!isDoctorMode && (
@@ -202,17 +454,35 @@ const AllAppointmentTab = () => {
           </>
         )}
       </View>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
+
+      <FlatList
+        data={appointment}
+        keyExtractor={(item, index) =>
+          item.id ? item.id.toString() : index.toString()
+        }
         contentContainerStyle={Style.scrollContent}
-      >
-        {appointment.map((item) => {
+        showsVerticalScrollIndicator={false}
+        onEndReached={() => {
+          if (!loading && hasMore) {
+            setOffset((prev) => prev + 8);
+          }
+        }}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={() =>
+          loading ? (
+            <View style={{ paddingVertical: 20 }}>
+              <ActivityIndicator size="small" color="#0066FF" />
+            </View>
+          ) : (
+            <View style={{ height: 40 }} />
+          )
+        }
+        renderItem={({ item }) => {
           const statusConfig = getStatusConfig(item.status);
           const { date, time } = formatDateTime(item.start);
 
           return (
             <TouchableOpacity
-              key={item.id}
               style={Style.appointmentCard}
               activeOpacity={item.status === "COMPLETED" ? 0.7 : 1}
               onPress={() => openDetail(item)}
@@ -223,11 +493,11 @@ const AllAppointmentTab = () => {
                     <Feather name="user" size={20} color="#9CA3AF" />
                   </View>
                   <View style={Style.doctorInfo}>
-                    {/* Backend hiện chỉ trả về ID của bác sĩ */}
                     <Text style={Style.doctorName}>
-                      Bác sĩ ID: {item.doctor}
+                      {item.doctor_info
+                        ? `${item.doctor_info.first_name} ${item.doctor_info.last_name}`
+                        : `Bác sĩ ID: ${item.doctor}`}
                     </Text>
-                    {/* Hiển thị lý do khám, nếu null thì in chữ mặc định */}
                     <Text style={Style.doctorSpec}>
                       {item.reason || "Không rõ lý do khám"}
                     </Text>
@@ -261,7 +531,7 @@ const AllAppointmentTab = () => {
               <View style={Style.cardBottom}>
                 {item.status === "SCHEDULED" && (
                   <TouchableOpacity
-                    onPress={() => nav.navigate("ChatStream")}
+                    onPress={() => handleGoToChat(item.id)}
                     style={Style.actionBtnPrimary}
                     activeOpacity={0.8}
                   >
@@ -298,32 +568,8 @@ const AllAppointmentTab = () => {
               </View>
             </TouchableOpacity>
           );
-        })}
-
-        {/* --- XỬ LÝ PHÂN TRANG THỰC TẾ --- */}
-        <View style={Style.pagination}>
-          <TouchableOpacity
-            style={[Style.pageBtn, !prevPage && { opacity: 0.3 }]}
-            disabled={!prevPage}
-            onPress={() => loadAppointment(prevPage)}
-          >
-            <Feather name="chevron-left" size={20} color="#4B5563" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[Style.pageBtn, Style.pageBtnActive]}>
-            <Feather name="more-horizontal" size={20} color="#FFF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[Style.pageBtn, !nextPage && { opacity: 0.3 }]}
-            disabled={!nextPage}
-            onPress={() => loadAppointment(nextPage)}
-          >
-            <Feather name="chevron-right" size={20} color="#4B5563" />
-          </TouchableOpacity>
-        </View>
-        <View style={{ height: 40 }} />
-      </ScrollView>
+        }}
+      />
 
       <Modal
         visible={detailModalVisible}

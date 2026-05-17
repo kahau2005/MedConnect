@@ -10,6 +10,7 @@ const Doctor = () => {
   const [doctors, setDoctors] = useState([]);
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(false);
+
   const [kw, setKw] = useState("");
 
   const loadDoctor = async () => {
