@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Apis, { endpoint } from "../../configs/Apis";
 import ListCardItem from "../../components/ListCardItem/ListCardItem";
 import Style from "./Style";
+import LoadingModal from "../../components/LoadingModel/LoadingModel";
 
 const Doctor = () => {
   const [doctors, setDoctors] = useState([]);
@@ -11,30 +12,23 @@ const Doctor = () => {
   const [loading, setLoading] = useState(false);
   const [kw, setKw] = useState("");
 
-
-  const loadDoctor = async() => {
-    try{
-      setLoading(true)
-      let result = await Apis.get(`${endpoint.doctors}?offset=${offset}`)
-      setDoctors([...doctors, ...result.data.results])
-    }finally{
-      setLoading(false)
+  const loadDoctor = async () => {
+    try {
+      setLoading(true);
+      let result = await Apis.get(`${endpoint.doctors}?offset=${offset}`);
+      setDoctors([...doctors, ...result.data.results]);
+    } finally {
+      setLoading(false);
     }
-    
-  }
-
+  };
 
   const handleLoadMore = () => {
-    if(!loading)
-      setOffset(prev => prev + 8)
-  }
-
+    if (!loading) setOffset((prev) => prev + 8);
+  };
 
   useEffect(() => {
-    loadDoctor()
+    loadDoctor();
   }, [offset, kw]);
-
-
 
   const renderItem = ({ item }) => (
     <ListCardItem
@@ -59,6 +53,7 @@ const Doctor = () => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
       />
+      {loading && <LoadingModal />}
     </View>
   );
 };

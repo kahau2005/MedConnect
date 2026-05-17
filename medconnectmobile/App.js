@@ -1,5 +1,5 @@
-import 'react-native-gesture-handler';
-import React, { useCallback, useEffect, useState } from "react";
+import "react-native-gesture-handler";
+import React, { useCallback, useEffect, useReducer, useState } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
 import { Platform, View } from "react-native";
@@ -19,13 +19,20 @@ import Service from "./screens/Service/Service";
 import Payment from "./screens/Payment/Payment";
 import ChatStream from "./screens/ChatStream/ChatStream";
 
-import { Chat as StreamChatProvider, OverlayProvider } from 'stream-chat-react-native';
-import { StreamVideo, StreamVideoClient } from '@stream-io/video-react-native-sdk';
-import Apis, { endpoint } from './configs/Apis';
-
+import {
+  Chat as StreamChatProvider,
+  OverlayProvider,
+} from "stream-chat-react-native";
+import {
+  StreamVideo,
+  StreamVideoClient,
+} from "@stream-io/video-react-native-sdk";
+import Apis, { endpoint } from "./configs/Apis";
+import Login from "./screens/Login/Login";
+import { UserContext } from "./contexts/UserContext";
+import UserReducer from "./reducers/UserReducer";
 
 const Stack = createNativeStackNavigator();
-
 
 const fontConfig = {
   customVariant: {
@@ -42,37 +49,39 @@ const fontConfig = {
   },
 };
 
-
 const theme = {
   ...MD3LightTheme,
   fonts: configureFonts({ config: fontConfig }),
 };
 
 export default function App() {
-
+  const [user, dispatch] = useReducer(UserReducer, null);
   return (
-    <PaperProvider theme={theme}>
-      <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName="Home"
-          screenOptions={{
-            headerShown: true,
-            headerTitleAlign: "center",
-          }}
-        >
-          <Stack.Screen
-            name="Home"
-            component={Home}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="Appointment" component={Appointment} />
-          <Stack.Screen name="Specialty" component={Specialty} />
-          <Stack.Screen name="Doctor" component={Doctor} />
-          <Stack.Screen name="Service" component={Service} />
-          <Stack.Screen name="Payment" component={Payment} />
-          <Stack.Screen name="ChatStream" component={ChatStream}/>
-        </Stack.Navigator>
-      </NavigationContainer>
-    </PaperProvider>
+    <UserContext.Provider value={[user, dispatch]}>
+      <PaperProvider theme={theme}>
+        <NavigationContainer>
+          <Stack.Navigator
+            initialRouteName="Home"
+            screenOptions={{
+              headerShown: true,
+              headerTitleAlign: "center",
+            }}
+          >
+            <Stack.Screen
+              name="Home"
+              component={Home}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen name="Appointment" component={Appointment} />
+            <Stack.Screen name="Specialty" component={Specialty} />
+            <Stack.Screen name="Doctor" component={Doctor} />
+            <Stack.Screen name="Service" component={Service} />
+            <Stack.Screen name="Payment" component={Payment} />
+            <Stack.Screen name="ChatStream" component={ChatStream} />
+            <Stack.Screen name="Login" component={Login} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </PaperProvider>
+    </UserContext.Provider>
   );
 }

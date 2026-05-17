@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -14,46 +14,10 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import Style from "./Style";
+import Apis, { authApis, endpoint } from "../../../../configs/Apis";
+import { UserContext } from "../../../../contexts/UserContext";
 
-const mockAppointments = [
-  {
-    id: 1,
-    doctor: "BS. Phillip Franci",
-    specialty: "Khoa Tim mạch",
-    date: "16/05/2026",
-    time: "10:00 AM",
-    status: "SCHEDULED",
-    avatar: null,
-  },
-  {
-    id: 217,
-    doctor: "BS. Jane Smith",
-    specialty: "Khoa Da liễu",
-    date: "02/05/2026",
-    time: "08:00 AM",
-    status: "COMPLETED",
-    avatar: null,
-  },
-  {
-    id: 3,
-    doctor: "BS. Terry Bergson",
-    specialty: "Khoa Thần kinh",
-    date: "05/05/2026",
-    time: "15:00 PM",
-    status: "CANCELLED",
-    avatar: null,
-  },
-  {
-    id: 4,
-    doctor: "BS. Emily Johnson",
-    specialty: "Khoa Nhi",
-    date: "20/05/2026",
-    time: "14:30 PM",
-    status: "PENDING",
-    avatar: null,
-  },
-];
-
+// Dữ liệu chi tiết tạm thời giữ nguyên để test Modal
 const mockDetailData = {
   diagnosis: "Viêm loét dạ dày - Bất thường X-Quang Phổi",
   services: [
@@ -86,6 +50,12 @@ const AllAppointmentTab = () => {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
+  // States chứa dữ liệu thực từ API
+  const [appointment, setAppointment] = useState([]);
+  const [nextPage, setNextPage] = useState(null);
+  const [prevPage, setPrevPage] = useState(null);
+  const [user] = useContext(UserContext);
+
   const getStatusConfig = (status) => {
     switch (status) {
       case "SCHEDULED":
@@ -101,12 +71,62 @@ const AllAppointmentTab = () => {
     }
   };
 
+  // Helper tách thời gian ISO (2026-04-16T08:00:00Z) thành Ngày và Giờ
+  const formatDateTime = (isoString) => {
+    if (!isoString) return { date: "--/--/----", time: "--:--" };
+    const d = new Date(isoString);
+
+    // Format Date: DD/MM/YYYY
+    const date = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+
+    // Format Time: HH:MM AM/PM
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 giờ -> 12
+    const time = `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
+
+    return { date, time };
+  };
+
+  // Nạp dữ liệu có truyền URL để hỗ trợ phân trang
+  // const loadAppointment = async () => {
+  //   try {
+  //     setLoading(true);
+  //     let result = await authApis.get(
+  //       `${endpoint.appointment}?offset=${offset}`,
+  //     );
+  //     setDoctors([...doctors, ...result.data.results]);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  const loadAppointment = async (url = endpoint.appointment) => {
+    if (!user || !user.access_token) return;
+    try {
+      const res = await authApis(user.access_token).get(url);
+
+      // Sửa lại thành res.data.results theo chuẩn API JSON bạn cung cấp
+      setAppointment(res.data.results);
+      setNextPage(res.data.next);
+      setPrevPage(res.data.previous);
+    } catch (error) {
+      console.error("Lỗi lấy danh sách lịch hẹn:", error);
+    }
+  };
+
   const openDetail = (item) => {
     if (item.status === "COMPLETED") {
       setSelectedAppointment(item);
       setDetailModalVisible(true);
     }
   };
+
+  useEffect(() => {
+    loadAppointment();
+  }, [user]);
 
   return (
     <SafeAreaView style={Style.container}>
@@ -186,8 +206,9 @@ const AllAppointmentTab = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={Style.scrollContent}
       >
-        {mockAppointments.map((item) => {
+        {appointment.map((item) => {
           const statusConfig = getStatusConfig(item.status);
+          const { date, time } = formatDateTime(item.start);
 
           return (
             <TouchableOpacity
@@ -202,8 +223,14 @@ const AllAppointmentTab = () => {
                     <Feather name="user" size={20} color="#9CA3AF" />
                   </View>
                   <View style={Style.doctorInfo}>
-                    <Text style={Style.doctorName}>{item.doctor}</Text>
-                    <Text style={Style.doctorSpec}>{item.specialty}</Text>
+                    {/* Backend hiện chỉ trả về ID của bác sĩ */}
+                    <Text style={Style.doctorName}>
+                      Bác sĩ ID: {item.doctor}
+                    </Text>
+                    {/* Hiển thị lý do khám, nếu null thì in chữ mặc định */}
+                    <Text style={Style.doctorSpec}>
+                      {item.reason || "Không rõ lý do khám"}
+                    </Text>
                   </View>
                 </View>
                 <View
@@ -223,11 +250,11 @@ const AllAppointmentTab = () => {
               <View style={Style.cardMiddle}>
                 <View style={Style.dateTimeBox}>
                   <Feather name="calendar" size={16} color="#6B7280" />
-                  <Text style={Style.dateTimeText}>{item.date}</Text>
+                  <Text style={Style.dateTimeText}>{date}</Text>
                 </View>
                 <View style={Style.dateTimeBox}>
                   <Feather name="clock" size={16} color="#6B7280" />
-                  <Text style={Style.dateTimeText}>{item.time}</Text>
+                  <Text style={Style.dateTimeText}>{time}</Text>
                 </View>
               </View>
 
@@ -273,20 +300,25 @@ const AllAppointmentTab = () => {
           );
         })}
 
+        {/* --- XỬ LÝ PHÂN TRANG THỰC TẾ --- */}
         <View style={Style.pagination}>
-          <TouchableOpacity style={Style.pageBtn}>
+          <TouchableOpacity
+            style={[Style.pageBtn, !prevPage && { opacity: 0.3 }]}
+            disabled={!prevPage}
+            onPress={() => loadAppointment(prevPage)}
+          >
             <Feather name="chevron-left" size={20} color="#4B5563" />
           </TouchableOpacity>
+
           <TouchableOpacity style={[Style.pageBtn, Style.pageBtnActive]}>
-            <Text style={Style.pageTextActive}>1</Text>
+            <Feather name="more-horizontal" size={20} color="#FFF" />
           </TouchableOpacity>
-          <TouchableOpacity style={Style.pageBtn}>
-            <Text style={Style.pageText}>2</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={Style.pageBtn}>
-            <Text style={Style.pageText}>3</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={Style.pageBtn}>
+
+          <TouchableOpacity
+            style={[Style.pageBtn, !nextPage && { opacity: 0.3 }]}
+            disabled={!nextPage}
+            onPress={() => loadAppointment(nextPage)}
+          >
             <Feather name="chevron-right" size={20} color="#4B5563" />
           </TouchableOpacity>
         </View>

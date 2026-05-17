@@ -588,7 +588,7 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
 
     def get_throttles(self):
         if self.action == "create":
-            self.throttle_scope = "register_rate"
+            self.throttle_scope = "register"
         elif self.action == "current_user":
             self.throttle_scope = "current_user"
         elif self.action == "patient_profile":

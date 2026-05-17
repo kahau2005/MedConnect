@@ -24,7 +24,6 @@ const HomeTab = ({ navigation }) => {
   const loadPopularDoctor = async () => {
     const res = await Apis.get(endpoint.popular_dotor);
     setPopularDoctor(res.data);
-    console.log(res.data);
   };
 
   useEffect(() => {
@@ -184,11 +183,12 @@ const HomeTab = ({ navigation }) => {
               <Text style={styles.doctorSpec} numberOfLines={1}>
                 {doc.background}
               </Text>
-
               <View style={styles.ratingRow}>
                 <MaterialCommunityIcons name="star" size={16} color="#FFB800" />
                 <Text style={styles.ratingText}>{doc.avg_rating}</Text>
-                <Text style={styles.reviewText}>({doc.reviews} đánh giá)</Text>
+                <Text style={styles.reviewText}>
+                  ({doc.comment?.length || 0} đánh giá)
+                </Text>
               </View>
             </View>
           </TouchableOpacity>
