@@ -41,6 +41,7 @@ from .models import (
     TestResult,
     User,
     VideoCallLog,
+    Review,
 )
 
 
@@ -136,11 +137,9 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
             and self.request.method == "POST"
         ):
             return [perms.AppointmentDoctor()]
-        elif self.action == "partial_update":
-            return [perms.AppointmentDoctor()]
-        elif self.action == "payments":
-            return [perms.AppointmentOwner()]
-        elif self.action == "review":
+        elif self.action in ["partial_update", "chat_rooms"]:
+            return [perms.AppointmentOwnerOrDoctor()]
+        elif self.action in ["review", "checkout"]:
             return [perms.AppointmentOwner()]
         return super().get_permissions()
 
@@ -321,8 +320,14 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(methods=["post"], url_path="review", detail=True)
-    def review(self, request):
+    def review(self, request, pk=None):
         appointment = self.get_object()
+        serializer = serializers.ReviewSerializer(
+            data=request.data, context={"appointment": appointment}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(appointment=appointment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(methods=["post"], url_path="chat-rooms", detail=True)
     def chat_rooms(self, request, pk=None):
@@ -678,24 +683,20 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPI
     def popular(self, request):
         queryset = self.get_queryset()
 
-        popular_doctors = (
-            queryset.annotate(
-                appointment_count=Count(
-                    "doctor_appointments",
-                    filter=Q(
-                        doctor_appointments__active=True,
-                        doctor_appointments__status=Appointment.AppointmentStatus.COMPLETED,
-                    ),
+        popular_doctors = queryset.annotate(
+            appointment_count=Count(
+                "doctor_appointments",
+                filter=Q(
+                    doctor_appointments__active=True,
+                    doctor_appointments__status=Appointment.AppointmentStatus.COMPLETED,
                 ),
-                avg_rating=Coalesce(
-                    Avg("doctor_appointments__review__rating"),
-                    0.0,
-                    output_field=FloatField(),
-                ),
-            )
-            # .filter(avg_rating__gte=4.0)
-            .order_by("-avg_rating", "-appointment_count")[:4]
-        )
+            ),
+            avg_rating=Coalesce(
+                Avg("doctor_appointments__review__rating"),
+                0.0,
+                output_field=FloatField(),
+            ),
+        ).order_by("-avg_rating", "-appointment_count")[:4]
 
         serializer = self.get_serializer(popular_doctors, many=True)
         return Response(serializer.data)
@@ -959,56 +960,89 @@ class StreamViewSet(viewsets.GenericViewSet):
         token = chat_client.create_token(user_id)
         return Response({"stream_token": token}, status=status.HTTP_200_OK)
 
-    @action(methods=["post"], url_path="webhook", detail=False, permission_classes=[])
+    @action(
+        methods=["post"],
+        url_path="webhook",
+        detail=False,
+        permission_classes=[AllowAny],
+    )
     def webhook(self, request):
         if not utils.verify_stream_webhook(request):
             return Response(
                 {"error": "Chữ ký Stream không hợp lệ"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
         data = json.loads(request.body)
         event_type = data.get("type")
-        msg_json = data.get("message")
 
-        if event_type == "message.new":
-            channel_id = data.get("channel_id")
+        if event_type and event_type.startswith("message."):
+            msg_json = data.get("message", {})
+            channel_id = data.get("channel_id", "")
             appointment_id = channel_id.split("_")[-1]
 
             try:
                 room = ChatRoom.objects.get(appointment_id=appointment_id)
-                ChatMessage.objects.update_or_create(
-                    room=room,
-                    chat_type=ChatMessage.MessageType.TEXT,
-                    sender_id=msg_json["user"]["id"],
-                    stream_id=msg_json["id"],
-                    content=msg_json["text"],
-                )
+
+                if event_type == "message.new":
+                    ChatMessage.objects.update_or_create(
+                        room=room,
+                        chat_type=ChatMessage.MessageType.TEXT,
+                        sender_id=msg_json["user"]["id"],
+                        stream_id=msg_json["id"],
+                        defaults={"content": msg_json["text"]},
+                    )
+                elif event_type == "message.updated":
+                    ChatMessage.objects.filter(stream_id=msg_json["id"]).update(
+                        content=msg_json["text"]
+                    )
+                elif event_type == "message.deleted":
+                    ChatMessage.objects.filter(stream_id=msg_json["id"]).update(
+                        active=False
+                    )
+
             except ChatRoom.DoesNotExist:
                 pass
-        elif event_type == "message.deleted":
-            ChatMessage.objects.filter(stream_id=msg_json["id"]).update(active=False)
+
         elif event_type == "call.ended":
-            channel_id = data.get("channel_id")
+            call_json = data.get("call", {})
+            channel_id = data.get("call_cid", "")
+
             appointment_id = channel_id.split("_")[-1]
+
+            caller_id = call_json.get("created_by", {}).get("id")
+
+            participants = call_json.get("session", {}).get("participants", [])
+            receiver_id = next(
+                (
+                    p.get("user_id")
+                    for p in participants
+                    if p.get("user_id") != caller_id
+                ),
+                None,
+            )
 
             try:
                 room = ChatRoom.objects.get(appointment_id=appointment_id)
-                call_log = VideoCallLog.objects.create(
-                    room=room,
-                    caller_id=msg_json.get("created_by", {}).get("id"),
-                    receiver_id=msg_json.get("session", {}).get("participants", [{}]),
-                    status=VideoCallLog.CallStatus.COMPLETED,
-                    start=msg_json.get("session", {}).get("started_at"),
-                    end=msg_json.get("session", {}).get("ended_at"),
-                )
 
-                ChatMessage.objects.create(
-                    room=room,
-                    chat_type=ChatMessage.MessageType.CALL,
-                    sender_id=msg_json.get("created_by", {}).get("id"),
-                    call_log=call_log,
-                    content="Cuộc gọi video đã kết thúc",
-                )
+                with transaction.atomic():
+                    call_log = VideoCallLog.objects.create(
+                        room=room,
+                        caller_id=caller_id,
+                        receiver_id=receiver_id,
+                        status=VideoCallLog.CallStatus.COMPLETED,
+                        start=call_json.get("session", {}).get("started_at"),
+                        end=call_json.get("session", {}).get("ended_at"),
+                    )
+
+                    ChatMessage.objects.create(
+                        room=room,
+                        chat_type=ChatMessage.MessageType.CALL,
+                        sender_id=caller_id,
+                        call_log=call_log,
+                        content="Cuộc gọi video đã kết thúc",
+                    )
             except ChatRoom.DoesNotExist:
                 pass
+
         return Response({}, status=status.HTTP_200_OK)

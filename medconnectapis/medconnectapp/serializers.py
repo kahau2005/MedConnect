@@ -341,26 +341,56 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
             "doctor": {"read_only": True},
             "start": {"read_only": True},
             "active": {"read_only": True},
+            "reason": {"read_only": True},
             "status": {"read_only": False},
             "symptoms": {"read_only": False},
             "diagnosis": {"read_only": False},
         }
 
+        def validate(self, attrs):
+            request = self.context.get("request")
+            if request and request.user:
+                user = request.user
+
+                if user.role == User.UserRole.PATIENT:
+                    if "symptoms" in attrs or "diagnosis" in attrs:
+                        raise serializers.ValidationError(
+                            "Bệnh nhân không thể cập nhật triệu chứng hay chẩn đoán"
+                        )
+
+            return super().validate(attrs)
+
     def validate_status(self, value):
-        if self.instance:
-            if self.instance.status not in (
-                Appointment.AppointmentStatus.SCHEDULED.value,
-                Appointment.AppointmentStatus.PENDING.value,
-            ):
+        if not self.instance:
+            return value
+
+        user = self.context.get("request").user
+        current_status = self.instance.status
+
+        if value == Appointment.AppointmentStatus.COMPLETED:
+            raise serializers.ValidationError(
+                "Trạng thái COMPLETED chỉ được cập nhật tự động khi thanh toán thành công"
+            )
+
+        if user.role == User.UserRole.PATIENT:
+            if value != Appointment.AppointmentStatus.CANCELED:
                 raise serializers.ValidationError(
-                    "Chỉ có thể cập nhật trạng thái khi lịch khám ở trạng thái ĐÃ ĐẶT LỊCH hoặc ĐANG KHÁM"
+                    "Bệnh nhân chỉ có quyền hủy lịch khám"
                 )
-            if value not in (
-                Appointment.AppointmentStatus.PENDING.value,
-                Appointment.AppointmentStatus.COMPLETED.value,
-                Appointment.AppointmentStatus.CANCELED.value,
-            ):
-                raise serializers.ValidationError("Trạng thái cập nhật không hợp lệ")
+            if current_status != Appointment.AppointmentStatus.SCHEDULED:
+                raise serializers.ValidationError(
+                    "Chỉ có thể hủy lịch khám khi đang ở trạng thái SCHEDULED"
+                )
+        elif user.role == User.UserRole.DOCTOR:
+            if value != Appointment.AppointmentStatus.PENDING:
+                raise serializers.ValidationError(
+                    "Bác sĩ chỉ có quyền chuyển trạng thái thành PENDING"
+                )
+            if current_status != Appointment.AppointmentStatus.SCHEDULED:
+                raise serializers.ValidationError(
+                    "Chỉ có thể bắt đầu khám khi lịch đang ở trạng thái SCHEDULED"
+                )
+
         return value
 
 
@@ -368,10 +398,31 @@ class ReviewSerializer(ModelSerializer):
     class Meta:
         model = Review
         fields = "__all__"
+        extra_kwargs = {
+            "appointment": {"read_only": True},
+            "created_at": {"read_only": True},
+            "updated_at": {"read_only": True},
+        }
+
+    def validate(self, attrs):
+        appointment = self.context.get("appointment")
+        if not appointment:
+            raise serializers.ValidationError("Thiếu thông tin lịch khám")
+
+        if appointment.status != Appointment.AppointmentStatus.COMPLETED:
+            raise serializers.ValidationError(
+                "Chỉ có thể đánh giá lịch khám khi COMPLETED"
+            )
+
+        if hasattr(appointment, "review"):
+            raise serializers.ValidationError("Lịch hẹn đã được đánh giá")
+        return super().validate(attrs)
 
     def validate_comment(self, value):
-        cleaned = nh3.clean(value, tags=set()).strip()
-        return cleaned
+        if value:
+            cleaned = nh3.clean(value, tags=set()).strip()
+            return cleaned
+        return value
 
 
 class TestResultSerializer(ModelSerializer):
