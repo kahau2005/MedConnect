@@ -127,6 +127,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
                 )
             if doctor_id:
                 queryset = queryset.filter(doctor_id=doctor_id)
+            queryset = queryset.order_by("-start")
         return queryset
 
     def get_serializer_class(self):
@@ -349,39 +350,41 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         chat_room, created = ChatRoom.objects.get_or_create(appointment=appointment)
         stream_channel_id = f"appointment_{appointment.id}"
 
+        chat_client = StreamChat(
+            api_key=settings.STREAM_API_KEY, api_secret=settings.STREAM_API_SECRET
+        )
+
+        doctor_id = str(appointment.doctor_id)
+        user_id = str(appointment.user_id)
+
+        chat_client.upsert_users(
+            [
+                {
+                    "id": doctor_id,
+                    "name": f"{appointment.doctor.user.first_name} {appointment.doctor.user.last_name}",
+                    "role": "user",
+                },
+                {
+                    "id": user_id,
+                    "name": f"{appointment.user.first_name} {appointment.user.last_name}",
+                    "role": "user",
+                },
+            ]
+        )
+
+        channel = chat_client.channel("messaging", stream_channel_id)
+
         if created:
-            chat_client = StreamChat(
-                api_key=settings.STREAM_API_KEY, api_secret=settings.STREAM_API_SECRET
-            )
-
-            doctor_id = str(appointment.doctor_id)
-            user_id = str(appointment.user_id)
-            chat_client.upsert_users(
-                [
-                    {
-                        "id": user_id,
-                        "name": f"{appointment.user.first_name} {appointment.user.last_name}",
-                        "role": "user",
-                    },
-                    {
-                        "id": doctor_id,
-                        "name": f"{appointment.doctor.user.first_name} {appointment.doctor.user.last_name}",
-                        "role": "user",
-                    },
-                ]
-            )
-
-            channel = chat_client.channel("messaging", stream_channel_id)
             channel.create(
                 doctor_id,
                 {
                     "name": f"Lịch khám {appointment.id}",
-                    "members": [user_id, doctor_id],
+                    "member": [user_id, doctor_id],
                     "appointment_id": appointment.id,
                 },
             )
-            if not created:
-                channel.add_members([user_id, doctor_id])
+        else:
+            channel.add_members([user_id, doctor_id])
 
         return Response(
             {
@@ -999,14 +1002,16 @@ class StreamViewSet(viewsets.GenericViewSet):
 
         user_id = str(request.user.id)
         token = chat_client.create_token(user_id)
-        
-        
-        return Response({
-            "stream_token": token,
-            "user_id": user_id,
-            "role": request.user.role,
-            "full_name": f"{request.user.first_name} {request.user.last_name}".strip()
-        }, status=status.HTTP_200_OK)
+
+        return Response(
+            {
+                "stream_token": token,
+                "user_id": user_id,
+                "role": request.user.role,
+                "full_name": f"{request.user.first_name} {request.user.last_name}".strip(),
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @action(
         methods=["post"],

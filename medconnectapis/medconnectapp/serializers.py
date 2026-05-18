@@ -294,11 +294,13 @@ class AppointmentSerializer(ModelSerializer):
             "active": {"read_only": True},
             "symptoms": {"read_only": True},
             "diagnosis": {"read_only": True},
+            "doctor": {"write_only": True},
         }
         model = Appointment
         fields = [
             "id",
             "user",
+            "doctor",
             "doctor_info",
             "status",
             "start",
