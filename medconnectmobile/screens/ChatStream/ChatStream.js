@@ -22,7 +22,7 @@ import { Chat, Channel, MessageList, MessageComposer } from "stream-chat-expo";
 import { UserContext } from "../../contexts/UserContext";
 import { authApis, endpoint } from "../../configs/Apis";
 
-const STREAM_API_KEY = "6eqc726krv44";
+const STREAM_API_KEY = "8cwv8s4s37jd";
 const chatClient = StreamChat.getInstance(STREAM_API_KEY);
 
 const ChatStream = () => {

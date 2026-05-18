@@ -1,13 +1,11 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   TextInput,
   Modal,
-  Platform,
   FlatList,
   ActivityIndicator,
 } from "react-native";
