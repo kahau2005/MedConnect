@@ -1,8 +1,9 @@
 package com.anonymous.medconnectmobile
-import expo.modules.splashscreen.SplashScreenManager
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import vn.zalopay.sdk.ZaloPaySDK
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -16,11 +17,12 @@ class MainActivity : ReactActivity() {
     // Set the theme to AppTheme BEFORE onCreate to support
     // coloring the background, status bar, and navigation bar.
     // This is required for expo-splash-screen.
-    // setTheme(R.style.AppTheme);
-    // @generated begin expo-splashscreen - expo prebuild (DO NOT MODIFY) sync-f3ff59a738c56c9a6119210cb55f0b613eb8b6af
-    SplashScreenManager.registerOnActivity(this)
-    // @generated end expo-splashscreen
+    setTheme(R.style.AppTheme);
     super.onCreate(null)
+  }
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    ZaloPaySDK.getInstance().onResult(intent) // Gọi SDK xử lý kết quả
   }
 
   /**
