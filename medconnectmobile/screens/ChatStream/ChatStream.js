@@ -74,6 +74,12 @@ const ChatStream = () => {
 
     const setupStream = async () => {
       try {
+        // 1. Gọi Backend để đảm bảo channel đã được tạo và gán đúng members
+        await authApis(user.access_token).post(
+          `${endpoint.appointments}${appointmentId}/chat-rooms/`,
+        );
+
+        // 2. Lấy Token
         const res = await authApis(user.access_token).get(endpoint.streamToken);
         const { stream_token, user_id, full_name } = res.data;
 
@@ -86,6 +92,7 @@ const ChatStream = () => {
           stream_token,
         );
 
+        // 3. Watch channel
         const channelId = `appointment_${appointmentId}`;
         const currentChannel = chatClient.channel("messaging", channelId);
         await currentChannel.watch();
@@ -107,7 +114,6 @@ const ChatStream = () => {
       chatClient.disconnectUser().catch(console.error);
     };
   }, [user, appointmentId]);
-
   // ==========================================
   // GIẢ LẬP HÀM XỬ LÝ CLICK (CHẠY CHỮ THÀNH CÔNG MOCK)
   // ==========================================
