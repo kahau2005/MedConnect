@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
-  KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,7 +21,7 @@ import { Chat, Channel, MessageList, MessageComposer } from "stream-chat-expo";
 import { UserContext } from "../../contexts/UserContext";
 import { authApis, endpoint } from "../../configs/Apis";
 
-const STREAM_API_KEY = "8cwv8s4s37jd";
+const STREAM_API_KEY = "6eqc726krv44";
 const chatClient = StreamChat.getInstance(STREAM_API_KEY);
 
 const ChatStream = () => {
@@ -40,12 +39,11 @@ const ChatStream = () => {
   const [channel, setChannel] = useState(null);
   const [clientReady, setClientReady] = useState(false);
 
-  // Điều khiển hiển thị modal nghiệp vụ
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
   const [loadingAction, setLoadingAction] = useState(false);
 
-  // --- MOCK DATA HOÀN TOÀN ĐỂ XEM TRƯỚC ---
+  // --- MOCK DATA ---
   const [prescriptionData, setPrescriptionData] = useState({
     diagnosis: "Viêm loét dạ dày cấp tính",
     note: "Uống thuốc sau bữa ăn 30 phút, kiêng đồ cay nóng.",
@@ -74,12 +72,10 @@ const ChatStream = () => {
 
     const setupStream = async () => {
       try {
-        // 1. Gọi Backend để đảm bảo channel đã được tạo và gán đúng members
         await authApis(user.access_token).post(
-          `${endpoint.appointments}${appointmentId}/chat-rooms/`,
+          `${endpoint.appointment}${appointmentId}/chat-rooms/`,
         );
 
-        // 2. Lấy Token
         const res = await authApis(user.access_token).get(endpoint.streamToken);
         const { stream_token, user_id, full_name } = res.data;
 
@@ -92,7 +88,6 @@ const ChatStream = () => {
           stream_token,
         );
 
-        // 3. Watch channel
         const channelId = `appointment_${appointmentId}`;
         const currentChannel = chatClient.channel("messaging", channelId);
         await currentChannel.watch();
@@ -114,12 +109,26 @@ const ChatStream = () => {
       chatClient.disconnectUser().catch(console.error);
     };
   }, [user, appointmentId]);
-  // ==========================================
-  // GIẢ LẬP HÀM XỬ LÝ CLICK (CHẠY CHỮ THÀNH CÔNG MOCK)
-  // ==========================================
+
+  const handleCall = (type) => {
+    // Tạo ID phòng gọi dựa trên ID lịch khám (để 2 người cùng chung ID mới gặp nhau)
+    const callRoomId = `call_${appointmentId}`;
+
+    nav.navigate("CallStream", {
+      callId: callRoomId, // BẮT BUỘC PHẢI TRUYỀN CÁI NÀY
+      initialCameraOn: type === "video", // Nếu type là 'video' thì bật camera, 'audio' thì tắt
+    });
+  };
+  const handleAudioCall = () => {
+    Alert.alert("Gọi thoại", "Chuyển sang màn hình gọi thoại thường...");
+  };
+
+  const handleVideoCall = () => {
+    Alert.alert("Gọi video", "Chuyển sang màn hình gọi video...");
+  };
+
   const executeMockAction = (successMsg) => {
     setLoadingAction(true);
-    // Giả lập độ trễ mạng 800ms để xem hiệu ứng xoay tròn Loading
     setTimeout(() => {
       setLoadingAction(false);
       Alert.alert("Thành công (Dữ liệu mẫu)", successMsg);
@@ -127,29 +136,22 @@ const ChatStream = () => {
     }, 800);
   };
 
-  const handleCreatePrescription = () => {
+  const handleCreatePrescription = () =>
     executeMockAction(
-      `Đã tạo đơn thuốc mới cho cuộc hẹn #${appointmentId}!\nChẩn đoán: ${prescriptionData.diagnosis}`,
+      `Đã tạo đơn thuốc mới!\nChẩn đoán: ${prescriptionData.diagnosis}`,
     );
-  };
-
-  const handleAddMedicine = () => {
+  const handleAddMedicine = () =>
     executeMockAction(
-      `Đã thêm thuốc vào đơn số #${medicineData.prescriptionId}!\nMã thuốc: ${medicineData.medicineId} - SL: ${medicineData.quantity}`,
+      `Đã thêm thuốc vào đơn!\nMã thuốc: ${medicineData.medicineId}`,
     );
-  };
-
-  const handleAddService = () => {
+  const handleAddService = () =>
     executeMockAction(
-      `Đã chỉ định dịch vụ cận lâm sàng cho cuộc hẹn!\nMã dịch vụ: ${serviceData.serviceId}`,
+      `Đã chỉ định dịch vụ!\nMã dịch vụ: ${serviceData.serviceId}`,
     );
-  };
-
-  const handleAddTestResult = () => {
+  const handleAddTestResult = () =>
     executeMockAction(
-      `Đã cập nhật kết quả cho chỉ định dịch vụ #${resultData.appointmentServiceId}!\nKết quả: ${resultData.result}`,
+      `Đã cập nhật kết quả cận lâm sàng!\nKết quả: ${resultData.result}`,
     );
-  };
 
   // ==========================================
   // LOADING STATE
@@ -164,7 +166,39 @@ const ChatStream = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.container}>
+      {/* ========================================== */}
+      {/* CUSTOM HEADER / TOOLBAR */}
+      {/* ========================================== */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => nav.goBack()}
+          style={styles.iconButton}
+        >
+          <Feather name="chevron-left" size={28} color="#111827" />
+        </TouchableOpacity>
+
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Lịch khám #{appointmentId}</Text>
+          <Text style={styles.headerSubtitle}>Trực tuyến</Text>
+        </View>
+
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={() => handleCall("call")}
+            style={styles.iconButton}
+          >
+            <Feather name="phone" size={22} color="#0066FF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleCall("video")}
+            style={styles.iconButton}
+          >
+            <Feather name="video" size={24} color="#0066FF" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* NÚT FLOAT NGHIỆP VỤ BÁC SĨ */}
       {isDoctor && (
         <TouchableOpacity
@@ -180,20 +214,23 @@ const ChatStream = () => {
       )}
 
       {/* STREAM CHAT UI */}
-      <Chat client={chatClient}>
-        <Channel channel={channel}>
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            keyboardVerticalOffset={Platform.OS === "android" ? 90 : 0}
+      <View style={{ flex: 1 }}>
+        <Chat client={chatClient}>
+          {/* Dùng thuộc tính keyboardBehavior của Stream Chat, bỏ qua thẻ KeyboardAvoidingView ngoài */}
+          <Channel
+            channel={channel}
+            keyboardBehavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 90}
           >
-            <MessageList />
-            <MessageComposer />
-          </KeyboardAvoidingView>
-        </Channel>
-      </Chat>
+            <View style={{ flex: 1 }}>
+              <MessageList />
+              <MessageComposer />
+            </View>
+          </Channel>
+        </Chat>
+      </View>
 
-      {/* MODAL: CHỌN CHỨC NĂNG */}
+      {/* CÁC MODAL NGHIỆP VỤ (GIỮ NGUYÊN) */}
       <Modal visible={actionMenuVisible} transparent animationType="fade">
         <TouchableOpacity
           style={styles.modalOverlay}
@@ -254,7 +291,6 @@ const ChatStream = () => {
         </TouchableOpacity>
       </Modal>
 
-      {/* MODAL FORM 1: TẠO ĐƠN THUỐC */}
       <Modal
         visible={activeModal === "PRESCRIPTION"}
         transparent
@@ -307,7 +343,6 @@ const ChatStream = () => {
         </View>
       </Modal>
 
-      {/* MODAL FORM 2: THÊM THUỐC */}
       <Modal
         visible={activeModal === "MEDICINE"}
         transparent
@@ -364,16 +399,13 @@ const ChatStream = () => {
               {loadingAction ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <Text style={styles.submitBtnText}>
-                  Xác nhận Thêm thuốc (Dữ liệu mẫu)
-                </Text>
+                <Text style={styles.submitBtnText}>Xác nhận Thêm thuốc</Text>
               )}
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* MODAL FORM 3: CHỈ ĐỊNH DỊCH VỤ */}
       <Modal
         visible={activeModal === "SERVICE"}
         transparent
@@ -413,16 +445,13 @@ const ChatStream = () => {
               {loadingAction ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <Text style={styles.submitBtnText}>
-                  Xác nhận Chỉ định (Dữ liệu mẫu)
-                </Text>
+                <Text style={styles.submitBtnText}>Xác nhận Chỉ định</Text>
               )}
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* MODAL FORM 4: KẾT QUẢ XÉT NGHIỆM */}
       <Modal
         visible={activeModal === "RESULT"}
         transparent
@@ -465,9 +494,7 @@ const ChatStream = () => {
               {loadingAction ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <Text style={styles.submitBtnText}>
-                  Xác nhận Lưu kết quả (Dữ liệu mẫu)
-                </Text>
+                <Text style={styles.submitBtnText}>Xác nhận Lưu kết quả</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -478,6 +505,41 @@ const ChatStream = () => {
 };
 
 const styles = StyleSheet.create({
+  // --- Header Styles ---
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  iconButton: {
+    padding: 8,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#111827",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#059669",
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  // --- Main Styles ---
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -548,7 +610,7 @@ const styles = StyleSheet.create({
   },
   formHeader: {
     flexDirection: "row",
-    justifycontent: "space-between",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
   },

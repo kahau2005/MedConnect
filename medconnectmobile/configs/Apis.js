@@ -16,7 +16,7 @@ export const endpoint = {
 
 export const authApis = (token) => {
   return axios.create({
-    baseURL: "http://192.168.100.26:8000/",
+    baseURL: "http://192.168.1.239:8000/",
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -24,5 +24,5 @@ export const authApis = (token) => {
 };
 
 export default axios.create({
-  baseURL: "http://192.168.100.26:8000/",
+  baseURL: "http://192.168.1.239:8000/",
 });
