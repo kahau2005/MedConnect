@@ -435,7 +435,6 @@ const AllAppointmentTab = () => {
         }
         contentContainerStyle={Style.scrollContent}
         showsVerticalScrollIndicator={false}
-        // 🌟 Thêm 2 thuộc tính này để kích hoạt Pull-to-refresh
         refreshing={refreshing}
         onRefresh={handleRefresh}
         onEndReached={() => {
@@ -558,7 +557,6 @@ const AllAppointmentTab = () => {
         }}
       />
 
-      {/* Modal chi tiết hồ sơ giữ nguyên */}
       <Modal
         visible={detailModalVisible}
         animationType="slide"

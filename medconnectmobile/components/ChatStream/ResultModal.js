@@ -109,7 +109,6 @@ const ResultModal = ({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 20 }}
               >
-                {/* Chọn loại xét nghiệm */}
                 <Text
                   style={{
                     fontSize: 14,

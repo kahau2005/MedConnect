@@ -10,14 +10,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
-// --- STREAM CHAT IMPORTS ---
 import { StreamChat } from "stream-chat";
 import { Chat, Channel, MessageList, MessageComposer } from "stream-chat-expo";
 
 import { UserContext } from "../../contexts/UserContext";
 import Apis, { authApis, endpoint } from "../../configs/Apis";
 
-// --- SUB COMPONENTS ---
 import Header from "../../components/ChatStream/Header";
 import DoctorActionSheet from "../../components/ChatStream/DoctorActionSheet";
 import PrescriptionListModal from "../../components/ChatStream/PrescriptionListModal";
@@ -27,7 +25,6 @@ import ServiceModal from "../../components/ChatStream/ServiceModal";
 import ResultModal from "../../components/ChatStream/ResultModal";
 import DiagnosisModal from "../../components/ChatStream/DiagnosisModal";
 
-// --- CONSTANTS ---
 const STREAM_API_KEY = "6eqc726krv44";
 const chatClient = StreamChat.getInstance(STREAM_API_KEY);
 
@@ -42,29 +39,19 @@ const EMPTY_MED_FORM = {
 };
 
 const ChatStream = () => {
-  // ==========================================
-  // 1. SETUP & GLOBAL STATE
-  // ==========================================
   const nav = useNavigation();
   const route = useRoute();
   const appointmentId = route.params?.appointmentId || 1;
   const status = route.params?.status || "SCHEDULED";
   const [user] = useContext(UserContext);
 
-  // ==========================================
-  // 2. UI & MODAL STATE
-  // ==========================================
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
   const [loadingAction, setLoadingAction] = useState(false);
 
-  // ==========================================
-  // 3. DATA STATE
-  // ==========================================
   const [channel, setChannel] = useState(null);
   const [clientReady, setClientReady] = useState(false);
 
-  // Chỉ Doctor mới dùng các state này, nhưng khai báo thì không ảnh hưởng
   const [prescriptions, setPrescriptions] = useState([]);
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [selectedMedForInput, setSelectedMedForInput] = useState(null);
@@ -97,12 +84,8 @@ const ChatStream = () => {
     diseaseName: "",
   });
 
-  // ==========================================
-  // 4. LOGIC: KHỞI TẠO DỮ LIỆU BAN ĐẦU
-  // ==========================================
   useEffect(() => {
     if (user) {
-      // 🌟 FIX: Kiểm tra BẮT BUỘC phải là DOCTOR mới cho phép Fetch các API nghiệp vụ
       if (user.role === "DOCTOR") {
         handleUpdateAppointmentStatus();
         getListPrescriptions();
@@ -191,9 +174,6 @@ const ChatStream = () => {
     }
   };
 
-  // ==========================================
-  // 5. LOGIC: VIDEO CALL & STREAM CHAT (Dùng chung cho cả 2 Role)
-  // ==========================================
   const callRoomId = `call_${appointmentId}`;
   const handleAudioCall = () =>
     nav.navigate("CallStream", { callId: callRoomId, initialCameraOn: false });
@@ -236,9 +216,6 @@ const ChatStream = () => {
     };
   }, [user, appointmentId]);
 
-  // ==========================================
-  // 6. CÁC HÀM XỬ LÝ ACTION CỦA DOCTOR
-  // ==========================================
   const handleAddService = async () => {
     if (!serviceData.serviceId) {
       Alert.alert("Lỗi", "Vui lòng chỉ định dịch vụ!");
@@ -272,24 +249,14 @@ const ChatStream = () => {
     }
   };
 
-  const reloadSelectedPrescription = async () => {
-    /* ... */
-  };
-  const handleCreateRealPrescription = async () => {
-    /* ... */
-  };
-  const handleTriggerMedicineSearch = async (prescriptionItem) => {
-    /* ... */
-  };
-  const openMedicineInputForm = (med) => {
-    /* ... */
-  };
+  const reloadSelectedPrescription = async () => {};
+  const handleCreateRealPrescription = async () => {};
+  const handleTriggerMedicineSearch = async (prescriptionItem) => {};
+  const openMedicineInputForm = (med) => {};
   const saveMedicineToPrescription = async (formDetail) => {
-    /* ... */ return true;
+    return true;
   };
-  const confirmAddMedicine = async () => {
-    /* ... */
-  };
+  const confirmAddMedicine = async () => {};
 
   const filteredMedicines = useMemo(() => {
     if (!medSearchKw.trim()) return medicines;
@@ -331,9 +298,6 @@ const ChatStream = () => {
     setActiveModal(null);
   };
 
-  // ==========================================
-  // RENDER UI
-  // ==========================================
   if (!clientReady || !channel) {
     return (
       <View
@@ -381,7 +345,6 @@ const ChatStream = () => {
         </Chat>
       </KeyboardAvoidingView>
 
-      {/* 🌟 FIX: Chỉ render (gắn vào DOM) các Modal xử lý nghiệp vụ nếu User là Bác sĩ */}
       {user?.role === "DOCTOR" && (
         <>
           <DoctorActionSheet
