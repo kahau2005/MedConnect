@@ -45,7 +45,7 @@
         let ageLabels = [];
         let ageData = [];
         {% for a in age_groups %}
-            ageLabels.push('{{ a.age_group|escapejs }}');
+            ageLabels.push('{{ a.age_group }}');
             ageData.push({{ a.total }});
         {% endfor %}
 
@@ -65,7 +65,7 @@
         let specLabels = [];
         let specData = [];
         {% for s in specialties %}
-            specLabels.push('{{ s.doctor__specialty__name|escapejs }}');
+            specLabels.push('{{ s.doctor__specialty__name }}');
             specData.push({{ s.total }});
         {% endfor %}
 
@@ -85,7 +85,7 @@
         let servLabels = [];
         let servData = [];
         {% for s in services %}
-            servLabels.push('{{ s.service__name|escapejs }}');
+            servLabels.push('{{ s.service__name }}');
             servData.push({{ s.total_quantity }});
         {% endfor %}
 
@@ -108,7 +108,7 @@
         let diseaseLabels = [];
         let diseaseData = [];
         {% for d in diseases %}
-            diseaseLabels.push('{{ d.diagnosis__disease_category__name|escapejs }}');
+            diseaseLabels.push('{{ d.diagnosis__disease_category__name }}');
             diseaseData.push({{ d.total_appointments }});
         {% endfor %}
 
