@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
@@ -8,20 +8,21 @@ from django.db.models import (
     Case,
     Count,
     FloatField,
+    OuterRef,
     Prefetch,
     Q,
+    Subquery,
     Sum,
     Value,
     When,
-    OuterRef,
-    Subquery,
 )
 from django.db.models.fields import CharField
-from django.db.models.functions import Coalesce, ExtractYear, Now, Concat
+from django.db.models.functions import Coalesce, Concat, ExtractYear, Now
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
+from getstream.models import ChannelInput, ChannelMemberRequest, UserRequest
 from oauth2_provider.views.base import TokenView
 from rest_framework import generics, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -29,7 +30,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
-from stream_chat import StreamChat
 
 from . import paginators, perms, serializers, utils
 from .models import (
@@ -48,12 +48,12 @@ from .models import (
     Payment,
     Prescription,
     PrescriptionDetail,
+    Review,
     Service,
     Specialty,
     TestResult,
     User,
     VideoCallLog,
-    Review,
 )
 
 
@@ -127,6 +127,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
                 )
             if doctor_id:
                 queryset = queryset.filter(doctor_id=doctor_id)
+            queryset = queryset.order_by("-start")
         return queryset
 
     def get_serializer_class(self):
@@ -349,37 +350,41 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         chat_room, created = ChatRoom.objects.get_or_create(appointment=appointment)
         stream_channel_id = f"appointment_{appointment.id}"
 
-        if created:
-            chat_client = StreamChat(
-                api_key=settings.STREAM_API_KEY, api_secret=settings.STREAM_API_SECRET
-            )
+        doctor_id = str(appointment.doctor_id)
+        user_id = str(appointment.user_id)
+        doctor_fullname = (
+            f"{appointment.doctor.user.first_name} {appointment.doctor.user.last_name}"
+        )
+        user_fullname = f"{appointment.user.first_name} {appointment.user.last_name}"
 
-            doctor_id = str(appointment.doctor_id)
-            user_id = str(appointment.user_id)
-            chat_client.upsert_users(
-                [
-                    {
-                        "id": user_id,
-                        "name": f"{appointment.user.first_name} {appointment.user.last_name}",
-                        "role": "user",
-                    },
-                    {
-                        "id": doctor_id,
-                        "name": f"{appointment.doctor.user.first_name} {appointment.doctor.user.last_name}",
-                        "role": "user",
-                    },
-                ]
-            )
+        utils.chat_client.upsert_users(
+            UserRequest(
+                id=doctor_id,
+                name=doctor_fullname,
+                role="user",
+            ),
+            UserRequest(
+                id=user_id,
+                name=user_fullname,
+                role="user",
+            ),
+        )
 
-            channel = chat_client.channel("messaging", stream_channel_id)
-            channel.create(
-                doctor_id,
-                {
-                    "name": f"Lịch khám {appointment.id}",
-                    "members": [user_id, doctor_id],
+        channel = utils.chat_client.chat.channel("messaging", stream_channel_id)
+
+        channel.get_or_create(
+            data=ChannelInput(
+                created_by_id=doctor_id,
+                members=[
+                    ChannelMemberRequest(user_id=doctor_id),
+                    ChannelMemberRequest(user_id=user_id),
+                ],
+                custom={
+                    "name": f"Lịch khám với BS. {doctor_fullname} của BN. {user_fullname}",
                     "appointment_id": appointment.id,
                 },
             )
+        )
 
         return Response(
             {
@@ -991,13 +996,18 @@ class StreamViewSet(viewsets.GenericViewSet):
         permission_classes=[IsAuthenticated],
     )
     def token(self, request):
-        chat_client = StreamChat(
-            api_key=settings.STREAM_API_KEY, api_secret=settings.STREAM_API_SECRET
-        )
-
         user_id = str(request.user.id)
-        token = chat_client.create_token(user_id)
-        return Response({"stream_token": token}, status=status.HTTP_200_OK)
+        token = utils.chat_client.create_token(user_id, expiration=3600)
+
+        return Response(
+            {
+                "stream_token": token,
+                "user_id": user_id,
+                "role": request.user.role,
+                "full_name": f"{request.user.first_name} {request.user.last_name}".strip(),
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @action(
         methods=["post"],

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -9,42 +9,29 @@ import {
   Dimensions,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import HorizontalItemsView from "../../../components/HorizontalItemsView/HorizontalItemsView";
+import Apis, { endpoint } from "../../../configs/Apis";
 
 const { width } = Dimensions.get("window");
 
-const doctors = [
-  {
-    id: 1,
-    title: "Dr. John Doe",
-    description: "Cardiologist",
-    image: require("../../../assets/imgs/banner_doctor.png"),
-    rating: 4.5,
-  },
-  {
-    id: 2,
-    title: "Dr. Jane Smith",
-    description: "Dermatologist",
-    image: require("../../../assets/imgs/banner_doctor.png"),
-    rating: 4.7,
-  },
-  {
-    id: 3,
-    title: "Dr. Emily Johnson",
-    description: "Pediatrician",
-    image: require("../../../assets/imgs/banner_doctor.png"),
-    rating: 4.8,
-  },
-];
-
 const HomeTab = ({ navigation }) => {
+  const [upcomingAppointment, setUpcomingAppointment] = useState(false);
+  const [popularDoctor, setPopularDoctor] = useState([]);
+
   const handleButtonClick = (viewName) => {
     navigation.navigate(viewName);
   };
 
+  const loadPopularDoctor = async () => {
+    const res = await Apis.get(endpoint.popular_dotor);
+    setPopularDoctor(res.data);
+  };
+
+  useEffect(() => {
+    loadPopularDoctor();
+  }, []);
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* HEADER SECTION */}
       <View style={styles.headerWrapper}>
         <View style={styles.imageContainer}>
           <Image
@@ -123,44 +110,90 @@ const HomeTab = ({ navigation }) => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Lịch khám sắp tới</Text>
         </View>
-
-        <View style={styles.upcomingCard}>
-          <View style={styles.dateBox}>
-            <Text style={styles.dateDay}>15</Text>
-            <Text style={styles.dateMonth}>Thg 5</Text>
-          </View>
-          <View style={styles.upcomingInfo}>
-            <Text style={styles.upcomingDoctor}>BS. Phillip Franci</Text>
-            <Text style={styles.upcomingSpec}>Chuyên khoa Tim mạch</Text>
-          </View>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>10:00 AM</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.aiBanner}
-          activeOpacity={0.9}
-          onPress={() => handleButtonClick("AdvisoryTab")}
-        >
-          <View style={styles.aiBannerContent}>
-            <Text style={styles.aiBannerTitle}>Không rõ mình bệnh gì?</Text>
-            <Text style={styles.aiBannerSub}>
-              Nhập triệu chứng, MedBot sẽ chẩn đoán và tìm đúng bác sĩ cho bạn.
-            </Text>
-            <View style={styles.aiBtn}>
-              <Text style={styles.aiBtnText}>Hỏi AI ngay</Text>
-              <Feather name="arrow-right" size={16} color="#FFF" />
+        {upcomingAppointment ? (
+          <View style={styles.upcomingCard}>
+            <View style={styles.dateBox}>
+              <Text style={styles.dateDay}>15</Text>
+              <Text style={styles.dateMonth}>Thg 5</Text>
+            </View>
+            <View style={styles.upcomingInfo}>
+              <Text style={styles.upcomingDoctor}>BS. Phillip Franci</Text>
+              <Text style={styles.upcomingSpec}>Chuyên khoa Tim mạch</Text>
+            </View>
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>10:00 AM</Text>
             </View>
           </View>
-          <Image
-            source={require("../../../assets/imgs/banner_doctor.png")}
-            style={styles.aiImage}
-          />
-        </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.emptyUpcomingCard}
+            activeOpacity={0.85}
+            onPress={() => handleButtonClick("Appointment")}
+          >
+            <View style={styles.emptyCardContent}>
+              <View style={styles.emptyIconBg}>
+                <MaterialCommunityIcons
+                  name="calendar-heart"
+                  size={28}
+                  color="#0066FF"
+                />
+              </View>
+              <View style={styles.emptyTextContainer}>
+                <Text style={styles.emptyCardTitle}>
+                  Bạn chưa có lịch khám nào
+                </Text>
+                <Text style={styles.emptyCardSub}>
+                  Hãy chủ động bảo vệ sức khỏe. Đặt lịch hẹn với bác sĩ chuyên
+                  khoa ngay hôm nay.
+                </Text>
+              </View>
+            </View>
+            <View style={styles.emptyCardAction}>
+              <Text style={styles.emptyActionText}>Đặt lịch ngay</Text>
+              <Feather name="arrow-right" size={14} color="#0066FF" />
+            </View>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Bác sĩ nổi bật</Text>
+          <TouchableOpacity onPress={() => handleButtonClick("Doctor")}>
+            <Text style={styles.seeAllText}>Xem tất cả</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <HorizontalItemsView title={"Bác sĩ nổi bật"} items={doctors} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.doctorsScrollContent}
+      >
+        {popularDoctor.map((doc) => (
+          <TouchableOpacity
+            key={doc.id}
+            style={styles.doctorCard}
+            activeOpacity={0.8}
+            onPress={() => handleButtonClick("DoctorDetail")}
+          >
+            <Image source={{ uri: doc.avatar }} style={styles.doctorImage} />
+            <View style={styles.doctorInfo}>
+              <Text style={styles.doctorName} numberOfLines={1}>
+                {`${doc.first_name} ${doc.last_name}`}
+              </Text>
+              <Text style={styles.doctorSpec} numberOfLines={1}>
+                {doc.background}
+              </Text>
+              <View style={styles.ratingRow}>
+                <MaterialCommunityIcons name="star" size={16} color="#FFB800" />
+                <Text style={styles.ratingText}>{doc.avg_rating}</Text>
+                <Text style={styles.reviewText}>
+                  ({doc.comment?.length || 0} đánh giá)
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       <View style={{ paddingBottom: 40 }}></View>
     </ScrollView>
@@ -172,7 +205,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F4F6F9",
   },
-
   headerWrapper: {
     marginBottom: 10,
   },
@@ -254,7 +286,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#4B5563",
   },
-
   contentPadding: {
     paddingHorizontal: 16,
     marginTop: 10,
@@ -271,7 +302,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#111827",
   },
-
+  seeAllText: {
+    fontSize: 14,
+    color: "#0066FF",
+    fontWeight: "600",
+  },
   upcomingCard: {
     backgroundColor: "#FFF",
     borderRadius: 16,
@@ -311,40 +346,114 @@ const styles = StyleSheet.create({
   },
   statusText: { color: "#00D084", fontSize: 12, fontWeight: "bold" },
 
-  aiBanner: {
-    backgroundColor: "#6B4EFF",
+  emptyUpcomingCard: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
-    padding: 20,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#EBF0F5",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  emptyCardContent: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
-    overflow: "hidden",
-  },
-  aiBannerContent: { flex: 1, paddingRight: 10 },
-  aiBannerTitle: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 6,
-  },
-  aiBannerSub: {
-    color: "#E0D8FF",
-    fontSize: 13,
-    lineHeight: 18,
     marginBottom: 12,
   },
-  aiBtn: {
+  emptyIconBg: {
+    backgroundColor: "#F0F5FF",
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+  emptyTextContainer: {
+    flex: 1,
+  },
+  emptyCardTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  emptyCardSub: {
+    fontSize: 13,
+    color: "#6B7280",
+    lineHeight: 18,
+  },
+  emptyCardAction: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    justifyContent: "flex-end",
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+    paddingTop: 12,
     gap: 4,
   },
-  aiBtnText: { color: "#FFF", fontSize: 13, fontWeight: "600" },
-  aiImage: { width: 80, height: 80, resizeMode: "contain", opacity: 0.9 },
+  emptyActionText: {
+    color: "#0066FF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  doctorsScrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  doctorCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    width: 170,
+    marginRight: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+    marginBottom: 12,
+  },
+  doctorImage: {
+    width: "100%",
+    height: 130,
+    resizeMode: "cover",
+    backgroundColor: "#F0F5FF",
+  },
+  doctorInfo: {
+    padding: 12,
+  },
+  doctorName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  doctorSpec: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 10,
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  ratingText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#111827",
+    marginLeft: 4,
+  },
+  reviewText: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginLeft: 4,
+  },
 });
 
 export default HomeTab;

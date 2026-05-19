@@ -10,7 +10,7 @@ const Specialty = () => {
   useEffect(() => {
     Apis.get(endpoint.specialties)
       .then((response) => {
-        setSpecialties(response.data.results);
+        setSpecialties(response.data);
       })
       .catch((error) => {
         console.error("Error fetching specialties:", error);

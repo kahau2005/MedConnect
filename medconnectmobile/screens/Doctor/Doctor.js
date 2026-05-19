@@ -4,16 +4,32 @@ import { use, useEffect, useState } from "react";
 import Apis, { endpoint } from "../../configs/Apis";
 import ListCardItem from "../../components/ListCardItem/ListCardItem";
 import Style from "./Style";
+import LoadingModal from "../../components/LoadingModel/LoadingModel";
 
 const Doctor = () => {
   const [doctors, setDoctors] = useState([]);
+  const [offset, setOffset] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const [kw, setKw] = useState("");
+
+  const loadDoctor = async () => {
+    try {
+      setLoading(true);
+      let result = await Apis.get(`${endpoint.doctors}?offset=${offset}`);
+      setDoctors([...doctors, ...result.data.results]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (!loading) setOffset((prev) => prev + 8);
+  };
 
   useEffect(() => {
-    Apis.get(endpoint.doctors).then((response) => {
-      setDoctors(response.data.results);
-      console.log(response.data.results);
-    });
-  }, []);
+    loadDoctor();
+  }, [offset, kw]);
 
   const renderItem = ({ item }) => (
     <ListCardItem
@@ -35,7 +51,10 @@ const Doctor = () => {
         contentContainerStyle={Style.listContent}
         columnWrapperStyle={Style.row}
         showsVerticalScrollIndicator={false}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
       />
+      {loading && <LoadingModal />}
     </View>
   );
 };

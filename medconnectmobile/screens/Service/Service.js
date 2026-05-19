@@ -11,7 +11,7 @@ const Service = () => {
   const fetchServices = async () => {
     try {
       let res = await Apis.get(endpoint.services);
-      setServices(res.data.results);
+      setServices(res.data);
     } catch (error) {
       console.error("Error fetching services:", error);
     }
@@ -35,11 +35,6 @@ const Service = () => {
     fetchPopularServices();
   }, []);
 
-  useEffect(() => {
-    console.log("---------Popular Services State (Sau khi re-render)---------");
-    console.log(popularServices);
-    console.log("---------------------------------------");
-  }, [popularServices]);
   return (
     <ScrollView style={{ marginTop: 10 }}>
       <HorizontalItemsView title={"Dịch vụ nổi bật"} items={popularServices} />

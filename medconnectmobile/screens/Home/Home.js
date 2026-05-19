@@ -6,7 +6,8 @@ import { Icon } from "react-native-paper";
 import ServicesTab from "./BottomNavigations/ServicesTab";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "./Style";
-import AdvisoryTab from "./BottomNavigations/AdvisoryTab";
+import AllAppointmentTab from "./BottomNavigations/AllAppointmentTab/AllAppointmentTab";
+import PatientProfileTab from "./BottomNavigations/PatientProfileTab/PatientProfileTab";
 
 const Home = () => {
   const Tab = createBottomTabNavigator();
@@ -24,7 +25,7 @@ const Home = () => {
 
       <Tab.Screen
         name="Tư vấn"
-        component={AdvisoryTab}
+        component={AllAppointmentTab}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon source="briefcase" size={size} color={color} />
@@ -33,7 +34,7 @@ const Home = () => {
       />
       <Tab.Screen
         name="Profile"
-        component={HomeTab}
+        component={PatientProfileTab}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon source="account" size={size} color={color} />

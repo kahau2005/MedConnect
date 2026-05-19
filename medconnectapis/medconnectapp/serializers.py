@@ -294,11 +294,13 @@ class AppointmentSerializer(ModelSerializer):
             "active": {"read_only": True},
             "symptoms": {"read_only": True},
             "diagnosis": {"read_only": True},
+            "doctor": {"write_only": True},
         }
         model = Appointment
         fields = [
             "id",
             "user",
+            "doctor",
             "doctor_info",
             "status",
             "start",
@@ -665,7 +667,7 @@ class DetailPatientProfileSerializer(ModelSerializer):
 class SimpleUserSerializer(ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "first_name", "last_name", "email", "phone", "avatar"]
+        fields = ["id", "first_name", "last_name", "email", "phone", "avatar", "role"]
 
     def validate_phone(self, value):
         if not re.match(r"^\d{10}$", value):

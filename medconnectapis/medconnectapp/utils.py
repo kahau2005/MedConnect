@@ -8,6 +8,7 @@ import firebase_admin
 import requests
 from django.conf import settings
 from firebase_admin import credentials, messaging
+from getstream.stream import Stream
 
 ZALOPAY_CONFIG = {
     "APP_ID": settings.ZALOPAY_APP_ID,
@@ -115,3 +116,8 @@ def verify_stream_webhook(request):
     ).hexdigest()
 
     return hmac.compare_digest(signature, expected_signature)
+
+
+chat_client = Stream(
+    api_key=settings.STREAM_API_KEY, api_secret=settings.STREAM_API_SECRET
+)

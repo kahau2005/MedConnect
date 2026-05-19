@@ -22,13 +22,23 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.medconnectmobile"
+      "package": "com.anonymous.medconnectmobile",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker",
+      "expo-video",
+      [
+        "@stream-io/video-react-native-sdk",
+        {
+          "cameraPermissionText": "Ứng dụng cần quyền truy cập Camera để thực hiện gọi Video.",
+          "microphonePermissionText": "Ứng dụng cần quyền truy cập Micro để thực hiện gọi thoại."
+        }
+      ]
     ]
   }
 }

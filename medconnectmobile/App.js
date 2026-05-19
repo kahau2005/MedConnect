@@ -1,8 +1,11 @@
-import React, { useCallback } from "react"; // Sửa lỗi 1
+import "react-native-gesture-handler";
+import React, { useReducer } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
-import { Platform, View } from "react-native";
-import * as SplashScreen from "expo-splash-screen";
+import { Platform, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context"; // ← THÊM
+import { OverlayProvider } from "stream-chat-expo";
 
 import Home from "./screens/Home/Home";
 import Appointment from "./screens/Appointment/Appointment";
@@ -12,10 +15,14 @@ import {
   PaperProvider,
 } from "react-native-paper";
 import Specialty from "./screens/Specialty/Specialty";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Doctor from "./screens/Doctor/Doctor";
 import Service from "./screens/Service/Service";
 import Payment from "./screens/Payment/Payment";
+import ChatStream from "./screens/ChatStream/ChatStream";
+import Login from "./screens/Login/Login";
+import { UserContext } from "./contexts/UserContext";
+import UserReducer from "./reducers/UserReducer";
+import CallStream from "./screens/CallStream/CallStream";
 
 const Stack = createNativeStackNavigator();
 
@@ -40,64 +47,45 @@ const theme = {
 };
 
 export default function App() {
-  useEffect(() => {
-    const setupFirebase = async () => {
-      try {
-        const messagingInstance = getMessaging();
+  const [user, dispatch] = useReducer(UserReducer, null);
 
-        const authStatus = await requestPermission(messagingInstance);
-
-        const isAuthorized = authStatus === 1 || authStatus === 2;
-
-        if (isAuthorized) {
-          const token = await getToken(messagingInstance);
-          console.log("========== FCM TOKEN ==========");
-          console.log(token);
-          console.log("===============================");
-
-          const unsubscribe = onMessage(
-            messagingInstance,
-            async (remoteMessage) => {
-              Alert.alert(
-                remoteMessage.notification?.title || "MedConnect",
-                remoteMessage.notification?.body || "Bạn có thông báo mới!",
-              );
-            },
-          );
-
-          return unsubscribe;
-        } else {
-          console.log("Người dùng đã từ chối nhận thông báo.");
-        }
-      } catch (error) {
-        console.error("Lỗi setup FCM:", error);
-      }
-    };
-
-    setupFirebase();
-  }, []);
   return (
-    <PaperProvider theme={theme}>
-      <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName="Home"
-          screenOptions={{
-            headerShown: true,
-            headerTitleAlign: "center",
-          }}
-        >
-          <Stack.Screen
-            name="Home"
-            component={Home}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="Appointment" component={Appointment} />
-          <Stack.Screen name="Specialty" component={Specialty} />
-          <Stack.Screen name="Doctor" component={Doctor} />
-          <Stack.Screen name="Service" component={Service} />
-          <Stack.Screen name="Payment" component={Payment} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </PaperProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <OverlayProvider>
+          <UserContext.Provider value={[user, dispatch]}>
+            <PaperProvider theme={theme}>
+              <NavigationContainer>
+                <Stack.Navigator
+                  initialRouteName="Home"
+                  screenOptions={{
+                    headerShown: true,
+                    headerTitleAlign: "center",
+                  }}
+                >
+                  <Stack.Screen
+                    name="Home"
+                    component={Home}
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen name="Appointment" component={Appointment} />
+                  <Stack.Screen name="Specialty" component={Specialty} />
+                  <Stack.Screen name="Doctor" component={Doctor} />
+                  <Stack.Screen name="Service" component={Service} />
+                  <Stack.Screen name="Payment" component={Payment} />
+                  <Stack.Screen name="ChatStream" component={ChatStream} />
+                  <Stack.Screen name="CallStream" component={CallStream} />
+                  <Stack.Screen name="Login" component={Login} />
+                </Stack.Navigator>
+              </NavigationContainer>
+            </PaperProvider>
+          </UserContext.Provider>
+        </OverlayProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});
