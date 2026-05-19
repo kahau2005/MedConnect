@@ -151,10 +151,8 @@ const Appointment = () => {
       console.log("Thành công!", res.data);
       Alert.alert("Thành công", "Đặt lịch khám thành công!");
     } catch (error) {
-      console.error("Lỗi đặt hẹn:", error.response?.data || error.message);
-
-      const errorMsg = error.response?.data
-        ? JSON.stringify(error.response.data)
+      const errorMsg = error.response?.data?.start?.[0]
+        ? JSON.stringify(error.response.data.start[0])
         : "Không thể kết nối máy chủ";
 
       Alert.alert("Đặt lịch thất bại", errorMsg);

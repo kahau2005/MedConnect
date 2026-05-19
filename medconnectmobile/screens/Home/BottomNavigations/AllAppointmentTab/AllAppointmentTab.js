@@ -58,6 +58,9 @@ const AllAppointmentTab = () => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
+  // 🌟 Thêm State quản lý hiệu ứng vuốt làm mới
+  const [refreshing, setRefreshing] = useState(false);
+
   const isLoadingRef = useRef(false);
 
   const isDoctorMode = user?.role === "DOCTOR" || false;
@@ -102,7 +105,7 @@ const AllAppointmentTab = () => {
       return;
 
     isLoadingRef.current = true;
-    setLoading(true);
+    if (!refreshing) setLoading(true); // Chỉ bật loading nếu không phải đang Refresh
 
     try {
       const statusParam = activeFilter === "ALL" ? "" : activeFilter;
@@ -136,6 +139,15 @@ const AllAppointmentTab = () => {
       isLoadingRef.current = false;
       setLoading(false);
     }
+  };
+
+  // 🌟 Hàm xử lý khi người dùng vuốt danh sách xuống
+  const handleRefresh = async () => {
+    setRefreshing(true); // Bật icon xoay xoay
+    setOffset(0); // Reset trang về 0
+    setHasMore(true); // Mở khóa load data
+    await loadAppointment(false); // Gọi API lấy dữ liệu mới nhất
+    setRefreshing(false); // Tắt icon xoay xoay
   };
 
   const handleGoToChat = async (appointmentId, status) => {
@@ -423,6 +435,9 @@ const AllAppointmentTab = () => {
         }
         contentContainerStyle={Style.scrollContent}
         showsVerticalScrollIndicator={false}
+        // 🌟 Thêm 2 thuộc tính này để kích hoạt Pull-to-refresh
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
         onEndReached={() => {
           if (!loading && hasMore) {
             setOffset((prev) => prev + 8);
@@ -430,7 +445,7 @@ const AllAppointmentTab = () => {
         }}
         onEndReachedThreshold={0.3}
         ListFooterComponent={() =>
-          loading ? (
+          loading && !refreshing ? (
             <View style={{ paddingVertical: 20 }}>
               <ActivityIndicator size="small" color="#0066FF" />
             </View>
