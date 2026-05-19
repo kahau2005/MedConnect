@@ -16,16 +16,16 @@ export default StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#111827",
-    flex: 1, // Thêm flex: 1 để chiếm không gian trống và tự xuống dòng khi quá dài
+    flex: 1,
     flexShrink: 1,
-    marginRight: 12, // Tạo khoảng cách an toàn với nút View để không bị đè chữ
+    marginRight: 12,
   },
   doctorToggleBtn: {
     backgroundColor: "#F3F4F6",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
-    flexShrink: 0, // Giữ nguyên kích thước nút View không cho bóp nhỏ
+    flexShrink: 0,
   },
   doctorToggleText: { fontSize: 12, fontWeight: "600", color: "#4B5563" },
 
@@ -92,7 +92,7 @@ export default StyleSheet.create({
   doctorInfoRow: {
     flexDirection: "row",
     flex: 1,
-    marginRight: 12, // Tạo khoảng cách để phần thông tin không lấn chiếm chỗ của Badge trạng thái
+    marginRight: 12,
   },
   avatarPlaceholder: {
     width: 44,
@@ -114,12 +114,12 @@ export default StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    flexShrink: 0, // Đổi từ 1 thành 0 để khối bọc ngoài không bị co ép mất chữ
+    flexShrink: 0,
   },
   statusText: {
     fontSize: 11,
     fontWeight: "700",
-    flexShrink: 0, // Đảm bảo text hiển thị trọn vẹn
+    flexShrink: 0,
   },
 
   cardMiddle: {
@@ -151,7 +151,7 @@ export default StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
     marginLeft: 6,
-    flexShrink: 0, // Chống mất chữ ở nút Bắt đầu khám
+    flexShrink: 0,
   },
   completedActions: { flexDirection: "row", gap: 10 },
   actionBtnOutline: {
@@ -165,7 +165,7 @@ export default StyleSheet.create({
     color: "#374151",
     fontWeight: "600",
     fontSize: 13,
-    flexShrink: 0, // Chống mất chữ ở nút Xem chi tiết
+    flexShrink: 0,
   },
   actionBtnReview: {
     paddingHorizontal: 16,
@@ -177,7 +177,7 @@ export default StyleSheet.create({
     color: "#FF9800",
     fontWeight: "700",
     fontSize: 13,
-    flexShrink: 0, // Chống mất chữ ở nút Đánh giá
+    flexShrink: 0,
   },
 
   pagination: {

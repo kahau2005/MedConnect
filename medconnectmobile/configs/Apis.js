@@ -10,8 +10,18 @@ export const endpoint = {
   current_user: "/users/current-user/",
   patient_profile: "/users/current-user/patient-profile/",
   appointment: "/appointments/",
+  update_appointment: (appointmentId) => `/appointments/${appointmentId}/`,
   streamToken: "/stream/token/",
   chat_room: (appointmentId) => `/appointments/${appointmentId}/chat-rooms/`,
+  medicines: "/medicines/",
+  medicine_categories: "/medicine-categories/",
+  add_medicine: (prescriptionId) => `/prescriptions/${prescriptionId}/details/`,
+  update_medicine: (prescriptionId) =>
+    `/prescription-details/${prescriptionId}/`,
+  prescription: (appointmentId) =>
+    `/appointments/${appointmentId}/prescriptions/`,
+  service: (appointmentId) => `/appointments/${appointmentId}/services/`,
+  disease: "/diseases/",
 };
 
 export const authApis = (token) => {

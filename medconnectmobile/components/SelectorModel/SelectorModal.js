@@ -18,15 +18,14 @@ const SelectorModal = ({
   data,
   onSelect,
   placeholder,
-  isLoading, // Nhận trạng thái loading từ cha
-  onLoadMore, // Hàm kích hoạt load trang tiếp theo khi cuộn xuống đáy
-  hasMore, // Căn cứ để biết còn trang tiếp theo hay không
-  displayFieldRow, // Hàm hoặc chuỗi quy định trường hiển thị (Xử lý vụ name vs first_name/last_name)
+  isLoading,
+  onLoadMore,
+  hasMore,
+  displayFieldRow,
 }) => {
   const [search, setSearch] = useState("");
   const [filteredData, setFilteredData] = useState(data);
 
-  // Xử lý render chuỗi hiển thị động cho từng hàng dữ liệu
   const renderItemText = (item) => {
     if (typeof displayFieldRow === "function") {
       return displayFieldRow(item);
@@ -69,7 +68,6 @@ const SelectorModal = ({
           style={Style.modalContainer}
           onStartShouldSetResponder={() => true}
         >
-          {/* Header */}
           <View style={Style.header}>
             <Text style={Style.title}>{title}</Text>
             <TouchableOpacity onPress={handleClose} style={Style.closeBtn}>
@@ -77,7 +75,6 @@ const SelectorModal = ({
             </TouchableOpacity>
           </View>
 
-          {/* Thanh tìm kiếm */}
           <View style={Style.searchBar}>
             <Feather
               name="search"
@@ -94,21 +91,18 @@ const SelectorModal = ({
             />
           </View>
 
-          {/* Danh sách cuộn tích hợp phân trang */}
           <FlatList
             data={filteredData}
             keyExtractor={(item, index) =>
               item.id ? item.id.toString() : index.toString()
             }
             showsVerticalScrollIndicator={false}
-            // Xử lý kéo xuống đáy để tải thêm trang mới
             onEndReached={() => {
               if (!isLoading && hasMore && onLoadMore && search.trim() === "") {
                 onLoadMore();
               }
             }}
             onEndReachedThreshold={0.2}
-            // Hiển thị vòng xoay loading dưới đáy danh sách
             ListFooterComponent={() => {
               if (isLoading && data.length > 0) {
                 return (
@@ -119,7 +113,6 @@ const SelectorModal = ({
               }
               return <View style={{ height: 20 }} />;
             }}
-            // Trạng thái danh sách rỗng (Hiển thị loading lớn ban đầu hoặc thông báo trống)
             ListEmptyComponent={
               isLoading ? (
                 <View style={{ paddingVertical: 40 }}>

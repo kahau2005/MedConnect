@@ -14,7 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import Style from "./Style";
-import Apis, { endpoint } from "../../configs/Apis";
+import Apis, { authApis, endpoint } from "../../configs/Apis";
 import LoadingModal from "../../components/LoadingModel/LoadingModel";
 import { UserContext } from "../../contexts/UserContext";
 
@@ -27,6 +27,11 @@ const Login = () => {
 
   const [user, dispatch] = useContext(UserContext);
 
+  const getCurrentUserInfo = async (token) => {
+    const res = await authApis(token).get(endpoint.current_user);
+    return res.data;
+  };
+
   const handleLogin = async () => {
     setLoading(true);
     try {
@@ -35,9 +40,14 @@ const Login = () => {
         password: password,
         grant_type: "password",
       });
+      const currentUser = await getCurrentUserInfo(res.data.access_token);
+      const userData = {
+        ...currentUser,
+        access_token: res.data.access_token,
+      };
       dispatch({
         type: "LOGIN",
-        payload: res.data,
+        payload: userData,
       });
       nav.goBack();
     } catch {

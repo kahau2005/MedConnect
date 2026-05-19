@@ -19,7 +19,6 @@ export default StyleSheet.create({
     width: "100%",
   },
   backBtn: { width: 40, height: 40, justifyContent: "center" },
-  // GUEST VIEW (CHƯA ĐĂNG NHẬP)
   guestContainer: {
     flex: 1,
     justifyContent: "center",
@@ -76,7 +75,6 @@ export default StyleSheet.create({
   },
   outlineBtnText: { color: "#374151", fontSize: 16, fontWeight: "600" },
 
-  // USER TAB (ĐÃ ĐĂNG NHẬP)
   profileHeader: {
     alignItems: "center",
     backgroundColor: "#FFFFFF",
@@ -214,7 +212,6 @@ export default StyleSheet.create({
     marginLeft: 16,
   },
 
-  // FORM TẠO/SỬA
   formScroll: { padding: 16 },
   alertBox: {
     flexDirection: "row",
@@ -355,7 +352,6 @@ export default StyleSheet.create({
   selectText: { fontSize: 15, color: "#111827" },
   placeholderText: { fontSize: 15, color: "#9CA3AF" },
 
-  // Style cho Modal Dropdown Nhóm máu
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

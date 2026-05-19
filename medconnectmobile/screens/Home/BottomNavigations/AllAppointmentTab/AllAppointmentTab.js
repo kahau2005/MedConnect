@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -43,12 +44,9 @@ const mockDetailData = {
 const AllAppointmentTab = () => {
   const nav = useNavigation();
 
-  const [isDoctorMode, setIsDoctorMode] = useState(false);
   const [activeFilter, setActiveFilter] = useState("ALL");
 
-  // State quản lý văn bản nhập realtime trên TextInput (Tránh lag UI)
   const [searchTxt, setSearchTxt] = useState("");
-  // State từ khóa thực tế sau khi đã qua bộ lọc Debounce để gửi lên API
   const [kw, setKw] = useState("");
 
   const [offset, setOffset] = useState(0);
@@ -62,16 +60,18 @@ const AllAppointmentTab = () => {
 
   const isLoadingRef = useRef(false);
 
+  const isDoctorMode = user?.role === "DOCTOR" || false;
+
   const getStatusConfig = (status) => {
     switch (status) {
       case "SCHEDULED":
         return { label: "Sắp tới", bg: "#EBF4FF", text: "#0066FF" };
+      case "PENDING":
+        return { label: "Đang khám", bg: "#FFF7E6", text: "#FF9800" };
       case "COMPLETED":
         return { label: "Hoàn thành", bg: "#E8FBF4", text: "#00D084" };
       case "CANCELLED":
         return { label: "Đã hủy", bg: "#FEF2F2", text: "#EF4444" };
-      case "PENDING":
-        return { label: "Chờ xác nhận", bg: "#FFF7E6", text: "#FF9800" };
       default:
         return { label: status, bg: "#F3F4F6", text: "#374151" };
     }
@@ -93,7 +93,6 @@ const AllAppointmentTab = () => {
   };
 
   const loadAppointment = async (isLoadMore = false) => {
-    // Chặn ngay lập tức nếu đang có request API khác đang chạy
     if (
       isLoadingRef.current ||
       (!hasMore && isLoadMore) ||
@@ -102,8 +101,8 @@ const AllAppointmentTab = () => {
     )
       return;
 
-    isLoadingRef.current = true; // Khóa request
-    setLoading(true); // Cập nhật UI
+    isLoadingRef.current = true;
+    setLoading(true);
 
     try {
       const statusParam = activeFilter === "ALL" ? "" : activeFilter;
@@ -116,7 +115,6 @@ const AllAppointmentTab = () => {
 
       if (isLoadMore) {
         setAppointment((prev) => {
-          // MÀNG LỌC AN TOÀN: Loại bỏ những phần tử bị trùng ID trước khi gộp
           const existingIds = new Set(prev.map((item) => item.id));
           const filteredNewData = newData.filter(
             (item) => !existingIds.has(item.id),
@@ -135,22 +133,25 @@ const AllAppointmentTab = () => {
     } catch (error) {
       console.error("Lỗi load appointment:", error);
     } finally {
-      isLoadingRef.current = false; // Mở khóa request
+      isLoadingRef.current = false;
       setLoading(false);
     }
   };
-  const handleGoToChat = async (appointmentId) => {
+
+  const handleGoToChat = async (appointmentId, status) => {
     try {
       const response = await authApis(user.access_token).post(
         endpoint.chat_room(appointmentId),
       );
 
       if (response.status === 201 || response.status === 200) {
-        nav.navigate("ChatStream", { appointmentId: appointmentId });
+        nav.navigate("ChatStream", {
+          appointmentId: appointmentId,
+          status: status,
+        });
       }
     } catch (error) {
       console.error("Lỗi khi khởi tạo phòng chat:", error);
-      // Hiển thị cụ thể lỗi trả về từ Server để nhận biết nhanh
       const errorMsg = error.response
         ? `Status: ${error.response.status}`
         : error.message;
@@ -158,9 +159,6 @@ const AllAppointmentTab = () => {
     }
   };
 
-  // ==========================================
-  // 1. KỸ THUẬT DEBOUNCE TÌM KIẾM (500ms)
-  // ==========================================
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       setKw(searchTxt);
@@ -169,30 +167,18 @@ const AllAppointmentTab = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [searchTxt]);
 
-  // ==========================================
-  // 2. XỬ LÝ KHI TỪ KHÓA TÌM KIẾM HOẶC TRẠNG THÁI THAY ĐỔI
-  // ==========================================
   useEffect(() => {
     if (!user) return;
-
     setHasMore(true);
-
     if (offset === 0) {
-      // Nếu đang ở trang 0 sẵn, chủ động tải lại list
       loadAppointment(false);
     } else {
-      // Đưa về 0 (Hành động này sẽ kích hoạt useEffect bên dưới chạy)
       setOffset(0);
     }
   }, [user, kw, activeFilter]);
 
-  // ==========================================
-  // 3. QUẢN LÝ TIẾN TRÌNH PHÂN TRANG (OFFSET THAY ĐỔI)
-  // ==========================================
   useEffect(() => {
     if (!user) return;
-
-    // Chỉ load thêm dữ liệu khi offset lớn hơn 0
     if (offset > 0) {
       loadAppointment(true);
     }
@@ -205,9 +191,6 @@ const AllAppointmentTab = () => {
     }
   };
 
-  // ==========================================
-  // VIEW KHI NGƯỜI DÙNG CHƯA ĐĂNG NHẬP
-  // ==========================================
   if (!user) {
     return (
       <SafeAreaView style={[Style.container, { backgroundColor: "#F9FAFB" }]}>
@@ -219,7 +202,6 @@ const AllAppointmentTab = () => {
             paddingHorizontal: 24,
           }}
         >
-          {/* Decorative Background Elements */}
           <View
             style={{
               position: "absolute",
@@ -242,8 +224,6 @@ const AllAppointmentTab = () => {
               backgroundColor: "rgba(0, 208, 132, 0.04)",
             }}
           />
-
-          {/* Icon Header with Layered Glow */}
           <View
             style={{
               alignItems: "center",
@@ -291,8 +271,6 @@ const AllAppointmentTab = () => {
               />
             </View>
           </View>
-
-          {/* Typography Content */}
           <Text
             style={{
               fontSize: 24,
@@ -317,8 +295,6 @@ const AllAppointmentTab = () => {
             Đăng nhập để đặt lịch khám, kết nối với bác sĩ chuyên khoa và theo
             dõi hồ sơ y tế của bạn mọi lúc, mọi nơi.
           </Text>
-
-          {/* Action Buttons */}
           <View style={{ width: "100%", gap: 16 }}>
             <TouchableOpacity
               style={{
@@ -346,7 +322,6 @@ const AllAppointmentTab = () => {
                 Đăng nhập ngay
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={{
                 width: "100%",
@@ -359,7 +334,6 @@ const AllAppointmentTab = () => {
                 borderWidth: 1,
                 borderColor: "#E5E7EB",
               }}
-              // Điều hướng tới màn hình đăng ký của bạn, đổi "Register" thành tên màn hình thực tế nếu khác
               onPress={() => nav.navigate("Register")}
               activeOpacity={0.7}
             >
@@ -375,21 +349,10 @@ const AllAppointmentTab = () => {
     );
   }
 
-  // ==========================================
-  // VIEW CHÍNH KHI ĐÃ ĐĂNG NHẬP
-  // ==========================================
   return (
     <SafeAreaView style={Style.container}>
       <View style={Style.header}>
         <Text style={Style.headerTitle}>Lịch hẹn & Tư vấn</Text>
-        <TouchableOpacity
-          style={Style.doctorToggleBtn}
-          onPress={() => setIsDoctorMode(!isDoctorMode)}
-        >
-          <Text style={Style.doctorToggleText}>
-            {isDoctorMode ? "View: Bác sĩ" : "View: Bệnh nhân"}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <View style={Style.filterSection}>
@@ -527,18 +490,29 @@ const AllAppointmentTab = () => {
               </View>
 
               <View style={Style.cardBottom}>
-                {item.status === "SCHEDULED" && (
+                {(item.status === "SCHEDULED" || item.status === "PENDING") && (
                   <TouchableOpacity
-                    onPress={() => handleGoToChat(item.id)}
-                    style={Style.actionBtnPrimary}
+                    onPress={() => handleGoToChat(item.id, item.status)}
+                    style={[
+                      Style.actionBtnPrimary,
+                      item.status === "PENDING" && {
+                        backgroundColor: "#FF9800",
+                      },
+                    ]}
                     activeOpacity={0.8}
                   >
                     <MaterialCommunityIcons
-                      name="video"
+                      name={
+                        item.status === "PENDING" ? "chat-processing" : "video"
+                      }
                       size={20}
                       color="#FFFFFF"
                     />
-                    <Text style={Style.actionBtnPrimaryText}>Bắt đầu khám</Text>
+                    <Text style={Style.actionBtnPrimaryText}>
+                      {item.status === "PENDING"
+                        ? "Vào phòng khám"
+                        : "Bắt đầu khám"}
+                    </Text>
                   </TouchableOpacity>
                 )}
 
@@ -558,7 +532,7 @@ const AllAppointmentTab = () => {
                   </View>
                 )}
 
-                {(item.status === "CANCELLED" || item.status === "PENDING") && (
+                {item.status === "CANCELLED" && (
                   <TouchableOpacity style={Style.actionBtnOutline}>
                     <Text style={Style.actionBtnOutlineText}>Đặt lại lịch</Text>
                   </TouchableOpacity>
@@ -569,6 +543,7 @@ const AllAppointmentTab = () => {
         }}
       />
 
+      {/* Modal chi tiết hồ sơ giữ nguyên */}
       <Modal
         visible={detailModalVisible}
         animationType="slide"
@@ -684,7 +659,6 @@ const AllAppointmentTab = () => {
               <View style={Style.receiptCard}>
                 <Text style={Style.receiptTitle}>Tổng quan thanh toán</Text>
                 <View style={Style.receiptDashedLine} />
-
                 <View style={Style.receiptRow}>
                   <Text style={Style.receiptLabel}>Trạng thái</Text>
                   <View style={Style.checkoutStatusBadge}>
@@ -696,7 +670,6 @@ const AllAppointmentTab = () => {
                     <Text style={Style.checkoutStatusText}> Đã thanh toán</Text>
                   </View>
                 </View>
-
                 <View style={Style.receiptRowTotal}>
                   <Text style={Style.receiptTotalLabel}>Tổng cộng</Text>
                   <Text style={Style.receiptTotalAmount}>

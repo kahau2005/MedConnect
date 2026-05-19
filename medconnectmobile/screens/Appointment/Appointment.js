@@ -60,8 +60,7 @@ const Appointment = () => {
         `${endpoint.specialties}?limit=10&offset=${currentOffset}`,
       );
 
-      const newData = res.data.results || res.data; // Tùy thuộc backend bọc results hay mảng phẳng
-
+      const newData = res.data.results || res.data;
       if (isLoadMore) {
         setSpecialties((prev) => [...prev, ...newData]);
         setSpecOffset(currentOffset);
@@ -79,9 +78,6 @@ const Appointment = () => {
     }
   };
 
-  // ==========================================
-  // API: TẢI BÁC SĨ THEO CHUYÊN KHOA (PHÂN TRANG)
-  // ==========================================
   const loadDoctors = async (isLoadMore = false) => {
     if (isDocLoadingRef.current || (!docHasMore && isLoadMore)) return;
 
@@ -121,7 +117,6 @@ const Appointment = () => {
       return;
     }
 
-    // 1. Validate dữ liệu đầu vào
     if (!selectedDoctor || !inputDate || !inputTime) {
       Alert.alert(
         "Thiếu thông tin",
@@ -133,7 +128,6 @@ const Appointment = () => {
     try {
       setLoading(true);
 
-      // 2. Format Ngày và Giờ thành chuỗi YYYY-MM-DD HH:mm:ss
       const year = inputDate.getFullYear();
       const month = String(inputDate.getMonth() + 1).padStart(2, "0");
       const day = String(inputDate.getDate()).padStart(2, "0");
@@ -143,16 +137,12 @@ const Appointment = () => {
 
       const startDateTime = `${year}-${month}-${day} ${hours}:${minutes}:00`;
 
-      // 3. Tạo object payload gửi lên API
       const payload = {
-        // Dùng user_id hoặc id tùy thuộc vào cấu trúc object Doctor API của bạn trả về
         doctor: selectedDoctor.user_id || selectedDoctor.id,
         start: startDateTime,
         reason: symptoms,
-        diagnosis: 2, // Hardcode tạm thời như form JSON bạn yêu cầu
+        diagnosis: 2,
       };
-
-      // 4. Gắn payload vào request POST
       const res = await authApis(user.access_token).post(
         endpoint.appointment,
         payload,
@@ -160,13 +150,9 @@ const Appointment = () => {
 
       console.log("Thành công!", res.data);
       Alert.alert("Thành công", "Đặt lịch khám thành công!");
-
-      // Chuyển hướng nếu cần
-      // navigation.navigate("Payment");
     } catch (error) {
       console.error("Lỗi đặt hẹn:", error.response?.data || error.message);
 
-      // Hiển thị lỗi từ backend nếu có để dễ debug
       const errorMsg = error.response?.data
         ? JSON.stringify(error.response.data)
         : "Không thể kết nối máy chủ";
@@ -177,12 +163,10 @@ const Appointment = () => {
     }
   };
 
-  // Tải danh mục chuyên khoa lúc khởi chạy màn hình
   useEffect(() => {
     loadSpecialty(false);
   }, []);
 
-  // Tự động tải lại danh sách bác sĩ từ trang đầu tiên nếu người dùng thay đổi Chuyên khoa
   useEffect(() => {
     setDocHasMore(true);
     loadDoctors(false);
@@ -198,7 +182,6 @@ const Appointment = () => {
         extraScrollHeight={20}
         showsVerticalScrollIndicator={false}
       >
-        {/* CARD: THÔNG TIN BÁC SĨ */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="medical" size={20} color="#0066FF" />
@@ -245,7 +228,6 @@ const Appointment = () => {
           </View>
         </View>
 
-        {/* CARD: THỜI GIAN HẸN */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Feather name="calendar" size={20} color="#0066FF" />
@@ -299,7 +281,6 @@ const Appointment = () => {
           />
         </View>
 
-        {/* CARD: TÌNH TRẠNG SỨC KHỎE */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Feather name="file-text" size={20} color="#0066FF" />
@@ -331,7 +312,6 @@ const Appointment = () => {
         </TouchableOpacity>
       </View>
 
-      {/* MODAL CHUYÊN KHOA */}
       <SelectorModal
         visible={specialtyModalVisible}
         onClose={() => setSpecialtyModalVisible(false)}
@@ -341,14 +321,13 @@ const Appointment = () => {
         isLoading={specLoading}
         hasMore={specHasMore}
         onLoadMore={() => loadSpecialty(true)}
-        displayFieldRow="name" // Cấu trúc object chuyên khoa dùng trường 'name'
+        displayFieldRow="name"
         onSelect={(item) => {
           setSelectedSpecialty(item);
-          setSelectedDoctor(null); // Reset bác sĩ cũ khi chuyển đổi chuyên khoa
+          setSelectedDoctor(null);
         }}
       />
 
-      {/* MODAL BÁC SĨ */}
       <SelectorModal
         visible={doctorModalVisible}
         onClose={() => setDoctorModalVisible(false)}
@@ -358,7 +337,6 @@ const Appointment = () => {
         isLoading={docLoading}
         hasMore={docHasMore}
         onLoadMore={() => loadDoctors(true)}
-        // Ghép chuỗi họ tên từ API kết quả: first_name + last_name
         displayFieldRow={(item) => `${item.first_name} ${item.last_name}`}
         onSelect={(item) => setSelectedDoctor(item)}
       />
@@ -367,7 +345,6 @@ const Appointment = () => {
   );
 };
 
-// ... Toàn bộ hệ thống styles bên dưới của bạn được giữ nguyên vẹn ...
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8F9FA" },
   scrollView: { flex: 1 },

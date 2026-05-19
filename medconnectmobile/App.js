@@ -50,8 +50,6 @@ export default function App() {
   const [user, dispatch] = useReducer(UserReducer, null);
 
   return (
-    // Thứ tự đúng:
-    // GestureHandlerRootView → SafeAreaProvider → OverlayProvider → phần còn lại
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <OverlayProvider>

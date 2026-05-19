@@ -667,7 +667,7 @@ class DetailPatientProfileSerializer(ModelSerializer):
 class SimpleUserSerializer(ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "first_name", "last_name", "email", "phone", "avatar"]
+        fields = ["id", "first_name", "last_name", "email", "phone", "avatar", "role"]
 
     def validate_phone(self, value):
         if not re.match(r"^\d{10}$", value):

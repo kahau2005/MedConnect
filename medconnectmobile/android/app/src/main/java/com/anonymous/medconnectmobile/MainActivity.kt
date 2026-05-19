@@ -1,9 +1,12 @@
 package com.anonymous.medconnectmobile
+import com.oney.WebRTCModule.WebRTCModuleOptions
+import androidx.lifecycle.Lifecycle
+import android.content.res.Configuration
+import com.streamvideo.reactnative.StreamVideoReactNative
+import expo.modules.splashscreen.SplashScreenManager
 
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import vn.zalopay.sdk.ZaloPaySDK
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -17,12 +20,11 @@ class MainActivity : ReactActivity() {
     // Set the theme to AppTheme BEFORE onCreate to support
     // coloring the background, status bar, and navigation bar.
     // This is required for expo-splash-screen.
-    setTheme(R.style.AppTheme);
+    // setTheme(R.style.AppTheme);
+    // @generated begin expo-splashscreen - expo prebuild (DO NOT MODIFY) sync-f3ff59a738c56c9a6119210cb55f0b613eb8b6af
+    SplashScreenManager.registerOnActivity(this)
+    // @generated end expo-splashscreen
     super.onCreate(null)
-  }
-  override fun onNewIntent(intent: Intent) {
-    super.onNewIntent(intent)
-    ZaloPaySDK.getInstance().onResult(intent) // Gọi SDK xử lý kết quả
   }
 
   /**
@@ -64,4 +66,17 @@ class MainActivity : ReactActivity() {
       // because it's doing more than [Activity.moveTaskToBack] in fact.
       super.invokeDefaultOnBackPressed()
   }
+
+override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode)
+        if (isFinishing) {
+          return
+        }
+        if (lifecycle.currentState === Lifecycle.State.CREATED) {
+            // when user clicks on Close button of PIP
+            finishAndRemoveTask()
+        } else {
+            StreamVideoReactNative.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        }
+      }
 }

@@ -180,9 +180,6 @@ const PatientProfileTab = () => {
     );
   }
 
-  // ----------------------------------------------------
-  // VIEW 2: FORM TẠO MỚI / CHỈNH SỬA HỒ SƠ Y TẾ
-  // ----------------------------------------------------
   if (isEditing) {
     return (
       <SafeAreaView style={Style.container}>

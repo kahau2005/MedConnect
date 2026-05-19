@@ -3,7 +3,6 @@ import { View, StyleSheet, ActivityIndicator, Text, Alert } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// --- STREAM VIDEO IMPORTS ---
 import {
   StreamVideo,
   StreamVideoClient,
@@ -14,13 +13,12 @@ import {
 import { UserContext } from "../../contexts/UserContext";
 import { authApis, endpoint } from "../../configs/Apis";
 
-const STREAM_API_KEY = "6eqc726krv44"; // Trùng API Key với Chat
+const STREAM_API_KEY = "6eqc726krv44";
 
 export default function CallStream() {
   const nav = useNavigation();
   const route = useRoute();
 
-  // Nhận callId và trạng thái camera ban đầu từ ChatStream truyền sang
   const { callId, initialCameraOn = false } = route.params || {};
 
   const [user] = useContext(UserContext);
@@ -34,11 +32,9 @@ export default function CallStream() {
 
     const initVideoCall = async () => {
       try {
-        // 1. Lấy token (Dùng lại API lấy token của Chat)
         const res = await authApis(user.access_token).get(endpoint.streamToken);
         const { stream_token, user_id, full_name } = res.data;
 
-        // 2. Khởi tạo Client Video
         const streamUser = { id: String(user_id), name: full_name };
         client = new StreamVideoClient({
           apiKey: STREAM_API_KEY,
@@ -46,13 +42,10 @@ export default function CallStream() {
           token: stream_token,
         });
 
-        // 3. Khởi tạo/Tham gia phòng gọi (Loại 'default' hỗ trợ cả thoại và hình)
         currentCall = client.call("default", callId);
 
-        // Join vào call
         await currentCall.join({ create: true });
 
-        // 4. Xử lý Trạng thái Camera ban đầu (Gọi thoại hay Gọi Video)
         if (initialCameraOn) {
           await currentCall.camera.enable();
         } else {
@@ -74,7 +67,6 @@ export default function CallStream() {
 
     return () => {
       isMounted = false;
-      // Cleanup: Rời cuộc gọi và ngắt kết nối khi thoát màn hình
       if (currentCall) currentCall.leave().catch(console.log);
       if (client) client.disconnectUser().catch(console.log);
     };
@@ -109,7 +101,7 @@ export default function CallStream() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#272A30" }, // Màu nền tối cho giao diện Call
+  container: { flex: 1, backgroundColor: "#272A30" },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",

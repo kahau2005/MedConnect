@@ -346,7 +346,6 @@ const styles = StyleSheet.create({
   },
   statusText: { color: "#00D084", fontSize: 12, fontWeight: "bold" },
 
-  // STYLE CARD INVITATION KHI TRỐNG
   emptyUpcomingCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
