@@ -1,0 +1,7 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block sidebar %}
+    {{ block.super }}
+        <h2><a href="{% url 'admin:admin-stats' %}" class="section">Thống kê</a></h2>
+{% endblock %}
