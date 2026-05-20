@@ -1,23 +1,18 @@
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import (
     Avg,
-    Case,
     Count,
     FloatField,
     OuterRef,
     Prefetch,
     Q,
     Subquery,
-    Sum,
     Value,
-    When,
 )
-from django.db.models.fields import CharField
-from django.db.models.functions import Coalesce, Concat, ExtractYear, Now
+from django.db.models.functions import Coalesce, Concat
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -189,6 +184,15 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
 
         serializer = serializers.DoctorSerializer(doctors, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+        methods=["get"],
+        url_name="status",
+        detail=True,
+    )
+    def status(self, request, pk):
+        appointment = self.get_object()
+        return Response({"status": appointment.status}, status=status.HTTP_200_OK)
 
     @action(
         methods=["get"],
@@ -662,15 +666,21 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(methods=["post"], url_path="register-device", detail=False)
+    @action(
+        methods=["post"],
+        url_path="register-device",
+        detail=False,
+        permission_classes=[permissions.IsAuthenticated],
+    )
     def register_device(self, request):
         serializer = serializers.FCMDeviceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         token = serializer.validated_data["token"]
         device_type = serializer.validated_data["device_type"]
+
         FCMDevice.objects.update_or_create(
             token=token,
-            default={"user": request.user, "device_type": device_type, "active": True},
+            defaults={"user": request.user, "device_type": device_type, "active": True},
         )
         return Response({"message": "Đăng ký thiết bị thành công"})
 

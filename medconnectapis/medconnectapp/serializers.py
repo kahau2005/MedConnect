@@ -778,9 +778,11 @@ class DoctorScheduleSerializer(ModelSerializer):
 
 
 class FCMDeviceSerializer(ModelSerializer):
+    token = serializers.CharField(max_length=255)
+
     class Meta:
         model = FCMDevice
-        fields = ["id", "token", "device_type"]
+        fields = ["token", "device_type"]
 
 
 class PaymentReceiptSerializer(ModelSerializer):
