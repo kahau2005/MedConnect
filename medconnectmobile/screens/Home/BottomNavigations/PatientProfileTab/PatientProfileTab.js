@@ -15,9 +15,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Style from "./Style";
 import { useNavigation } from "@react-navigation/native";
 import { UserContext } from "../../../../contexts/UserContext";
-import Apis, { authApis, endpoint } from "../../../../configs/Apis";
+import { authApis, endpoint } from "../../../../configs/Apis";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import LoadingModal from "../../../../components/LoadingModel/LoadingModel";
+import LoginPanel from "../../../../components/LoginPanel/LoginPanel";
 
 const PatientProfileTab = () => {
   const nav = useNavigation();
@@ -25,8 +26,8 @@ const PatientProfileTab = () => {
   const [hasProfile, setHasProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  // 🌟 Đã xóa currentUser, dùng thẳng biến user từ Context
   const [user, dispatch] = useContext(UserContext);
-  const [currentUser, setCurrentUser] = useState({});
   const [loading, setLoading] = useState(false);
 
   const initialFormData = {
@@ -64,18 +65,15 @@ const PatientProfileTab = () => {
     if (!user || !user.access_token) {
       setHasProfile(false);
       setFormData(initialFormData);
-      setCurrentUser({});
       return;
     }
 
     try {
       setLoading(true);
-      const [userRes, profileRes] = await Promise.all([
-        authApis(user.access_token).get(endpoint.current_user),
-        authApis(user.access_token).get(endpoint.patient_profile),
-      ]);
-
-      setCurrentUser(userRes.data);
+      // 🌟 Chỉ fetch profile, không cần fetch user info nữa vì đã có sẵn trong Context
+      const profileRes = await authApis(user.access_token).get(
+        endpoint.patient_profile,
+      );
 
       if (profileRes.data && profileRes.data.active) {
         setHasProfile(true);
@@ -103,6 +101,7 @@ const PatientProfileTab = () => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchData();
   }, [user]);
@@ -122,14 +121,13 @@ const PatientProfileTab = () => {
         address: formData.address.trim() || null,
       };
 
-      let res;
       if (hasProfile) {
-        res = await authApis(user.access_token).patch(
+        await authApis(user.access_token).patch(
           endpoint.patient_profile,
           payload,
         );
       } else {
-        res = await authApis(user.access_token).post(
+        await authApis(user.access_token).post(
           endpoint.patient_profile,
           payload,
         );
@@ -150,33 +148,11 @@ const PatientProfileTab = () => {
 
   if (!user) {
     return (
-      <SafeAreaView style={Style.container}>
-        <View style={Style.header}>
-          <Text style={Style.headerTitle}>Tài khoản</Text>
-        </View>
-        <View style={Style.guestContainer}>
-          <View style={Style.guestIconBg}>
-            <Feather name="shield" size={48} color="#0066FF" />
-          </View>
-          <Text style={Style.guestTitle}>Chào mừng bạn đến với MedConnect</Text>
-          <Text style={Style.guestSub}>
-            Vui lòng đăng nhập hoặc tạo tài khoản để quản lý hồ sơ y tế và đặt
-            lịch khám cùng bác sĩ.
-          </Text>
-          <TouchableOpacity
-            style={Style.primaryBtn}
-            activeOpacity={0.8}
-            onPress={() => {
-              nav.navigate("Login");
-            }}
-          >
-            <Text style={Style.primaryBtnText}>Đăng nhập</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={Style.outlineBtn} activeOpacity={0.8}>
-            <Text style={Style.outlineBtnText}>Đăng ký tài khoản</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <LoginPanel
+        headerTitle="Tài khoản"
+        title="Chào mừng bạn đến với MedConnect"
+        subtitle="Vui lòng đăng nhập hoặc tạo tài khoản để quản lý hồ sơ y tế và đặt lịch khám cùng bác sĩ."
+      />
     );
   }
 
@@ -241,8 +217,6 @@ const PatientProfileTab = () => {
                   <Text style={Style.inputLabel}>
                     Ngày sinh <Text style={Style.required}>*</Text>
                   </Text>
-
-                  {/* --- FIX: Thay TextInput bằng nút gọi DatePicker --- */}
                   <TouchableOpacity
                     style={Style.selectBox}
                     onPress={() => setShowDatePicker(true)}
@@ -257,7 +231,6 @@ const PatientProfileTab = () => {
                     <Feather name="calendar" size={18} color="#9CA3AF" />
                   </TouchableOpacity>
 
-                  {/* --- FIX: Hiển thị Component DatePicker --- */}
                   {showDatePicker && (
                     <DateTimePicker
                       value={formData.dob ? new Date(formData.dob) : new Date()}
@@ -336,8 +309,6 @@ const PatientProfileTab = () => {
                 </View>
                 <View style={[Style.inputGroup, { flex: 1 }]}>
                   <Text style={Style.inputLabel}>Nhóm máu</Text>
-
-                  {/* --- FIX: Thay TextInput bằng nút gọi Dropdown --- */}
                   <TouchableOpacity
                     style={Style.selectBox}
                     onPress={() => setShowBloodTypeModal(true)}
@@ -415,7 +386,6 @@ const PatientProfileTab = () => {
           </TouchableOpacity>
         </View>
 
-        {/* --- FIX: Modal phải nằm bên ngoài ScrollView nhưng bên trong isEditing --- */}
         <Modal
           visible={showBloodTypeModal}
           transparent={true}
@@ -468,6 +438,7 @@ const PatientProfileTab = () => {
       </SafeAreaView>
     );
   }
+
   return (
     <SafeAreaView style={Style.container}>
       <View style={Style.header}>
@@ -475,28 +446,35 @@ const PatientProfileTab = () => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* User Info Header */}
+        {/* 🌟 ĐÃ FIX: Lấy dữ liệu Avatar, Tên, SĐT, Email từ biến user */}
         <View style={Style.profileHeader}>
           <View style={Style.avatarContainer}>
             <Image
-              source={{ uri: "https://getstream.io/random_svg/?name=Hau" }}
+              source={{
+                uri: user.avatar
+                  ? user.avatar.includes("http")
+                    ? user.avatar
+                    : `https://res.cloudinary.com/dsc8rzpbg/${user.avatar}`
+                  : `https://ui-avatars.com/api/?name=${user.first_name || "User"}&background=0066FF&color=fff`,
+              }}
               style={Style.avatar}
             />
           </View>
           <Text style={Style.userName}>
-            {currentUser.first_name && currentUser.last_name
-              ? `${currentUser.first_name} ${currentUser.last_name}`
-              : "Người dùng mới"}
+            {user.first_name || user.last_name
+              ? `${user.last_name || ""} ${user.first_name || ""}`.trim()
+              : user.username || "Người dùng mới"}
           </Text>
           <Text style={Style.userEmail}>
-            {currentUser.phone?.length > 0 && currentUser != null
-              ? `SĐT: ${currentUser.phone}`
-              : "Chưa có số điện thoại"}
+            {user.phone
+              ? `SĐT: ${user.phone}`
+              : user.email
+                ? `Email: ${user.email}`
+                : "Chưa có số điện thoại"}
           </Text>
         </View>
 
         <View style={Style.mainContent}>
-          {/* NẾU CHƯA CÓ HỒ SƠ: HIỆN CẢNH BÁO BẮT BUỘC TẠO */}
           {!hasProfile ? (
             <View style={Style.missingProfileCard}>
               <View style={Style.missingProfileHeader}>
@@ -526,7 +504,6 @@ const PatientProfileTab = () => {
               </TouchableOpacity>
             </View>
           ) : (
-            /* NẾU ĐÃ CÓ HỒ SƠ: HIỆN THÔNG TIN + NÚT SỬA */
             <View style={Style.profileDataCard}>
               <View style={Style.profileDataHeader}>
                 <Text style={Style.profileDataTitle}>

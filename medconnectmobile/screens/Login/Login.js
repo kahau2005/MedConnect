@@ -49,7 +49,7 @@ const Login = () => {
         type: "LOGIN",
         payload: userData,
       });
-      nav.goBack();
+      nav.navigate("Home");
     } catch {
     } finally {
       setLoading(false);

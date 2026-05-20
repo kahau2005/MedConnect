@@ -23,6 +23,7 @@ import Login from "./screens/Login/Login";
 import { UserContext } from "./contexts/UserContext";
 import UserReducer from "./reducers/UserReducer";
 import CallStream from "./screens/CallStream/CallStream";
+import Register from "./screens/Register/Register";
 
 const Stack = createNativeStackNavigator();
 
@@ -76,6 +77,7 @@ export default function App() {
                   <Stack.Screen name="ChatStream" component={ChatStream} />
                   <Stack.Screen name="CallStream" component={CallStream} />
                   <Stack.Screen name="Login" component={Login} />
+                  <Stack.Screen name="Register" component={Register} />
                 </Stack.Navigator>
               </NavigationContainer>
             </PaperProvider>

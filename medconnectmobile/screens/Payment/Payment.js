@@ -92,6 +92,7 @@ const Payment = () => {
   const [paymentData, setPaymentData] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
   const [loadingPay, setLoadingPay] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState("PENDING");
 
   // ── LOAD DỮ LIỆU HOÁ ĐƠN ──
   const loadPaymentData = async () => {
@@ -133,6 +134,7 @@ const Payment = () => {
 
       if (result === "SUCCESS") {
         Alert.alert("Thành công", "Thanh toán ZaloPay thành công!");
+        setPaymentStatus("COMPLETED");
         // TODO: navigate về màn hình xác nhận hoặc reload trạng thái
       }
     } catch (error) {
@@ -184,20 +186,47 @@ const Payment = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* HERO */}
         <View style={Style.hero}>
-          <View style={Style.statusCircle}>
-            <Feather name="clock" size={28} color="#D97706" />
+          <View
+            style={[
+              Style.statusCircle,
+              paymentStatus === "COMPLETED" && { backgroundColor: "#D1FAE5" },
+            ]}
+          >
+            <Feather
+              name={paymentStatus === "COMPLETED" ? "check-circle" : "clock"}
+              size={28}
+              color={paymentStatus === "COMPLETED" ? "#059669" : "#D97706"}
+            />
           </View>
+
           <Text style={Style.heroLabel}>Tổng thanh toán</Text>
           <Text style={Style.heroAmount}>{fmt(total)}</Text>
-          <View style={Style.statusPill}>
+
+          {/* Pill đổi màu theo status */}
+          <View
+            style={[
+              Style.statusPill,
+              paymentStatus === "COMPLETED" && { backgroundColor: "#D1FAE5" },
+            ]}
+          >
             <Feather
-              name="clock"
+              name={paymentStatus === "COMPLETED" ? "check" : "clock"}
               size={12}
-              color="#92400E"
+              color={paymentStatus === "COMPLETED" ? "#065F46" : "#92400E"}
               style={{ marginRight: 4 }}
             />
-            <Text style={Style.statusText}>Chờ thanh toán</Text>
+            <Text
+              style={[
+                Style.statusText,
+                paymentStatus === "COMPLETED" && { color: "#065F46" },
+              ]}
+            >
+              {paymentStatus === "COMPLETED"
+                ? "Thanh toán thành công"
+                : "Chờ thanh toán"}
+            </Text>
           </View>
+
           <View style={Style.metaRow}>
             <View style={Style.metaCard}>
               <Text style={Style.metaLabel}>Mã giao dịch</Text>
@@ -267,28 +296,30 @@ const Payment = () => {
       </ScrollView>
 
       {/* NÚT ZALOPAY */}
-      <View style={Style.bottomContainer}>
-        <TouchableOpacity
-          style={[Style.zaloPayButton, loadingPay && { opacity: 0.7 }]}
-          onPress={handlePay}
-          disabled={loadingPay}
-          activeOpacity={0.85}
-        >
-          <View style={Style.zaloLeft}>
-            <View style={Style.zaloLogo}>
-              {loadingPay ? (
-                <ActivityIndicator size="small" color="#0068FF" />
-              ) : (
-                <Text style={Style.zaloLogoText}>Z</Text>
-              )}
+      {paymentStatus !== "COMPLETED" && (
+        <View style={Style.bottomContainer}>
+          <TouchableOpacity
+            style={[Style.zaloPayButton, loadingPay && { opacity: 0.7 }]}
+            onPress={handlePay}
+            disabled={loadingPay}
+            activeOpacity={0.85}
+          >
+            <View style={Style.zaloLeft}>
+              <View style={Style.zaloLogo}>
+                {loadingPay ? (
+                  <ActivityIndicator size="small" color="#0068FF" />
+                ) : (
+                  <Text style={Style.zaloLogoText}>Z</Text>
+                )}
+              </View>
+              <Text style={Style.zaloText}>
+                {loadingPay ? "Đang xử lý..." : "Thanh toán với ZaloPay"}
+              </Text>
             </View>
-            <Text style={Style.zaloText}>
-              {loadingPay ? "Đang xử lý..." : "Thanh toán với ZaloPay"}
-            </Text>
-          </View>
-          <Text style={Style.zaloAmount}>{fmt(total)}</Text>
-        </TouchableOpacity>
-      </View>
+            <Text style={Style.zaloAmount}>{fmt(total)}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
