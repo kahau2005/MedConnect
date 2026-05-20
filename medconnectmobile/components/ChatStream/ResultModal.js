@@ -177,7 +177,6 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                   />
                 )}
 
-                {/* 1. NÚT DROPDOWN CHỌN DỊCH VỤ */}
                 <Text
                   style={{
                     fontSize: 14,
@@ -242,7 +241,6 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                       </View>
                     )}
 
-                    {/* 2. CHỌN LOẠI ENUM XÉT NGHIỆM */}
                     <Text
                       style={{
                         fontSize: 14,
@@ -380,7 +378,6 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                       </TouchableOpacity>
                     )}
 
-                    {/* 4. KẾT LUẬN */}
                     <Text
                       style={{
                         fontSize: 14,
@@ -438,7 +435,6 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
             </View>
           )}
 
-          {/* CHỌN DỊCH VỤ XÉT NGHIỆM TỪ DANH SÁCH ASSIGNED SERVICES */}
           {showServicePicker && (
             <View style={{ flex: 1 }}>
               <View style={styles.formHeader}>
@@ -502,7 +498,6 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
             </View>
           )}
 
-          {/* CHỌN ENUM LOẠI XÉT NGHIỆM */}
           {showTypePicker && (
             <View style={{ flex: 1 }}>
               <View style={styles.formHeader}>

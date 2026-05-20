@@ -219,7 +219,6 @@ const AllAppointmentTab = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={Style.modalScroll}
       >
-        {/* DỊCH VỤ Y TẾ */}
         <View style={Style.sectionCard}>
           <View style={Style.sectionHeader}>
             <View style={[Style.iconBox, { backgroundColor: "#F3E8FF" }]}>
@@ -270,7 +269,6 @@ const AllAppointmentTab = () => {
           </View>
         </View>
 
-        {/* ĐƠN THUỐC */}
         {medicines.length > 0 && (
           <View style={Style.sectionCard}>
             <View style={Style.sectionHeader}>
@@ -323,8 +321,6 @@ const AllAppointmentTab = () => {
             </View>
           </View>
         )}
-
-        {/* TỔNG QUAN THANH TOÁN */}
         <View style={Style.receiptCard}>
           <Text style={Style.receiptTitle}>Tổng quan thanh toán</Text>
           <View style={Style.receiptDashedLine} />
@@ -579,7 +575,6 @@ const AllAppointmentTab = () => {
         }}
       />
 
-      {/* MODAL CHI TIẾT */}
       <Modal
         visible={detailModalVisible}
         animationType="slide"
