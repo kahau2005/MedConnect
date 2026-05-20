@@ -210,6 +210,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -223,12 +224,14 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
             )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
     def partial_update(self, request, pk=None):
         appointment = self.get_object()
         serializer = self.get_serializer(appointment, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
     @action(
         detail=True,

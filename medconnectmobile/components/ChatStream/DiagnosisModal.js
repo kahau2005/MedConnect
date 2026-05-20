@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -11,26 +11,67 @@ import {
   FlatList,
   TouchableWithoutFeedback,
   Keyboard,
+  Alert,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { modalStyles as styles } from "./Style";
+import { UserContext } from "../../contexts/UserContext";
+import { authApis, endpoint } from "../../configs/Apis";
 
-const DiagnosisModal = ({
-  visible,
-  data,
-  setData,
-  diseases,
-  onClose,
-  onSubmit,
-  loading,
-}) => {
+const DiagnosisModal = ({ visible, onClose, appointmentId }) => {
+  const [user] = useContext(UserContext);
+  const [loading, setLoading] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
 
+  const [diseases, setDiseases] = useState([]);
+  const [symptoms, setSymptoms] = useState("");
+  const [diseaseId, setDiseaseId] = useState(null);
+  const [diseaseName, setDiseaseName] = useState("");
+
   useEffect(() => {
-    if (visible) {
-      setShowPicker(false);
+    if (visible && user) {
+      loadDataDiagnosis();
     }
   }, [visible]);
+
+  const loadDataDiagnosis = async () => {
+    try {
+      setLoading(true);
+      const [resDisease, resAppt] = await Promise.all([
+        authApis(user.access_token).get(endpoint.disease),
+        authApis(user.access_token).get(
+          endpoint.update_appointment(appointmentId),
+        ),
+      ]);
+
+      setDiseases(resDisease.data);
+      setSymptoms(resAppt.data.symptoms || "");
+
+      const diseaseObj = resAppt.data.diagnosis;
+      setDiseaseId(diseaseObj ? diseaseObj.id : null);
+      setDiseaseName(diseaseObj ? diseaseObj.name : "");
+    } catch (error) {
+      console.error("Lỗi tải thông tin chẩn đoán:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveDiagnosis = async () => {
+    try {
+      setLoading(true);
+      await authApis(user.access_token).patch(
+        endpoint.update_appointment(appointmentId),
+        { symptoms: symptoms, diagnosis: diseaseId },
+      );
+      Alert.alert("Thành công", "Đã cập nhật chẩn đoán bệnh nhân.");
+      onClose();
+    } catch (err) {
+      Alert.alert("Lỗi", "Không thể lưu chẩn đoán.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Modal
@@ -48,13 +89,18 @@ const DiagnosisModal = ({
             <View
               style={[styles.formModal, { flex: 0.9, paddingHorizontal: 20 }]}
             >
-              {/* FORM */}
+              {loading && (
+                <ActivityIndicator
+                  size="large"
+                  color="#0066FF"
+                  style={{ marginBottom: 10 }}
+                />
+              )}
+
               {!showPicker && (
                 <View style={{ flex: 1 }}>
                   <View style={styles.formHeader}>
                     <Text style={styles.formTitle}>Cập nhật chẩn đoán</Text>
-
-                    {/* ❌ CLOSE ICON (Feather x) */}
                     <TouchableOpacity onPress={onClose}>
                       <Feather name="x" size={24} color="#6B7280" />
                     </TouchableOpacity>
@@ -70,23 +116,19 @@ const DiagnosisModal = ({
                     >
                       Triệu chứng lâm sàng
                     </Text>
-
                     <TextInput
-                      style={{
-                        backgroundColor: "#F9FAFB",
-                        borderWidth: 1,
-                        borderColor: "#E5E7EB",
-                        borderRadius: 12,
-                        padding: 12,
-                        fontSize: 15,
-                        minHeight: 100,
-                        textAlignVertical: "top",
-                        marginBottom: 20,
-                      }}
+                      style={[
+                        styles.inputField,
+                        {
+                          minHeight: 100,
+                          textAlignVertical: "top",
+                          marginBottom: 20,
+                        },
+                      ]}
                       placeholder="Nhập biểu hiện, triệu chứng..."
                       multiline
-                      value={data.symptoms}
-                      onChangeText={(t) => setData({ ...data, symptoms: t })}
+                      value={symptoms}
+                      onChangeText={setSymptoms}
                     />
 
                     <Text
@@ -98,7 +140,6 @@ const DiagnosisModal = ({
                     >
                       Loại bệnh (Chẩn đoán)
                     </Text>
-
                     <TouchableOpacity
                       onPress={() => setShowPicker(true)}
                       style={{
@@ -114,13 +155,12 @@ const DiagnosisModal = ({
                       <Text
                         style={{
                           fontSize: 15,
-                          color: data.diseaseId ? "#111827" : "#9CA3AF",
-                          fontWeight: data.diseaseId ? "600" : "400",
+                          color: diseaseId ? "#111827" : "#9CA3AF",
+                          fontWeight: diseaseId ? "600" : "400",
                         }}
                       >
-                        {data.diseaseName || "— Chọn loại bệnh —"}
+                        {diseaseName || "— Chọn loại bệnh —"}
                       </Text>
-
                       <Feather name="chevron-down" size={20} color="#6B7280" />
                     </TouchableOpacity>
                   </View>
@@ -135,24 +175,19 @@ const DiagnosisModal = ({
                     <TouchableOpacity
                       style={[
                         styles.submitBtn,
-                        (!data.diseaseId || !data.symptoms) && {
+                        (!diseaseId || !symptoms) && {
                           backgroundColor: "#9CA3AF",
                         },
                       ]}
-                      onPress={onSubmit}
-                      disabled={loading || !data.diseaseId || !data.symptoms}
+                      onPress={handleSaveDiagnosis}
+                      disabled={loading || !diseaseId || !symptoms}
                     >
-                      {loading ? (
-                        <ActivityIndicator color="#FFF" />
-                      ) : (
-                        <Text style={styles.submitBtnText}>Lưu Chẩn Đoán</Text>
-                      )}
+                      <Text style={styles.submitBtnText}>Lưu Chẩn Đoán</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               )}
 
-              {/* PICKER */}
               {showPicker && (
                 <View style={{ flex: 1 }}>
                   <View style={styles.formHeader}>
@@ -165,7 +200,6 @@ const DiagnosisModal = ({
                       >
                         <Feather name="arrow-left" size={24} color="#111827" />
                       </TouchableOpacity>
-
                       <Text style={styles.formTitle}>Chọn loại bệnh</Text>
                     </View>
                   </View>
@@ -174,16 +208,12 @@ const DiagnosisModal = ({
                     data={diseases}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({ item }) => {
-                      const isSelected = data.diseaseId === item.id;
-
+                      const isSelected = diseaseId === item.id;
                       return (
                         <TouchableOpacity
                           onPress={() => {
-                            setData({
-                              ...data,
-                              diseaseId: item.id,
-                              diseaseName: item.name,
-                            });
+                            setDiseaseId(item.id);
+                            setDiseaseName(item.name);
                             setShowPicker(false);
                           }}
                           style={{
@@ -206,7 +236,6 @@ const DiagnosisModal = ({
                           >
                             {item.name}
                           </Text>
-
                           {isSelected && (
                             <MaterialCommunityIcons
                               name="check-circle"

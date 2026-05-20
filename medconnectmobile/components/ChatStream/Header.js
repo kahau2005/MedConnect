@@ -1,6 +1,6 @@
 import React, { useLayoutEffect } from "react";
-import { View, Text, TouchableOpacity, Switch } from "react-native";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { View, Text, TouchableOpacity } from "react-native";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { headerStyles as styles } from "./Style";
 
 const Header = ({
@@ -10,6 +10,7 @@ const Header = ({
   onOpenMenu,
   onAudioCall,
   onVideoCall,
+  onPayment,
 }) => {
   useLayoutEffect(() => {
     nav.setOptions({
@@ -33,21 +34,70 @@ const Header = ({
       ),
       headerRight: () => (
         <View style={styles.headerRight}>
-          {isDevDoctor && (
-            <TouchableOpacity onPress={onOpenMenu} style={styles.iconButton}>
-              <Ionicons name="medical-outline" size={22} color="#059669" />
-            </TouchableOpacity>
+          {isDevDoctor ? (
+            /* Giao diện Bác sĩ */
+            <>
+              <TouchableOpacity onPress={onOpenMenu} style={styles.iconButton}>
+                <MaterialCommunityIcons
+                  name="medical-bag"
+                  size={22}
+                  color="#059669"
+                />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onAudioCall} style={styles.iconButton}>
+                <Feather name="phone" size={22} color="#0066FF" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onVideoCall} style={styles.iconButton}>
+                <Feather name="video" size={24} color="#0066FF" />
+              </TouchableOpacity>
+            </>
+          ) : (
+            /* Giao diện Bệnh nhân (Đã bỏ nút rời đi) */
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <TouchableOpacity
+                onPress={onPayment}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#E8FBF4",
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                  marginRight: 10,
+                  borderWidth: 1,
+                  borderColor: "#10B981",
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="credit-card-outline"
+                  size={16}
+                  color="#059669"
+                />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "700",
+                    color: "#059669",
+                    marginLeft: 4,
+                  }}
+                >
+                  Thanh toán
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={onAudioCall} style={styles.iconButton}>
+                <Feather name="phone" size={22} color="#0066FF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={onVideoCall} style={styles.iconButton}>
+                <Feather name="video" size={24} color="#0066FF" />
+              </TouchableOpacity>
+            </View>
           )}
-          <TouchableOpacity onPress={onAudioCall} style={styles.iconButton}>
-            <Feather name="phone" size={22} color="#0066FF" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onVideoCall} style={styles.iconButton}>
-            <Feather name="video" size={24} color="#0066FF" />
-          </TouchableOpacity>
         </View>
       ),
     });
-  }, [nav, appointmentId, isDevDoctor]);
+  }, [nav, appointmentId, isDevDoctor, onPayment]);
 
   return null;
 };

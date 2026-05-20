@@ -1,52 +1,137 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   Modal,
   TextInput,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { modalStyles as styles } from "./Style";
+import { UserContext } from "../../contexts/UserContext";
+import { authApis, endpoint } from "../../configs/Apis";
+
+const EMPTY_FORM = {
+  medicine: null,
+  detailId: null,
+  quantity: "1",
+  dose: "1",
+  frequency: "2",
+  duration_day: "7",
+  instruction: "AFTER_MEAL",
+};
+
+const instructionOptions = [
+  { label: "Sau ăn", value: "AFTER_MEAL" },
+  { label: "Trước ăn", value: "BEFORE_MEAL" },
+  { label: "Khi đau", value: "WHEN_PAIN" },
+];
 
 const MedicineInputModal = ({
   visible,
+  selectedPrescription,
+  setSelectedPrescription,
   selectedMed,
-  form,
-  setForm,
   onBack,
-  onSubmit,
+  onClose,
 }) => {
-  const instructionOptions = [
-    { label: "Sau ăn", value: "AFTER_MEAL" },
-    { label: "Trước ăn", value: "BEFORE_MEAL" },
-    { label: "Khi đau", value: "WHEN_PAIN" },
-  ];
+  const [user] = useContext(UserContext);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+
+  useEffect(() => {
+    if (visible && selectedMed) {
+      if (selectedMed.detailId) {
+        setForm({
+          medicine: selectedMed.medicine?.id || selectedMed.id,
+          detailId: selectedMed.detailId,
+          quantity: String(selectedMed.quantity || 1),
+          dose: String(selectedMed.dose || 1),
+          frequency: String(selectedMed.frequency || 2),
+          duration_day: String(selectedMed.duration_day || 7),
+          instruction: selectedMed.instruction || "AFTER_MEAL",
+        });
+      } else {
+        setForm({ ...EMPTY_FORM, medicine: selectedMed.id });
+      }
+    }
+  }, [visible, selectedMed]);
 
   useEffect(() => {
     const d = parseFloat(form.dose) || 0;
     const f = parseInt(form.frequency) || 0;
     const day = parseInt(form.duration_day) || 0;
-
     const total = d * f * day;
-
-    if (String(total) !== form.quantity) {
+    if (String(total) !== form.quantity && total > 0) {
       setForm((prev) => ({ ...prev, quantity: String(total) }));
     }
   }, [form.dose, form.frequency, form.duration_day]);
 
+  const handleSubmit = async () => {
+    const qty = parseInt(form.quantity);
+    if (!form.quantity || isNaN(qty) || qty <= 0) {
+      Alert.alert("Lỗi", "Số lượng thuốc không hợp lệ!");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const payload = {
+        quantity: Number(form.quantity || 0),
+        dose: Number(form.dose || 1),
+        frequency: Number(form.frequency || 1),
+        duration_day: Number(form.duration_day || 1),
+        instruction: form.instruction || "AFTER_MEAL",
+        medicine: Number(form.medicine),
+      };
+
+      if (form.detailId) {
+        await authApis(user.access_token).patch(
+          endpoint.update_medicine(form.detailId),
+          payload,
+        );
+      } else {
+        await authApis(user.access_token).post(
+          endpoint.add_medicine(selectedPrescription.id),
+          [payload],
+        );
+      }
+
+      const res = await authApis(user.access_token).get(
+        endpoint.prescription(selectedPrescription.appointment),
+      );
+      const updatedPrescription = res.data.find(
+        (p) => p.id === selectedPrescription.id,
+      );
+
+      setSelectedPrescription(updatedPrescription);
+      onBack();
+    } catch (error) {
+      console.error("Lỗi lưu chi tiết thuốc:", error);
+      Alert.alert("Lỗi", "Không thể thêm thuốc vào đơn.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         style={styles.modalOverlay}
         behavior="padding"
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <View style={[styles.formModal, { maxHeight: "85%" }]}>
-          {/* HEADER */}
           <View style={styles.formHeader}>
             <View
               style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
@@ -67,7 +152,7 @@ const MedicineInputModal = ({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 20 }}
           >
-            {/* THỜI ĐIỂM UỐNG THUỐC */}
+            {/* THỜI ĐIỂM UỐNG */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Thời điểm uống thuốc</Text>
               <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
@@ -105,51 +190,41 @@ const MedicineInputModal = ({
               </View>
             </View>
 
-            {/* HÀNG 1: LIỀU LƯỢNG & TẦN SUẤT */}
+            {/* Dose & Frequency */}
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>Mỗi lần uống (dose)</Text>
                 <TextInput
                   style={[styles.inputField, { marginTop: 8 }]}
                   keyboardType="numeric"
-                  placeholder="Ví dụ: 1"
-                  placeholderTextColor="#9CA3AF"
                   value={form.dose}
                   onChangeText={(t) => setForm({ ...form, dose: t })}
                 />
               </View>
-
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>Số lần/ngày (frequency)</Text>
+                <Text style={styles.inputLabel}>Số lần/ngày</Text>
                 <TextInput
                   style={[styles.inputField, { marginTop: 8 }]}
                   keyboardType="numeric"
-                  placeholder="Ví dụ: 2"
-                  placeholderTextColor="#9CA3AF"
                   value={form.frequency}
                   onChangeText={(t) => setForm({ ...form, frequency: t })}
                 />
               </View>
             </View>
 
-            {/* HÀNG 2: SỐ NGÀY UỐNG & TỔNG SỐ LƯỢNG (READ-ONLY) */}
+            {/* Duration & Total Quantity */}
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>Số ngày uống (duration)</Text>
+                <Text style={styles.inputLabel}>Số ngày uống</Text>
                 <TextInput
                   style={[styles.inputField, { marginTop: 8 }]}
                   keyboardType="numeric"
-                  placeholder="Ví dụ: 7"
-                  placeholderTextColor="#9CA3AF"
                   value={form.duration_day}
                   onChangeText={(t) => setForm({ ...form, duration_day: t })}
                 />
               </View>
-
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>
-                  Tổng số lượng ({selectedMed?.unit || "Viên"})
-                </Text>
+                <Text style={styles.inputLabel}>Tổng số lượng</Text>
                 <View
                   style={[
                     styles.inputField,
@@ -174,8 +249,16 @@ const MedicineInputModal = ({
             </View>
           </ScrollView>
 
-          <TouchableOpacity style={styles.submitBtn} onPress={onSubmit}>
-            <Text style={styles.submitBtnText}>Xác nhận thêm thuốc</Text>
+          <TouchableOpacity
+            style={styles.submitBtn}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.submitBtnText}>Xác nhận lưu thuốc</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

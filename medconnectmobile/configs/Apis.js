@@ -22,6 +22,8 @@ export const endpoint = {
     `/appointments/${appointmentId}/prescriptions/`,
   service: (appointmentId) => `/appointments/${appointmentId}/services/`,
   disease: "/diseases/",
+  checkout: (appointmentId) => `/appointments/${appointmentId}/checkout/`,
+  zalopay: (paymentId) => `/payments/${paymentId}/zalopay/`,
 };
 
 export const authApis = (token) => {

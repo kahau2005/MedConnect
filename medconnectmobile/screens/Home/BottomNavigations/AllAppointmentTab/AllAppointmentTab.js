@@ -57,8 +57,6 @@ const AllAppointmentTab = () => {
   const [user] = useContext(UserContext);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-
-  // 🌟 Thêm State quản lý hiệu ứng vuốt làm mới
   const [refreshing, setRefreshing] = useState(false);
 
   const isLoadingRef = useRef(false);
@@ -105,7 +103,7 @@ const AllAppointmentTab = () => {
       return;
 
     isLoadingRef.current = true;
-    if (!refreshing) setLoading(true); // Chỉ bật loading nếu không phải đang Refresh
+    if (!refreshing) setLoading(true);
 
     try {
       const statusParam = activeFilter === "ALL" ? "" : activeFilter;
@@ -141,13 +139,12 @@ const AllAppointmentTab = () => {
     }
   };
 
-  // 🌟 Hàm xử lý khi người dùng vuốt danh sách xuống
   const handleRefresh = async () => {
-    setRefreshing(true); // Bật icon xoay xoay
-    setOffset(0); // Reset trang về 0
-    setHasMore(true); // Mở khóa load data
-    await loadAppointment(false); // Gọi API lấy dữ liệu mới nhất
-    setRefreshing(false); // Tắt icon xoay xoay
+    setRefreshing(true);
+    setOffset(0);
+    setHasMore(true);
+    await loadAppointment(false);
+    setRefreshing(false);
   };
 
   const handleGoToChat = async (appointmentId, status) => {

@@ -3,117 +3,277 @@ import { Platform, StyleSheet } from "react-native";
 export default StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FB",
+    backgroundColor: "#F3F4F6",
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  header: {
+
+  // ── HEADER ──
+  headerBar: {
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 40,
-    marginBottom: 40,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#E5E7EB",
   },
-  iconBackground: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#FEF3C7",
+  backBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 0.5,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginRight: 12,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#6B7280",
-  },
-  sectionTitle: {
+  headerTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: "#111827",
-    marginBottom: 16,
   },
-  card: {
+
+  // ── HERO ──
+  hero: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    paddingVertical: 24,
+    paddingHorizontal: 20,
     alignItems: "center",
-    marginBottom: 18,
+    marginBottom: 8,
   },
-  lastRow: {
-    marginBottom: 0,
+  statusCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FEF3C7",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 14,
   },
-  label: {
-    fontSize: 14,
+  heroLabel: {
+    fontSize: 13,
     color: "#6B7280",
-    fontWeight: "500",
+    marginBottom: 4,
   },
-  value: {
-    fontSize: 14,
+  heroAmount: {
+    fontSize: 28,
+    fontWeight: "700",
     color: "#111827",
-    fontWeight: "600",
+    marginBottom: 10,
   },
-  statusBadge: {
+  statusPill: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FEF3C7",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusIcon: {
-    marginRight: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
   statusText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#92400E",
+  },
+  metaRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 16,
+    width: "100%",
+  },
+  metaCard: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 0.5,
+    borderColor: "#E5E7EB",
+  },
+  metaLabel: {
+    fontSize: 11,
+    color: "#9CA3AF",
+    marginBottom: 3,
+  },
+  metaValue: {
     fontSize: 13,
-    color: "#D97706",
+    fontWeight: "600",
+    color: "#111827",
+  },
+
+  // ── SECTION ──
+  section: {
+    backgroundColor: "#FFFFFF",
+    marginBottom: 8,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  sectionHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  badgeBlue: {
+    backgroundColor: "#EFF6FF",
+  },
+  badgeGreen: {
+    backgroundColor: "#F0FDF4",
+  },
+  badgeText: {
+    fontSize: 11,
     fontWeight: "600",
   },
-  bottomContainer: {
+  badgeTextBlue: {
+    color: "#1D4ED8",
+  },
+  badgeTextGreen: {
+    color: "#15803D",
+  },
+
+  // ── ITEM ROW ──
+  itemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#F3F4F6",
+    gap: 10,
+  },
+  itemIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
+  },
+  iconBlue: {
+    backgroundColor: "#EFF6FF",
+  },
+  iconGreen: {
+    backgroundColor: "#F0FDF4",
+  },
+  itemInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  itemName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 2,
+  },
+  itemQty: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  itemPrice: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#111827",
+    flexShrink: 0,
+  },
+
+  // ── SUMMARY ──
+  summarySection: {
+    backgroundColor: "#FFFFFF",
+    marginBottom: 8,
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === "ios" ? 20 : 24,
-    paddingTop: 16,
-    backgroundColor: "#F8F9FB",
+    paddingVertical: 16,
+  },
+  sumRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  sumLabel: {
+    fontSize: 13,
+    color: "#6B7280",
+  },
+  sumVal: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  divider: {
+    height: 0.5,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 8,
+  },
+  sumTotalLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  sumTotalVal: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  // ── BOTTOM ──
+  bottomContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === "ios" ? 28 : 20,
+    paddingTop: 12,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 0.5,
+    borderTopColor: "#E5E7EB",
   },
   zaloPayButton: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#0068FF",
-    paddingVertical: 18,
-    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     borderRadius: 30,
-    shadowColor: "#0068FF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
+  zaloLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  zaloLogo: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  zaloLogoText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#0068FF",
+  },
+  zaloText: {
+    fontSize: 15,
     fontWeight: "600",
-  },
-  buttonAmount: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "bold",
+  },
+  zaloAmount: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
 });

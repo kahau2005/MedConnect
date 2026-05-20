@@ -34,8 +34,8 @@ const DoctorActionSheet = ({ visible, onClose, onSelectModal }) => {
       bg: "#F3E8FF",
       icon: "file-document-edit-outline",
       color: "#9333EA",
-      label: "Thêm TestResult",
-      desc: "POST /appointment-services/{pk}/results/",
+      label: "Xét Nghiệm",
+      desc: "Thêm kết quả xét nghiệm",
     },
   ];
 

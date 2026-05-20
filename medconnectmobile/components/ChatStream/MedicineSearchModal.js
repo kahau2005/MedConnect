@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,21 +13,59 @@ import {
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { modalStyles, medicineStyles as styles } from "./Style";
+import { UserContext } from "../../contexts/UserContext";
+import { authApis, endpoint } from "../../configs/Apis";
 
 const MedicineSearchModal = ({
   visible,
   selectedPrescription,
-  loading,
-  medicines,
-  searchKw,
-  setSearchKw,
   onClose,
   onBack,
   onOpenInputForm,
-  categories,
-  activeCategory,
-  setActiveCategory,
 }) => {
+  const [user] = useContext(UserContext);
+  const [loading, setLoading] = useState(false);
+
+  const [medicines, setMedicines] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [searchKw, setSearchKw] = useState("");
+  const [activeCategory, setActiveCategory] = useState("ALL");
+
+  useEffect(() => {
+    if (visible && user) {
+      fetchMedicineData();
+    }
+  }, [visible]);
+
+  const fetchMedicineData = async () => {
+    try {
+      setLoading(true);
+      const [resMeds, resCats] = await Promise.all([
+        authApis(user.access_token).get(endpoint.medicines),
+        authApis(user.access_token).get(endpoint.medicine_categories),
+      ]);
+      setMedicines(resMeds.data || []);
+      setCategories([{ id: "ALL", name: "Tất cả" }, ...(resCats.data || [])]);
+    } catch (error) {
+      console.error("Lỗi tải danh mục thuốc:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredMedicines = useMemo(() => {
+    let result = medicines;
+    if (activeCategory !== "ALL") {
+      result = result.filter((m) => m.category === activeCategory);
+    }
+    if (searchKw.trim() !== "") {
+      result = result.filter((m) =>
+        m.name.toLowerCase().includes(searchKw.toLowerCase()),
+      );
+    }
+    return result;
+  }, [medicines, searchKw, activeCategory]);
+
   const getInstructionLabel = (enumValue) => {
     switch (enumValue) {
       case "AFTER_MEAL":
@@ -56,11 +94,7 @@ const MedicineSearchModal = ({
               style={styles.addedMedItem}
               activeOpacity={0.7}
               onPress={() =>
-                onOpenInputForm({
-                  ...m,
-                  detailId: m.id,
-                  id: m.medicine?.id,
-                })
+                onOpenInputForm({ ...m, detailId: m.id, id: m.medicine?.id })
               }
             >
               <View style={{ flex: 1, paddingRight: 8 }}>
@@ -73,9 +107,7 @@ const MedicineSearchModal = ({
               </View>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <View style={styles.addedMedQtyBox}>
-                  <Text style={styles.addedMedQtyText}>
-                    SL: {m.quantity} Viên
-                  </Text>
+                  <Text style={styles.addedMedQtyText}>SL: {m.quantity}</Text>
                 </View>
                 <Feather
                   name="edit-2"
@@ -110,26 +142,25 @@ const MedicineSearchModal = ({
         showsHorizontalScrollIndicator={false}
         style={{ marginVertical: 16 }}
       >
-        {categories &&
-          categories.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
+        {categories.map((cat) => (
+          <TouchableOpacity
+            key={cat.id}
+            style={[
+              styles.categoryChip,
+              activeCategory === cat.id && styles.categoryChipActive,
+            ]}
+            onPress={() => setActiveCategory(cat.id)}
+          >
+            <Text
               style={[
-                styles.categoryChip,
-                activeCategory === cat.id && styles.categoryChipActive,
+                styles.categoryChipText,
+                activeCategory === cat.id && styles.categoryChipTextActive,
               ]}
-              onPress={() => setActiveCategory(cat.id)}
             >
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  activeCategory === cat.id && styles.categoryChipTextActive,
-                ]}
-              >
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+              {cat.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
     </View>
   );
@@ -183,12 +214,12 @@ const MedicineSearchModal = ({
             >
               <ActivityIndicator size="large" color="#0066FF" />
               <Text style={{ marginTop: 12, color: "#6B7280" }}>
-                Đang tải danh mục thuốc từ API...
+                Đang tải danh mục thuốc...
               </Text>
             </View>
           ) : (
             <FlatList
-              data={medicines}
+              data={filteredMedicines}
               keyExtractor={(item) => item.id.toString()}
               ListHeaderComponent={renderHeader}
               contentContainerStyle={{ paddingBottom: 40 }}
