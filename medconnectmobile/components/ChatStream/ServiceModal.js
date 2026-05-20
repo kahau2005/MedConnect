@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -10,33 +10,82 @@ import {
   Platform,
   FlatList,
   Image,
+  Alert,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { modalStyles as styles } from "./Style";
+import { UserContext } from "../../contexts/UserContext";
+import Apis, { authApis, endpoint } from "../../configs/Apis";
 
-const ServiceModal = ({
-  visible,
-  data,
-  setData,
-  services,
-  assignedServices = [],
-  onClose,
-  onSubmit,
-  loading,
-}) => {
+const ServiceModal = ({ visible, onClose, appointmentId }) => {
+  const [user] = useContext(UserContext);
+  const [loading, setLoading] = useState(false);
+  const [services, setServices] = useState([]);
+  const [assignedServices, setAssignedServices] = useState([]);
   const [showList, setShowList] = useState(false);
   const [searchKw, setSearchKw] = useState("");
+  const [data, setData] = useState({
+    serviceId: null,
+    quantity: "1",
+    detailId: null,
+  });
 
   useEffect(() => {
-    if (visible) {
+    if (visible && user) {
       setSearchKw("");
-      if (assignedServices && assignedServices.length > 0) {
-        setShowList(false);
-      } else {
-        setShowList(true);
-      }
+      fetchData();
     }
-  }, [visible, assignedServices]);
+  }, [visible]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [resCatalog, resAssigned] = await Promise.all([
+        Apis.get(endpoint.services),
+        authApis(user.access_token).get(endpoint.service(appointmentId)),
+      ]);
+      setServices(resCatalog.data);
+      setAssignedServices(resAssigned.data);
+      setShowList(resAssigned.data.length === 0);
+    } catch (error) {
+      console.error("Lỗi tải danh mục dịch vụ:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddService = async () => {
+    if (!data.serviceId) {
+      Alert.alert("Lỗi", "Vui lòng chọn dịch vụ!");
+      return;
+    }
+    setLoading(true);
+    try {
+      const payload = {
+        service: Number(data.serviceId),
+        quantity: Number(data.quantity || 1),
+      };
+      if (data.detailId) {
+        await authApis(user.access_token).patch(
+          `/appointment-services/${data.detailId}/`,
+          payload,
+        );
+      } else {
+        await authApis(user.access_token).post(
+          endpoint.service(appointmentId),
+          payload,
+        );
+      }
+      Alert.alert("Thành công", "Đã lưu dịch vụ thành công.");
+      setData({ serviceId: null, quantity: "1", detailId: null });
+      fetchData();
+      setShowList(false);
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể thêm dịch vụ.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredServices = services.filter((s) =>
     s.name.toLowerCase().includes(searchKw.toLowerCase()),
@@ -65,7 +114,7 @@ const ServiceModal = ({
                 </TouchableOpacity>
               )}
               <Text style={styles.formTitle}>
-                {showList ? "Chọn dịch vụ" : "Dịch vụ"}
+                {showList ? "Chọn dịch vụ" : "Dịch vụ đã chỉ định"}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose}>
@@ -78,7 +127,6 @@ const ServiceModal = ({
               data={assignedServices}
               keyExtractor={(item) => item.id.toString()}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 20 }}
               renderItem={({ item }) => {
                 const fullCatalogInfo = services.find(
                   (s) => s.id === item.service?.id,
@@ -137,7 +185,6 @@ const ServiceModal = ({
                           đ
                         </Text>
                       </View>
-
                       {!isEditingThis && (
                         <TouchableOpacity
                           onPress={() =>
@@ -167,7 +214,6 @@ const ServiceModal = ({
                         </TouchableOpacity>
                       )}
                     </View>
-
                     {isEditingThis && (
                       <View
                         style={{
@@ -187,7 +233,7 @@ const ServiceModal = ({
                             fontWeight: "700",
                           }}
                         >
-                          Đang chỉnh sửa lượng thuốc:
+                          Chỉnh sửa lượng:
                         </Text>
                         <View
                           style={{
@@ -201,14 +247,14 @@ const ServiceModal = ({
                         >
                           <TouchableOpacity
                             style={{ padding: 6 }}
-                            onPress={() => {
-                              const current = parseInt(data.quantity) || 1;
-                              if (current > 1)
-                                setData({
-                                  ...data,
-                                  quantity: String(current - 1),
-                                });
-                            }}
+                            onPress={() =>
+                              setData({
+                                ...data,
+                                quantity: String(
+                                  Math.max(1, parseInt(data.quantity) - 1),
+                                ),
+                              })
+                            }
                           >
                             <Feather name="minus" size={14} color="#111827" />
                           </TouchableOpacity>
@@ -225,13 +271,12 @@ const ServiceModal = ({
                           </Text>
                           <TouchableOpacity
                             style={{ padding: 6 }}
-                            onPress={() => {
-                              const current = parseInt(data.quantity) || 0;
+                            onPress={() =>
                               setData({
                                 ...data,
-                                quantity: String(current + 1),
-                              });
-                            }}
+                                quantity: String(parseInt(data.quantity) + 1),
+                              })
+                            }
                           >
                             <Feather name="plus" size={14} color="#111827" />
                           </TouchableOpacity>
@@ -246,19 +291,18 @@ const ServiceModal = ({
                   {data.detailId && (
                     <TouchableOpacity
                       style={[styles.submitBtn, { marginBottom: 12 }]}
-                      onPress={onSubmit}
+                      onPress={handleAddService}
                       disabled={loading}
                     >
                       {loading ? (
                         <ActivityIndicator color="#FFF" />
                       ) : (
                         <Text style={styles.submitBtnText}>
-                          Cập nhật số lượng bản ghi
+                          Cập nhật số lượng
                         </Text>
                       )}
                     </TouchableOpacity>
                   )}
-
                   <TouchableOpacity
                     style={{
                       flexDirection: "row",
@@ -303,45 +347,43 @@ const ServiceModal = ({
 
           {showList && (
             <>
+<<<<<<< HEAD
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#F3F4F6",
+                  borderRadius: 12,
+                  paddingHorizontal: 12,
+                  height: 46,
+                  marginBottom: 12,
+                }}
+              >
+                <Feather name="search" size={20} color="#9CA3AF" />
+                <TextInput
+=======
               <View style={{ marginBottom: 12 }}>
                 <View
+>>>>>>> a4e8d23d4bde3bb9c632b3ed6ce3ce01aacfb7fd
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    backgroundColor: "#F3F4F6",
-                    borderRadius: 12,
-                    paddingHorizontal: 12,
-                    height: 46,
+                    flex: 1,
+                    marginLeft: 8,
+                    fontSize: 15,
+                    color: "#111827",
                   }}
-                >
-                  <Feather name="search" size={20} color="#9CA3AF" />
-                  <TextInput
-                    style={{
-                      flex: 1,
-                      marginLeft: 8,
-                      fontSize: 15,
-                      color: "#111827",
-                    }}
-                    placeholder="Tìm tên dịch vụ..."
-                    placeholderTextColor="#9CA3AF"
-                    value={searchKw}
-                    onChangeText={setSearchKw}
-                  />
-                </View>
+                  placeholder="Tìm tên dịch vụ..."
+                  value={searchKw}
+                  onChangeText={setSearchKw}
+                />
               </View>
-
               <FlatList
                 data={filteredServices}
                 keyExtractor={(item) => item.id.toString()}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 20 }}
                 renderItem={({ item }) => {
                   const isSelected = String(data.serviceId) === String(item.id);
-
                   const alreadyAdded = assignedServices.some(
                     (as) => as.service?.id === item.id,
                   );
-
                   return (
                     <TouchableOpacity
                       activeOpacity={alreadyAdded ? 1 : 0.7}
@@ -381,7 +423,6 @@ const ServiceModal = ({
                           borderRadius: 8,
                           backgroundColor: "#F3F4F6",
                         }}
-                        resizeMode="cover"
                       />
                       <View style={{ flex: 1, marginLeft: 12 }}>
                         <Text
@@ -389,7 +430,6 @@ const ServiceModal = ({
                             fontSize: 15,
                             fontWeight: "600",
                             color: "#111827",
-                            marginBottom: 4,
                           }}
                         >
                           {item.name}
@@ -433,7 +473,6 @@ const ServiceModal = ({
                   );
                 }}
               />
-
               <View
                 style={{
                   borderTopWidth: 1,
@@ -470,11 +509,14 @@ const ServiceModal = ({
                   >
                     <TouchableOpacity
                       style={{ padding: 10 }}
-                      onPress={() => {
-                        const current = parseInt(data.quantity) || 1;
-                        if (current > 1)
-                          setData({ ...data, quantity: String(current - 1) });
-                      }}
+                      onPress={() =>
+                        setData({
+                          ...data,
+                          quantity: String(
+                            Math.max(1, parseInt(data.quantity) - 1),
+                          ),
+                        })
+                      }
                     >
                       <Feather name="minus" size={18} color="#4B5563" />
                     </TouchableOpacity>
@@ -492,22 +534,23 @@ const ServiceModal = ({
                     />
                     <TouchableOpacity
                       style={{ padding: 10 }}
-                      onPress={() => {
-                        const current = parseInt(data.quantity) || 0;
-                        setData({ ...data, quantity: String(current + 1) });
-                      }}
+                      onPress={() =>
+                        setData({
+                          ...data,
+                          quantity: String(parseInt(data.quantity) + 1),
+                        })
+                      }
                     >
                       <Feather name="plus" size={18} color="#4B5563" />
                     </TouchableOpacity>
                   </View>
                 </View>
-
                 <TouchableOpacity
                   style={[
                     styles.submitBtn,
                     !data.serviceId && { backgroundColor: "#9CA3AF" },
                   ]}
-                  onPress={onSubmit}
+                  onPress={handleAddService}
                   disabled={loading || !data.serviceId}
                 >
                   {loading ? (

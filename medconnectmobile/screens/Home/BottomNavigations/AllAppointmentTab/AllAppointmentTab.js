@@ -17,49 +17,44 @@ import { useNavigation } from "@react-navigation/native";
 import Style from "./Style";
 import Apis, { authApis, endpoint } from "../../../../configs/Apis";
 import { UserContext } from "../../../../contexts/UserContext";
+import LoginPanel from "../../../../components/LoginPanel/LoginPanel";
 
-const mockDetailData = {
-  diagnosis: "Viêm loét dạ dày - Bất thường X-Quang Phổi",
-  services: [
-    { name: "Xét nghiệm máu tổng quát", price: 150000, result: "Bình thường" },
-    { name: "Chụp X-Quang Phổi", price: 200000, result: "Bất thường" },
-  ],
-  prescriptions: [
-    {
-      name: "Amoxicillin 500mg",
-      qty: 28,
-      instruction: "AFTER_MEAL",
-      total: 140000,
-    },
-    {
-      name: "Paracetamol 500mg",
-      qty: 7,
-      instruction: "BEFORE_MEAL",
-      total: 14000,
-    },
-  ],
-  checkout: { total: 924000, status: "PAID" },
+// ── HELPERS ───────────────────────────────────────────────────
+const fmt = (n) => Math.round(n).toLocaleString("vi-VN") + "đ";
+
+const getInstructionLabel = (val) => {
+  switch (val) {
+    case "AFTER_MEAL":
+      return "Sau ăn";
+    case "BEFORE_MEAL":
+      return "Trước ăn";
+    case "WHEN_PAIN":
+      return "Khi đau";
+    default:
+      return val || "";
+  }
 };
 
 const AllAppointmentTab = () => {
   const nav = useNavigation();
 
   const [activeFilter, setActiveFilter] = useState("ALL");
-
   const [searchTxt, setSearchTxt] = useState("");
   const [kw, setKw] = useState("");
-
   const [offset, setOffset] = useState(0);
+
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [detailData, setDetailData] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   const [appointment, setAppointment] = useState([]);
   const [user] = useContext(UserContext);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const isLoadingRef = useRef(false);
-
   const isDoctorMode = user?.role === "DOCTOR" || false;
 
   const getStatusConfig = (status) => {
@@ -80,56 +75,38 @@ const AllAppointmentTab = () => {
   const formatDateTime = (isoString) => {
     if (!isoString) return { date: "--/--/----", time: "--:--" };
     const d = new Date(isoString);
-
     const date = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     let hours = d.getHours();
     const minutes = String(d.getMinutes()).padStart(2, "0");
     const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12;
-    hours = hours ? hours : 12;
+    hours = hours % 12 || 12;
     const time = `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
-
     return { date, time };
   };
 
   const loadAppointment = async (isLoadMore = false) => {
-    if (
-      isLoadingRef.current ||
-      (!hasMore && isLoadMore) ||
-      !user ||
-      !user.access_token
-    )
+    if (isLoadingRef.current || (!hasMore && isLoadMore) || !user?.access_token)
       return;
-
     isLoadingRef.current = true;
-    setLoading(true);
-
+    if (!refreshing) setLoading(true);
     try {
       const statusParam = activeFilter === "ALL" ? "" : activeFilter;
-
       const res = await authApis(user.access_token).get(
         `${endpoint.appointment}?offset=${offset}&kw=${kw}&status=${statusParam}`,
       );
-
       const newData = res.data.results || [];
-
       if (isLoadMore) {
         setAppointment((prev) => {
           const existingIds = new Set(prev.map((item) => item.id));
-          const filteredNewData = newData.filter(
-            (item) => !existingIds.has(item.id),
-          );
-          return [...prev, ...filteredNewData];
+          return [
+            ...prev,
+            ...newData.filter((item) => !existingIds.has(item.id)),
+          ];
         });
       } else {
         setAppointment(newData);
       }
-
-      if (!res.data.next || newData.length === 0) {
-        setHasMore(false);
-      } else {
-        setHasMore(true);
-      }
+      setHasMore(!(!res.data.next || newData.length === 0));
     } catch (error) {
       console.error("Lỗi load appointment:", error);
     } finally {
@@ -138,20 +115,23 @@ const AllAppointmentTab = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setOffset(0);
+    setHasMore(true);
+    await loadAppointment(false);
+    setRefreshing(false);
+  };
+
   const handleGoToChat = async (appointmentId, status) => {
     try {
       const response = await authApis(user.access_token).post(
         endpoint.chat_room(appointmentId),
       );
-
       if (response.status === 201 || response.status === 200) {
-        nav.navigate("ChatStream", {
-          appointmentId: appointmentId,
-          status: status,
-        });
+        nav.navigate("ChatStream", { appointmentId, status });
       }
     } catch (error) {
-      console.error("Lỗi khi khởi tạo phòng chat:", error);
       const errorMsg = error.response
         ? `Status: ${error.response.status}`
         : error.message;
@@ -159,195 +139,249 @@ const AllAppointmentTab = () => {
     }
   };
 
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      setKw(searchTxt);
-    }, 500);
+  // ── MỞ MODAL CHI TIẾT — gọi API checkout để lấy data thực ──
+  const openDetail = async (item) => {
+    if (item.status !== "COMPLETED") return;
+    setSelectedAppointment(item);
+    setDetailData(null);
+    setDetailModalVisible(true);
+    setLoadingDetail(true);
+    try {
+      const res = await authApis(user.access_token).post(
+        endpoint.checkout(item.id),
+      );
+      setDetailData(res.data);
+    } catch (err) {
+      console.error("Lỗi tải chi tiết:", err.status);
 
-    return () => clearTimeout(delayDebounceFn);
+      Alert.alert("Lỗi", "Không thể tải chi tiết lịch khám.");
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  useEffect(() => {
+    const t = setTimeout(() => setKw(searchTxt), 500);
+    return () => clearTimeout(t);
   }, [searchTxt]);
 
   useEffect(() => {
     if (!user) return;
     setHasMore(true);
-    if (offset === 0) {
-      loadAppointment(false);
-    } else {
-      setOffset(0);
-    }
+    if (offset === 0) loadAppointment(false);
+    else setOffset(0);
   }, [user, kw, activeFilter]);
 
   useEffect(() => {
     if (!user) return;
-    if (offset > 0) {
-      loadAppointment(true);
-    }
+    if (offset > 0) loadAppointment(true);
   }, [offset, user]);
-
-  const openDetail = (item) => {
-    if (item.status === "COMPLETED") {
-      setSelectedAppointment(item);
-      setDetailModalVisible(true);
-    }
-  };
 
   if (!user) {
     return (
-      <SafeAreaView style={[Style.container, { backgroundColor: "#F9FAFB" }]}>
+      <LoginPanel
+        headerTitle="Tài khoản"
+        title="Chào mừng bạn đến với MedConnect"
+        subtitle="Vui lòng đăng nhập hoặc tạo tài khoản để quản lý hồ sơ y tế và đặt lịch khám cùng bác sĩ."
+      />
+    );
+  }
+
+  const renderDetailContent = () => {
+    if (loadingDetail) {
+      return (
         <View
           style={{
             flex: 1,
             justifyContent: "center",
             alignItems: "center",
-            paddingHorizontal: 24,
+            paddingVertical: 60,
           }}
         >
-          <View
-            style={{
-              position: "absolute",
-              top: "10%",
-              left: -40,
-              width: 160,
-              height: 160,
-              borderRadius: 80,
-              backgroundColor: "rgba(0, 102, 255, 0.04)",
-            }}
-          />
-          <View
-            style={{
-              position: "absolute",
-              bottom: "15%",
-              right: -50,
-              width: 220,
-              height: 220,
-              borderRadius: 110,
-              backgroundColor: "rgba(0, 208, 132, 0.04)",
-            }}
-          />
-          <View
-            style={{
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 35,
-            }}
-          >
-            <View
-              style={{
-                width: 140,
-                height: 140,
-                borderRadius: 70,
-                backgroundColor: "rgba(0, 102, 255, 0.08)",
-                position: "absolute",
-              }}
-            />
-            <View
-              style={{
-                width: 100,
-                height: 100,
-                borderRadius: 50,
-                backgroundColor: "rgba(0, 102, 255, 0.15)",
-                position: "absolute",
-              }}
-            />
-            <View
-              style={{
-                width: 70,
-                height: 70,
-                borderRadius: 35,
-                backgroundColor: "#0066FF",
-                justifyContent: "center",
-                alignItems: "center",
-                shadowColor: "#0066FF",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.3,
-                shadowRadius: 10,
-                elevation: 8,
-              }}
-            >
+          <ActivityIndicator size="large" color="#0066FF" />
+          <Text style={{ marginTop: 12, color: "#6B7280", fontSize: 14 }}>
+            Đang tải chi tiết...
+          </Text>
+        </View>
+      );
+    }
+
+    if (!detailData) return null;
+
+    const services = detailData.items.filter((i) => i.type === "SERVICE");
+    const medicines = detailData.items.filter((i) => i.type === "MEDICINE");
+    const total = parseFloat(detailData.total_amount);
+    const isPaid =
+      detailData.status === "PAID" || detailData.status === "COMPLETED";
+
+    return (
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={Style.modalScroll}
+      >
+        <View style={Style.sectionCard}>
+          <View style={Style.sectionHeader}>
+            <View style={[Style.iconBox, { backgroundColor: "#F3E8FF" }]}>
               <MaterialCommunityIcons
-                name="calendar-lock"
-                size={32}
-                color="#FFFFFF"
+                name="flask-outline"
+                size={20}
+                color="#9333EA"
               />
             </View>
+            <Text style={Style.sectionTitle}>Dịch vụ y tế</Text>
+            <View
+              style={{
+                marginLeft: "auto",
+                backgroundColor: "#F3E8FF",
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: 10,
+              }}
+            >
+              <Text
+                style={{ fontSize: 11, fontWeight: "600", color: "#9333EA" }}
+              >
+                {services.length} dịch vụ
+              </Text>
+            </View>
           </View>
-          <Text
-            style={{
-              fontSize: 24,
-              fontWeight: "800",
-              color: "#111827",
-              marginBottom: 12,
-              textAlign: "center",
-              letterSpacing: 0.3,
-            }}
-          >
-            Quản lý sức khỏe thông minh
-          </Text>
-          <Text
-            style={{
-              fontSize: 16,
-              color: "#6B7280",
-              textAlign: "center",
-              marginBottom: 40,
-              lineHeight: 24,
-            }}
-          >
-            Đăng nhập để đặt lịch khám, kết nối với bác sĩ chuyên khoa và theo
-            dõi hồ sơ y tế của bạn mọi lúc, mọi nơi.
-          </Text>
-          <View style={{ width: "100%", gap: 16 }}>
-            <TouchableOpacity
-              style={{
-                backgroundColor: "#0066FF",
-                width: "100%",
-                paddingVertical: 16,
-                borderRadius: 14,
-                flexDirection: "row",
-                justifyContent: "center",
-                alignItems: "center",
-                gap: 10,
-                shadowColor: "#0066FF",
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.25,
-                shadowRadius: 8,
-                elevation: 6,
-              }}
-              onPress={() => nav.navigate("Login")}
-              activeOpacity={0.8}
-            >
-              <Feather name="log-in" size={20} color="#FFFFFF" />
-              <Text
-                style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "700" }}
-              >
-                Đăng nhập ngay
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{
-                width: "100%",
-                paddingVertical: 16,
-                borderRadius: 14,
-                flexDirection: "row",
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "#FFFFFF",
-                borderWidth: 1,
-                borderColor: "#E5E7EB",
-              }}
-              onPress={() => nav.navigate("Register")}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={{ color: "#374151", fontSize: 16, fontWeight: "600" }}
-              >
-                Chưa có tài khoản? Đăng ký
-              </Text>
-            </TouchableOpacity>
+
+          <View style={Style.itemList}>
+            {services.map((svc, idx) => {
+              const lineTotal = svc.unit_price * svc.quantity;
+              return (
+                <View key={idx} style={Style.itemRow}>
+                  <View style={Style.itemLeft}>
+                    <View style={Style.bulletPoint} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={Style.itemName}>{svc.name}</Text>
+                      <Text
+                        style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}
+                      >
+                        SL: {svc.quantity} × {fmt(svc.unit_price)}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={Style.itemPrice}>{fmt(lineTotal)}</Text>
+                </View>
+              );
+            })}
           </View>
         </View>
-      </SafeAreaView>
+
+        {medicines.length > 0 && (
+          <View style={Style.sectionCard}>
+            <View style={Style.sectionHeader}>
+              <View style={[Style.iconBox, { backgroundColor: "#E8FBF4" }]}>
+                <MaterialCommunityIcons name="pill" size={20} color="#00D084" />
+              </View>
+              <Text style={Style.sectionTitle}>Đơn thuốc</Text>
+              <View
+                style={{
+                  marginLeft: "auto",
+                  backgroundColor: "#E8FBF4",
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 10,
+                }}
+              >
+                <Text
+                  style={{ fontSize: 11, fontWeight: "600", color: "#059669" }}
+                >
+                  {medicines.length} mục
+                </Text>
+              </View>
+            </View>
+
+            <View style={Style.itemList}>
+              {medicines.map((med, idx) => {
+                const lineTotal = med.total ?? med.unit_price * med.quantity;
+                return (
+                  <View key={idx} style={Style.itemRow}>
+                    <View style={Style.itemLeft}>
+                      <View style={Style.bulletPoint} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={Style.itemName}>
+                          {med.name}{" "}
+                          <Text style={Style.itemQty}>×{med.quantity}</Text>
+                        </Text>
+                        {med.instruction && (
+                          <View style={Style.instructionBadge}>
+                            <Text style={Style.instructionText}>
+                              {getInstructionLabel(med.instruction)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                    <Text style={Style.itemPrice}>{fmt(lineTotal)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+        <View style={Style.receiptCard}>
+          <Text style={Style.receiptTitle}>Tổng quan thanh toán</Text>
+          <View style={Style.receiptDashedLine} />
+
+          <View style={Style.receiptRow}>
+            <Text style={Style.receiptLabel}>Dịch vụ y tế</Text>
+            <Text
+              style={[
+                Style.receiptLabel,
+                { color: "#111827", fontWeight: "600" },
+              ]}
+            >
+              {fmt(services.reduce((a, i) => a + i.unit_price * i.quantity, 0))}
+            </Text>
+          </View>
+
+          <View style={Style.receiptRow}>
+            <Text style={Style.receiptLabel}>Thuốc</Text>
+            <Text
+              style={[
+                Style.receiptLabel,
+                { color: "#111827", fontWeight: "600" },
+              ]}
+            >
+              {fmt(
+                medicines.reduce(
+                  (a, i) => a + (i.total ?? i.unit_price * i.quantity),
+                  0,
+                ),
+              )}
+            </Text>
+          </View>
+
+          <View style={Style.receiptRow}>
+            <Text style={Style.receiptLabel}>Trạng thái</Text>
+            <View style={Style.checkoutStatusBadge}>
+              <MaterialCommunityIcons
+                name={isPaid ? "check-circle" : "clock-outline"}
+                size={14}
+                color={isPaid ? "#059669" : "#D97706"}
+              />
+              <Text
+                style={[
+                  Style.checkoutStatusText,
+                  !isPaid && { color: "#D97706" },
+                ]}
+              >
+                {" "}
+                {isPaid ? "Đã thanh toán" : "Chờ thanh toán"}
+              </Text>
+            </View>
+          </View>
+
+          <View style={Style.receiptRowTotal}>
+            <Text style={Style.receiptTotalLabel}>Tổng cộng</Text>
+            <Text style={Style.receiptTotalAmount}>{fmt(total)}</Text>
+          </View>
+        </View>
+      </ScrollView>
     );
-  }
+  };
 
   return (
     <SafeAreaView style={Style.container}>
@@ -372,7 +406,6 @@ const AllAppointmentTab = () => {
                 <Feather name="calendar" size={16} color="#4B5563" />
                 <Text style={Style.dropdownText}>Chọn ngày</Text>
               </TouchableOpacity>
-
               <TouchableOpacity style={Style.dropdownBtn}>
                 <MaterialCommunityIcons
                   name="stethoscope"
@@ -382,7 +415,6 @@ const AllAppointmentTab = () => {
                 <Text style={Style.dropdownText}>Chọn Bác sĩ</Text>
               </TouchableOpacity>
             </View>
-
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -423,14 +455,14 @@ const AllAppointmentTab = () => {
         }
         contentContainerStyle={Style.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
         onEndReached={() => {
-          if (!loading && hasMore) {
-            setOffset((prev) => prev + 8);
-          }
+          if (!loading && hasMore) setOffset((prev) => prev + 8);
         }}
         onEndReachedThreshold={0.3}
         ListFooterComponent={() =>
-          loading ? (
+          loading && !refreshing ? (
             <View style={{ paddingVertical: 20 }}>
               <ActivityIndicator size="small" color="#0066FF" />
             </View>
@@ -543,7 +575,6 @@ const AllAppointmentTab = () => {
         }}
       />
 
-      {/* Modal chi tiết hồ sơ giữ nguyên */}
       <Modal
         visible={detailModalVisible}
         animationType="slide"
@@ -553,7 +584,7 @@ const AllAppointmentTab = () => {
           <View style={Style.modalContent}>
             <View style={Style.modalHeader}>
               <View>
-                <Text style={Style.modalTitle}>Chi tiết Hồ sơ</Text>
+                <Text style={Style.modalTitle}>Chi tiết hồ sơ</Text>
                 <Text style={Style.modalSubTitle}>
                   Mã lịch khám: #{selectedAppointment?.id}
                 </Text>
@@ -566,118 +597,7 @@ const AllAppointmentTab = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={Style.modalScroll}
-            >
-              <View style={Style.sectionCard}>
-                <View style={Style.sectionHeader}>
-                  <View style={[Style.iconBox, { backgroundColor: "#EBF4FF" }]}>
-                    <MaterialCommunityIcons
-                      name="clipboard-pulse"
-                      size={20}
-                      color="#0066FF"
-                    />
-                  </View>
-                  <Text style={Style.sectionTitle}>Chẩn đoán lâm sàng</Text>
-                </View>
-                <Text style={Style.diagnosisText}>
-                  {mockDetailData.diagnosis}
-                </Text>
-              </View>
-
-              <View style={Style.sectionCard}>
-                <View style={Style.sectionHeader}>
-                  <View style={[Style.iconBox, { backgroundColor: "#F3E8FF" }]}>
-                    <MaterialCommunityIcons
-                      name="flask-outline"
-                      size={20}
-                      color="#9333EA"
-                    />
-                  </View>
-                  <Text style={Style.sectionTitle}>Các dịch vụ thêm</Text>
-                </View>
-                <View style={Style.itemList}>
-                  {mockDetailData.services.map((svc, idx) => (
-                    <View key={idx} style={Style.itemRow}>
-                      <View style={Style.itemLeft}>
-                        <View style={Style.bulletPoint} />
-                        <View>
-                          <Text style={Style.itemName}>{svc.name}</Text>
-                          <Text style={Style.itemResult}>
-                            Kết luận:{" "}
-                            <Text style={Style.itemResultHighlight}>
-                              {svc.result}
-                            </Text>
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={Style.itemPrice}>
-                        {svc.price.toLocaleString()}đ
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              <View style={Style.sectionCard}>
-                <View style={Style.sectionHeader}>
-                  <View style={[Style.iconBox, { backgroundColor: "#E8FBF4" }]}>
-                    <MaterialCommunityIcons
-                      name="pill"
-                      size={20}
-                      color="#00D084"
-                    />
-                  </View>
-                  <Text style={Style.sectionTitle}>Đơn thuốc</Text>
-                </View>
-                <View style={Style.itemList}>
-                  {mockDetailData.prescriptions.map((med, idx) => (
-                    <View key={idx} style={Style.itemRow}>
-                      <View style={Style.itemLeft}>
-                        <View style={Style.bulletPoint} />
-                        <View>
-                          <Text style={Style.itemName}>
-                            {med.name}{" "}
-                            <Text style={Style.itemQty}>x{med.qty}</Text>
-                          </Text>
-                          <View style={Style.instructionBadge}>
-                            <Text style={Style.instructionText}>
-                              {med.instruction}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                      <Text style={Style.itemPrice}>
-                        {med.total.toLocaleString()}đ
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              <View style={Style.receiptCard}>
-                <Text style={Style.receiptTitle}>Tổng quan thanh toán</Text>
-                <View style={Style.receiptDashedLine} />
-                <View style={Style.receiptRow}>
-                  <Text style={Style.receiptLabel}>Trạng thái</Text>
-                  <View style={Style.checkoutStatusBadge}>
-                    <MaterialCommunityIcons
-                      name="check-circle"
-                      size={14}
-                      color="#059669"
-                    />
-                    <Text style={Style.checkoutStatusText}> Đã thanh toán</Text>
-                  </View>
-                </View>
-                <View style={Style.receiptRowTotal}>
-                  <Text style={Style.receiptTotalLabel}>Tổng cộng</Text>
-                  <Text style={Style.receiptTotalAmount}>
-                    {mockDetailData.checkout.total.toLocaleString()} VNĐ
-                  </Text>
-                </View>
-              </View>
-            </ScrollView>
+            {renderDetailContent()}
           </View>
         </View>
       </Modal>

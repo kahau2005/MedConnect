@@ -1,22 +1,64 @@
-import React from "react";
-import { View, Text, TouchableOpacity, Modal, ScrollView } from "react-native";
+import React, { useState, useEffect, useContext } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { modalStyles, medicineStyles } from "./Style";
+import { UserContext } from "../../contexts/UserContext";
+import { authApis, endpoint } from "../../configs/Apis";
 
 const PrescriptionListModal = ({
   visible,
-  prescriptions,
   onClose,
+  appointmentId,
   onSelectPrescription,
-  onOpenAddForm,
 }) => {
+  const [user] = useContext(UserContext);
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (visible && user) fetchPrescriptions();
+  }, [visible]);
+
+  const fetchPrescriptions = async () => {
+    try {
+      setLoading(true);
+      const res = await authApis(user.access_token).get(
+        endpoint.prescription(appointmentId),
+      );
+      setPrescriptions(res.data);
+    } catch (error) {
+      console.error("Lỗi tải đơn thuốc:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreatePrescription = async () => {
+    try {
+      setLoading(true);
+      const res = await authApis(user.access_token).post(
+        endpoint.prescription(appointmentId),
+      );
+      setPrescriptions((prev) => [res.data, ...prev]);
+      onSelectPrescription(res.data);
+    } catch (error) {
+      console.error("Lỗi tạo đơn thuốc:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatCreatedDate = (isoString) => {
     if (!isoString) return "Không rõ ngày tạo";
     const d = new Date(isoString);
-    const date = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
-    return `Ngày tạo: ${date}/${month}/${year}`;
+    return `Ngày tạo: ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
   };
 
   return (
@@ -40,6 +82,56 @@ const PrescriptionListModal = ({
             </TouchableOpacity>
           </View>
 
+<<<<<<< HEAD
+          {loading && prescriptions.length === 0 ? (
+            <ActivityIndicator
+              size="large"
+              color="#0066FF"
+              style={{ marginTop: 50 }}
+            />
+          ) : (
+            <ScrollView
+              contentContainerStyle={{
+                paddingHorizontal: 20,
+                paddingBottom: 100,
+              }}
+            >
+              {prescriptions.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={medicineStyles.prescriptionCard}
+                  onPress={() => onSelectPrescription(item)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={medicineStyles.preCardTitle} numberOfLines={1}>
+                      {item.diagnosis
+                        ? item.diagnosis
+                        : `Đơn thuốc số #${item.id}`}
+                    </Text>
+                    <Text
+                      style={medicineStyles.preCardSubText}
+                      numberOfLines={2}
+                    >
+                      {item.note
+                        ? item.note
+                        : formatCreatedDate(item.created_at)}
+                    </Text>
+                    <View style={medicineStyles.preCardBadge}>
+                      <MaterialCommunityIcons
+                        name="pill"
+                        size={12}
+                        color="#059669"
+                      />
+                      <Text style={medicineStyles.preCardBadgeText}>
+                        {item.details?.length || 0} loại thuốc
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={medicineStyles.preCardBtn}>
+                    <Feather name="plus" size={20} color="#0066FF" />
+                    <Text style={medicineStyles.preCardBtnText}>
+                      Thêm thuốc
+=======
           <ScrollView
             contentContainerStyle={{
               paddingHorizontal: 20,
@@ -71,21 +163,19 @@ const PrescriptionListModal = ({
                     />
                     <Text style={medicineStyles.preCardBadgeText}>
                       {item.details?.length || 0} loại thuốc
+>>>>>>> a4e8d23d4bde3bb9c632b3ed6ce3ce01aacfb7fd
                     </Text>
                   </View>
-                </View>
-                <View style={medicineStyles.preCardBtn}>
-                  <Feather name="plus" size={20} color="#0066FF" />
-                  <Text style={medicineStyles.preCardBtnText}>Thêm thuốc</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
 
           <View style={modalStyles.bottomFixedArea}>
             <TouchableOpacity
               style={modalStyles.submitBtn}
-              onPress={onOpenAddForm}
+              onPress={handleCreatePrescription}
+              disabled={loading}
             >
               <Feather
                 name="plus-circle"

@@ -50,7 +50,7 @@ const Login = () => {
         type: "LOGIN",
         payload: userData,
       });
-      nav.goBack();
+      nav.navigate("Home");
       requestUserPermission(res.data.access_token);
     } catch {
     } finally {
