@@ -103,7 +103,6 @@ const ResultModal = ({
                   onChangeText={(t) => updateRow(index, "value", t)}
                 />
 
-                {/* 🔥 TRASH ICON HERE */}
                 <TouchableOpacity
                   onPress={() => removeRow(index)}
                   style={{ marginLeft: 10 }}

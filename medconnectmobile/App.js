@@ -1,10 +1,11 @@
 import "react-native-gesture-handler";
-import React, { useReducer } from "react";
+import messaging from "@react-native-firebase/messaging";
+import { useEffect, useReducer } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
-import { Platform, StyleSheet } from "react-native";
+import { Alert, Platform, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context"; // ← THÊM
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { OverlayProvider } from "stream-chat-expo";
 
 import Home from "./screens/Home/Home";
@@ -23,6 +24,7 @@ import Login from "./screens/Login/Login";
 import { UserContext } from "./contexts/UserContext";
 import UserReducer from "./reducers/UserReducer";
 import CallStream from "./screens/CallStream/CallStream";
+import { registerDevice, requestUserPermission } from "./configs/FCMService";
 
 const Stack = createNativeStackNavigator();
 
@@ -48,6 +50,32 @@ const theme = {
 
 export default function App() {
   const [user, dispatch] = useReducer(UserReducer, null);
+
+  useEffect(() => {
+    const unsubscribeTokenRefresh = messaging().onTokenRefresh(
+      async (newToken) => {
+        console.log("FCM Token đã được làm mới: ", newToken);
+
+        if (user && user.access_token) {
+          await registerDevice(newToken, user.access_token);
+        }
+      },
+    );
+
+    const unsubscribeForeground = messaging().onMessage(
+      async (remoteMessage) => {
+        Alert.alert(
+          remoteMessage.notification?.title || "Thông báo",
+          remoteMessage.notification?.body || "",
+        );
+      },
+    );
+
+    return () => {
+      unsubscribeTokenRefresh();
+      unsubscribeForeground();
+    };
+  }, [user]);
 
   return (
     <GestureHandlerRootView style={styles.root}>

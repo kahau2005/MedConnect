@@ -48,13 +48,11 @@ const DiagnosisModal = ({
             <View
               style={[styles.formModal, { flex: 0.9, paddingHorizontal: 20 }]}
             >
-              {/* FORM */}
               {!showPicker && (
                 <View style={{ flex: 1 }}>
                   <View style={styles.formHeader}>
                     <Text style={styles.formTitle}>Cập nhật chẩn đoán</Text>
 
-                    {/* ❌ CLOSE ICON (Feather x) */}
                     <TouchableOpacity onPress={onClose}>
                       <Feather name="x" size={24} color="#6B7280" />
                     </TouchableOpacity>
@@ -152,7 +150,6 @@ const DiagnosisModal = ({
                 </View>
               )}
 
-              {/* PICKER */}
               {showPicker && (
                 <View style={{ flex: 1 }}>
                   <View style={styles.formHeader}>

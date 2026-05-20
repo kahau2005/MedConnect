@@ -303,7 +303,6 @@ const ServiceModal = ({
 
           {showList && (
             <>
-              {/* THANH TÌM KIẾM */}
               <View style={{ marginBottom: 12 }}>
                 <View
                   style={{

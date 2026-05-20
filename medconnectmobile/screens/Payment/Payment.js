@@ -1,12 +1,4 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  Platform,
-} from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import Style from "./Style";
 
