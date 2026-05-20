@@ -22,16 +22,16 @@ from medconnectapp.apps import MedconnectappConfig
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env_path = os.path.join(BASE_DIR, ".env")
+load_dotenv(env_path)
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-0_y7%c!9eb!11*y)$*_k+_osa=6i04+=awcx!t(gvo=ij9xr#!"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ["*"]
 
 OAUTH2_PROVIDER = {
     "OAUTH2_BACKEND_CLASS": "oauth2_provider.oauth2_backends.JSONOAuthLibCore"
@@ -88,6 +88,7 @@ REST_FRAMEWORK = {
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -98,6 +99,9 @@ MIDDLEWARE = [
     "medconnectapp.middleware.OAuthMiddleware",
 ]
 
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_URL = "static/"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = ["*"]
@@ -130,16 +134,19 @@ WSGI_APPLICATION = "medconnectapis.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "medconnectdb",
-        "USER": "root",
-        "PASSWORD": "root",
-        "HOST": "",
+        "NAME": os.environ.get("DB_NAME", "medconnectdb"),
+        "USER": os.environ.get("DB_USER", "root"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "root"),
+        "HOST": os.environ.get("DB_HOST", ""),
+        "PORT": "3306",
+        "OPTIONS": {
+            "ssl": {"ssl-mode": "REQUIRED"},
+        },
     }
 }
+SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-dev-key")
 AUTH_USER_MODEL = "medconnectapp.User"
 
-env_path = os.path.join(BASE_DIR, ".env")
-load_dotenv(env_path)
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
@@ -153,7 +160,7 @@ ZALOPAY_APP_ID = os.getenv("ZALOPAY_APP_ID")
 ZALOPAY_KEY1 = os.getenv("ZALOPAY_KEY1")
 ZALOPAY_KEY2 = os.getenv("ZALOPAY_KEY2")
 
-CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = None
 CELERY_TIMEZONE = "Asia/Ho_Chi_Minh"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
