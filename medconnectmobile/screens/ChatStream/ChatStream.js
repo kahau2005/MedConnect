@@ -14,7 +14,7 @@ import { StreamChat } from "stream-chat";
 import { Chat, Channel, MessageList, MessageComposer } from "stream-chat-expo";
 
 import { UserContext } from "../../contexts/UserContext";
-import { authApis, endpoint } from "../../configs/Apis";
+import { authApis, endpoint, STREAM_API } from "../../configs/Apis";
 
 import Header from "../../components/ChatStream/Header";
 import DoctorActionSheet from "../../components/ChatStream/DoctorActionSheet";
@@ -25,8 +25,7 @@ import ServiceModal from "../../components/ChatStream/ServiceModal";
 import ResultModal from "../../components/ChatStream/ResultModal";
 import DiagnosisModal from "../../components/ChatStream/DiagnosisModal";
 
-const STREAM_API_KEY = "6eqc726krv44";
-const chatClient = StreamChat.getInstance(STREAM_API_KEY);
+const chatClient = StreamChat.getInstance(STREAM_API);
 
 const ChatStream = () => {
   const nav = useNavigation();

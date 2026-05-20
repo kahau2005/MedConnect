@@ -82,7 +82,6 @@ const PrescriptionListModal = ({
             </TouchableOpacity>
           </View>
 
-<<<<<<< HEAD
           {loading && prescriptions.length === 0 ? (
             <ActivityIndicator
               size="large"
@@ -131,39 +130,6 @@ const PrescriptionListModal = ({
                     <Feather name="plus" size={20} color="#0066FF" />
                     <Text style={medicineStyles.preCardBtnText}>
                       Thêm thuốc
-=======
-          <ScrollView
-            contentContainerStyle={{
-              paddingHorizontal: 20,
-              paddingBottom: 100,
-            }}
-          >
-            {prescriptions.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={medicineStyles.prescriptionCard}
-                onPress={() => onSelectPrescription(item)}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={medicineStyles.preCardTitle} numberOfLines={1}>
-                    {item.diagnosis
-                      ? item.diagnosis
-                      : `Đơn thuốc số #${item.id}`}
-                  </Text>
-
-                  <Text style={medicineStyles.preCardSubText} numberOfLines={2}>
-                    {item.note ? item.note : formatCreatedDate(item.created_at)}
-                  </Text>
-
-                  <View style={medicineStyles.preCardBadge}>
-                    <MaterialCommunityIcons
-                      name="pill"
-                      size={12}
-                      color="#059669"
-                    />
-                    <Text style={medicineStyles.preCardBadgeText}>
-                      {item.details?.length || 0} loại thuốc
->>>>>>> a4e8d23d4bde3bb9c632b3ed6ce3ce01aacfb7fd
                     </Text>
                   </View>
                 </TouchableOpacity>

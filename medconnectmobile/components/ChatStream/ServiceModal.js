@@ -347,7 +347,6 @@ const ServiceModal = ({ visible, onClose, appointmentId }) => {
 
           {showList && (
             <>
-<<<<<<< HEAD
               <View
                 style={{
                   flexDirection: "row",
@@ -361,10 +360,6 @@ const ServiceModal = ({ visible, onClose, appointmentId }) => {
               >
                 <Feather name="search" size={20} color="#9CA3AF" />
                 <TextInput
-=======
-              <View style={{ marginBottom: 12 }}>
-                <View
->>>>>>> a4e8d23d4bde3bb9c632b3ed6ce3ce01aacfb7fd
                   style={{
                     flex: 1,
                     marginLeft: 8,

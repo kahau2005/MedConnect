@@ -30,6 +30,8 @@ export const endpoint = {
   registerDevice: "/users/register-device/",
 };
 
+export const STREAM_API = process.env.EXPO_PUBLIC_STREAM_API_KEY;
+
 export const authApis = (token) => {
   return axios.create({
     baseURL: "http://192.168.100.26:8000/",

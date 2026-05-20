@@ -11,9 +11,7 @@ import {
 } from "@stream-io/video-react-native-sdk";
 
 import { UserContext } from "../../contexts/UserContext";
-import { authApis, endpoint } from "../../configs/Apis";
-
-const STREAM_API_KEY = "6eqc726krv44";
+import Apis, { authApis, endpoint, STREAM_API } from "../../configs/Apis";
 
 export default function CallStream() {
   const nav = useNavigation();
@@ -37,7 +35,7 @@ export default function CallStream() {
 
         const streamUser = { id: String(user_id), name: full_name };
         client = new StreamVideoClient({
-          apiKey: STREAM_API_KEY,
+          apiKey: STREAM_API,
           user: streamUser,
           token: stream_token,
         });
