@@ -1,0 +1,53 @@
+location: southeastasia
+type: Microsoft.App/containerApps
+properties:
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 8080
+      allowInsecure: false
+    registries:
+      - server: medconnectregistry.azurecr.io
+        username: medconnectregistry
+        passwordSecretRef: acr-password
+    secrets:
+      - name: acr-password
+        value: "5cKH3CJvoMVNNyZ57oSnEMOihmf16dw8uU3p23Js94bilY6FLBlfJQQJ99CEACqBBLyEqg7NAAACAZCR9mxO"
+  template:
+    scale:
+      minReplicas: 0
+      maxReplicas: 1
+    containers:
+      - name: django-web
+        image: medconnectregistry.azurecr.io/medconnect-app:latest
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
+
+      - name: celery-worker
+        image: medconnectregistry.azurecr.io/medconnect-app:latest
+        command:
+          - celery
+          - "-A"
+          - medconnectapis
+          - worker
+          - "--loglevel=info"
+          - "--without-gossip"
+          - "--without-mingle"
+          - "--without-heartbeat"
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
+
+      - name: celery-beat
+        image: medconnectregistry.azurecr.io/medconnect-app:latest
+        command:
+          - celery
+          - "-A"
+          - medconnectapis
+          - beat
+          - "--loglevel=info"
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
