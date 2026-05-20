@@ -86,7 +86,6 @@ export default function CallStream() {
       <StreamVideo client={videoClient}>
         <StreamCall call={call}>
           <View style={styles.callWrapper}>
-            {/* CallContent dựng sẵn giao diện giống 100% Messenger */}
             <CallContent
               onHangupCallHandler={() => {
                 call.leave();

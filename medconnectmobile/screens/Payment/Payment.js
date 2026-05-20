@@ -241,7 +241,6 @@ const Payment = () => {
           </View>
         </View>
 
-        {/* DỊCH VỤ */}
         <SectionCard
           title="Dịch vụ y tế"
           icon={

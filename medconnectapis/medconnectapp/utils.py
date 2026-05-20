@@ -92,6 +92,10 @@ def send_push_notification(tokens, title, body, data=None):
     if isinstance(tokens, str):
         tokens = [tokens]
 
+    android_conf = messaging.AndroidConfig(
+        priority="high",
+    )
+
     message = messaging.MulticastMessage(
         notification=messaging.Notification(
             title=title,
@@ -99,8 +103,9 @@ def send_push_notification(tokens, title, body, data=None):
         ),
         data=data or {},
         tokens=tokens,
+        android=android_conf,
     )
-    response = messaging.send_multicast(message)
+    response = messaging.send_each_for_multicast(message)
     return response
 
 

@@ -89,6 +89,7 @@ const DiagnosisModal = ({ visible, onClose, appointmentId }) => {
             <View
               style={[styles.formModal, { flex: 0.9, paddingHorizontal: 20 }]}
             >
+<<<<<<< HEAD
               {loading && (
                 <ActivityIndicator
                   size="large"
@@ -97,10 +98,16 @@ const DiagnosisModal = ({ visible, onClose, appointmentId }) => {
                 />
               )}
 
+=======
+>>>>>>> a4e8d23d4bde3bb9c632b3ed6ce3ce01aacfb7fd
               {!showPicker && (
                 <View style={{ flex: 1 }}>
                   <View style={styles.formHeader}>
                     <Text style={styles.formTitle}>Cập nhật chẩn đoán</Text>
+<<<<<<< HEAD
+=======
+
+>>>>>>> a4e8d23d4bde3bb9c632b3ed6ce3ce01aacfb7fd
                     <TouchableOpacity onPress={onClose}>
                       <Feather name="x" size={24} color="#6B7280" />
                     </TouchableOpacity>

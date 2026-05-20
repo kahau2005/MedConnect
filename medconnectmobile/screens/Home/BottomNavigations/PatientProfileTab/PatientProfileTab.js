@@ -19,6 +19,7 @@ import { authApis, endpoint } from "../../../../configs/Apis";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import LoadingModal from "../../../../components/LoadingModel/LoadingModel";
 import LoginPanel from "../../../../components/LoginPanel/LoginPanel";
+import { unregisterDevice } from "../../../../configs/FCMService";
 
 const PatientProfileTab = () => {
   const nav = useNavigation();
@@ -217,6 +218,7 @@ const PatientProfileTab = () => {
                   <Text style={Style.inputLabel}>
                     Ngày sinh <Text style={Style.required}>*</Text>
                   </Text>
+
                   <TouchableOpacity
                     style={Style.selectBox}
                     onPress={() => setShowDatePicker(true)}
@@ -309,6 +311,7 @@ const PatientProfileTab = () => {
                 </View>
                 <View style={[Style.inputGroup, { flex: 1 }]}>
                   <Text style={Style.inputLabel}>Nhóm máu</Text>
+
                   <TouchableOpacity
                     style={Style.selectBox}
                     onPress={() => setShowBloodTypeModal(true)}
@@ -446,7 +449,6 @@ const PatientProfileTab = () => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* 🌟 ĐÃ FIX: Lấy dữ liệu Avatar, Tên, SĐT, Email từ biến user */}
         <View style={Style.profileHeader}>
           <View style={Style.avatarContainer}>
             <Image
@@ -568,7 +570,6 @@ const PatientProfileTab = () => {
             </View>
           )}
 
-          {/* Các Menu khác */}
           <View style={Style.menuList}>
             <TouchableOpacity style={Style.menuItem}>
               <Feather name="settings" size={22} color="#4B5563" />
@@ -578,11 +579,12 @@ const PatientProfileTab = () => {
 
             <TouchableOpacity
               style={Style.menuItem}
-              onPress={() =>
+              onPress={async () => {
+                await unregisterDevice();
                 dispatch({
                   type: "LOGOUT",
-                })
-              }
+                });
+              }}
             >
               <Feather name="log-out" size={22} color="#EF4444" />
               <Text style={[Style.menuItemText, { color: "#EF4444" }]}>

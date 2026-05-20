@@ -287,7 +287,6 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                       )}
                     </TouchableOpacity>
 
-                    {/* 3. NHẬP CHỈ SỐ XÉT NGHIỆM DẠNG CẶP KEY - VALUE */}
                     <Text
                       style={{
                         fontSize: 14,

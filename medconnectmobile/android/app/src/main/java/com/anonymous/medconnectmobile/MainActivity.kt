@@ -22,7 +22,7 @@ class MainActivity : ReactActivity() {
   }
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
-    ZaloPaySDK.getInstance().onResult(intent) // Gọi SDK xử lý kết quả
+    ZaloPaySDK.getInstance().onResult(intent)
   }
 
   /**

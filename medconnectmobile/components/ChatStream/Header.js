@@ -35,7 +35,6 @@ const Header = ({
       headerRight: () => (
         <View style={styles.headerRight}>
           {isDevDoctor ? (
-            /* Giao diện Bác sĩ */
             <>
               <TouchableOpacity onPress={onOpenMenu} style={styles.iconButton}>
                 <MaterialCommunityIcons
@@ -52,7 +51,6 @@ const Header = ({
               </TouchableOpacity>
             </>
           ) : (
-            /* Giao diện Bệnh nhân (Đã bỏ nút rời đi) */
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <TouchableOpacity
                 onPress={onPayment}
