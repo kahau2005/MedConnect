@@ -53,14 +53,12 @@ const PrescriptionListModal = ({
                 onPress={() => onSelectPrescription(item)}
               >
                 <View style={{ flex: 1 }}>
-                  {/* Thay đổi 1: Ưu tiên hiển thị chẩn đoán, nếu trống thì hiện Đơn thuốc số #ID */}
                   <Text style={medicineStyles.preCardTitle} numberOfLines={1}>
                     {item.diagnosis
                       ? item.diagnosis
                       : `Đơn thuốc số #${item.id}`}
                   </Text>
 
-                  {/* Thay đổi 2: Ưu tiên hiển thị lời dặn (note), nếu trống thì hiện Ngày tạo */}
                   <Text style={medicineStyles.preCardSubText} numberOfLines={2}>
                     {item.note ? item.note : formatCreatedDate(item.created_at)}
                   </Text>

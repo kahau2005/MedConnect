@@ -17,6 +17,7 @@ import Style from "./Style";
 import Apis, { authApis, endpoint } from "../../configs/Apis";
 import LoadingModal from "../../components/LoadingModel/LoadingModel";
 import { UserContext } from "../../contexts/UserContext";
+import { requestUserPermission } from "../../configs/FCMService";
 
 const Login = () => {
   const nav = useNavigation();
@@ -50,6 +51,7 @@ const Login = () => {
         payload: userData,
       });
       nav.goBack();
+      requestUserPermission(res.data.access_token);
     } catch {
     } finally {
       setLoading(false);
@@ -139,7 +141,6 @@ const Login = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Link Đăng ký */}
             <View style={Style.registerRow}>
               <Text style={Style.registerText}>Chưa có tài khoản? </Text>
               <TouchableOpacity onPress={() => nav.navigate("RegisterScreen")}>

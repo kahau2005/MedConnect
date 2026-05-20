@@ -46,7 +46,6 @@ const MedicineInputModal = ({
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <View style={[styles.formModal, { maxHeight: "85%" }]}>
-          {/* HEADER */}
           <View style={styles.formHeader}>
             <View
               style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
@@ -67,7 +66,6 @@ const MedicineInputModal = ({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 20 }}
           >
-            {/* THỜI ĐIỂM UỐNG THUỐC */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Thời điểm uống thuốc</Text>
               <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
@@ -105,7 +103,6 @@ const MedicineInputModal = ({
               </View>
             </View>
 
-            {/* HÀNG 1: LIỀU LƯỢNG & TẦN SUẤT */}
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>Mỗi lần uống (dose)</Text>
@@ -132,7 +129,6 @@ const MedicineInputModal = ({
               </View>
             </View>
 
-            {/* HÀNG 2: SỐ NGÀY UỐNG & TỔNG SỐ LƯỢNG (READ-ONLY) */}
             <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>Số ngày uống (duration)</Text>

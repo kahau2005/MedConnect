@@ -18,6 +18,7 @@ import { UserContext } from "../../../../contexts/UserContext";
 import Apis, { authApis, endpoint } from "../../../../configs/Apis";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import LoadingModal from "../../../../components/LoadingModel/LoadingModel";
+import { unregisterDevice } from "../../../../configs/FCMService";
 
 const PatientProfileTab = () => {
   const nav = useNavigation();
@@ -242,7 +243,6 @@ const PatientProfileTab = () => {
                     Ngày sinh <Text style={Style.required}>*</Text>
                   </Text>
 
-                  {/* --- FIX: Thay TextInput bằng nút gọi DatePicker --- */}
                   <TouchableOpacity
                     style={Style.selectBox}
                     onPress={() => setShowDatePicker(true)}
@@ -257,7 +257,6 @@ const PatientProfileTab = () => {
                     <Feather name="calendar" size={18} color="#9CA3AF" />
                   </TouchableOpacity>
 
-                  {/* --- FIX: Hiển thị Component DatePicker --- */}
                   {showDatePicker && (
                     <DateTimePicker
                       value={formData.dob ? new Date(formData.dob) : new Date()}
@@ -337,7 +336,6 @@ const PatientProfileTab = () => {
                 <View style={[Style.inputGroup, { flex: 1 }]}>
                   <Text style={Style.inputLabel}>Nhóm máu</Text>
 
-                  {/* --- FIX: Thay TextInput bằng nút gọi Dropdown --- */}
                   <TouchableOpacity
                     style={Style.selectBox}
                     onPress={() => setShowBloodTypeModal(true)}
@@ -415,7 +413,6 @@ const PatientProfileTab = () => {
           </TouchableOpacity>
         </View>
 
-        {/* --- FIX: Modal phải nằm bên ngoài ScrollView nhưng bên trong isEditing --- */}
         <Modal
           visible={showBloodTypeModal}
           transparent={true}
@@ -475,7 +472,6 @@ const PatientProfileTab = () => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* User Info Header */}
         <View style={Style.profileHeader}>
           <View style={Style.avatarContainer}>
             <Image
@@ -496,7 +492,6 @@ const PatientProfileTab = () => {
         </View>
 
         <View style={Style.mainContent}>
-          {/* NẾU CHƯA CÓ HỒ SƠ: HIỆN CẢNH BÁO BẮT BUỘC TẠO */}
           {!hasProfile ? (
             <View style={Style.missingProfileCard}>
               <View style={Style.missingProfileHeader}>
@@ -526,7 +521,6 @@ const PatientProfileTab = () => {
               </TouchableOpacity>
             </View>
           ) : (
-            /* NẾU ĐÃ CÓ HỒ SƠ: HIỆN THÔNG TIN + NÚT SỬA */
             <View style={Style.profileDataCard}>
               <View style={Style.profileDataHeader}>
                 <Text style={Style.profileDataTitle}>
@@ -591,7 +585,6 @@ const PatientProfileTab = () => {
             </View>
           )}
 
-          {/* Các Menu khác */}
           <View style={Style.menuList}>
             <TouchableOpacity style={Style.menuItem}>
               <Feather name="settings" size={22} color="#4B5563" />
@@ -601,11 +594,12 @@ const PatientProfileTab = () => {
 
             <TouchableOpacity
               style={Style.menuItem}
-              onPress={() =>
+              onPress={async () => {
+                await unregisterDevice();
                 dispatch({
                   type: "LOGOUT",
-                })
-              }
+                });
+              }}
             >
               <Feather name="log-out" size={22} color="#EF4444" />
               <Text style={[Style.menuItemText, { color: "#EF4444" }]}>
