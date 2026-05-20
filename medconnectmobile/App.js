@@ -24,11 +24,8 @@ import Login from "./screens/Login/Login";
 import { UserContext } from "./contexts/UserContext";
 import UserReducer from "./reducers/UserReducer";
 import CallStream from "./screens/CallStream/CallStream";
-<<<<<<< HEAD
 import Register from "./screens/Register/Register";
-=======
 import { registerDevice, requestUserPermission } from "./configs/FCMService";
->>>>>>> a4e8d23d4bde3bb9c632b3ed6ce3ce01aacfb7fd
 
 const Stack = createNativeStackNavigator();
 
