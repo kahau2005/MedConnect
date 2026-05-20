@@ -75,7 +75,7 @@ def check_upcoming_appointment():
     )
 
     for app in appointments:
-        days_left = (app.start.date() - today).days
+        days_left = (timezone.localtime(app.start).date() - today).days
         patient = app.user
 
         tokens = list(

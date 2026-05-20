@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "ckeditor",
+    "django.contrib.humanize",
     "ckeditor_uploader",
     "rest_framework",
     "drf_yasg",
@@ -109,7 +109,7 @@ ROOT_URLCONF = "medconnectapis.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, "medconnectapp", "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

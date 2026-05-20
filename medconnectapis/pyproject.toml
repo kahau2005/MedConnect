@@ -90,6 +90,7 @@ dependencies = [
     "celery[redis]>=5.6.3",
     "django-celery-beat>=2.9.0",
     "getstream>=3.3.1",
+    "humanize>=4.15.0",
 ]
 
 [tool.ruff]
