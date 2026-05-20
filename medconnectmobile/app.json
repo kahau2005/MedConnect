@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "medconnectmobile",
+    "slug": "medconnectmobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.medconnectmobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.medconnectmobile",
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      "@react-native-community/datetimepicker",
+      "expo-video",
+      [
+        "@stream-io/video-react-native-sdk",
+        {
+          "cameraPermissionText": "Ứng dụng cần quyền truy cập Camera để thực hiện gọi Video.",
+          "microphonePermissionText": "Ứng dụng cần quyền truy cập Micro để thực hiện gọi thoại."
+        }
+      ]
+    ]
+  }
+}
