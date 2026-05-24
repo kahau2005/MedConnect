@@ -21,7 +21,6 @@ import {
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-// IMPORT THƯ VIỆN DATETIME PICKER
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import Style from "./Style";
@@ -393,7 +392,6 @@ const AllAppointmentTab = () => {
         {!isDoctorMode && (
           <>
             <View style={Style.dateDoctorFilterRow}>
-              {/* NÚT CHỌN NGÀY VỚI XÓA FILTER */}
               <View
                 style={[
                   Style.dropdownBtn,
@@ -429,8 +427,6 @@ const AllAppointmentTab = () => {
                       : "Chọn ngày"}
                   </Text>
                 </TouchableOpacity>
-
-                {/* Nút X để bỏ lọc ngày */}
                 {selectedDate && (
                   <TouchableOpacity
                     onPress={() => setSelectedDate(null)}
@@ -441,7 +437,6 @@ const AllAppointmentTab = () => {
                 )}
               </View>
 
-              {/* NÚT CHỌN BÁC SĨ (Giữ nguyên) */}
               <TouchableOpacity
                 style={[
                   Style.dropdownBtn,
@@ -632,7 +627,6 @@ const AllAppointmentTab = () => {
         }}
       />
 
-      {/* --- DATETIME PICKER --- */}
       {showDatePicker && (
         <DateTimePicker
           value={selectedDate ? new Date(selectedDate) : new Date()}
@@ -642,7 +636,6 @@ const AllAppointmentTab = () => {
         />
       )}
 
-      {/* --- MODAL CHỌN BÁC SĨ --- */}
       <Modal
         visible={doctorModalVisible}
         animationType="slide"
@@ -655,14 +648,12 @@ const AllAppointmentTab = () => {
             justifyContent: "flex-end",
           }}
         >
-          {/* Vùng nhấn bên ngoài để đóng modal */}
           <TouchableOpacity
             style={{ flex: 1 }}
             activeOpacity={1}
             onPress={() => setDoctorModalVisible(false)}
           />
 
-          {/* Nội dung Bottom Sheet */}
           <View
             style={{
               backgroundColor: "#FFFFFF",
@@ -674,7 +665,6 @@ const AllAppointmentTab = () => {
               maxHeight: "80%",
             }}
           >
-            {/* Thanh kéo nhỏ (Drag Handle) */}
             <View
               style={{
                 alignSelf: "center",
@@ -686,7 +676,6 @@ const AllAppointmentTab = () => {
               }}
             />
 
-            {/* Header Modal */}
             <View
               style={{
                 flexDirection: "row",
@@ -717,7 +706,6 @@ const AllAppointmentTab = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Danh sách Bác sĩ */}
             <FlatList
               data={[
                 { id: null, first_name: "Tất cả", last_name: "Bác sĩ" },
@@ -750,7 +738,6 @@ const AllAppointmentTab = () => {
                       setDoctorModalVisible(false);
                     }}
                   >
-                    {/* Avatar Bác sĩ */}
                     <View
                       style={{
                         width: 50,
@@ -777,7 +764,6 @@ const AllAppointmentTab = () => {
                       )}
                     </View>
 
-                    {/* Thông tin */}
                     <View style={{ flex: 1 }}>
                       <Text
                         style={{
@@ -796,7 +782,6 @@ const AllAppointmentTab = () => {
                       </Text>
                     </View>
 
-                    {/* Dấu check khi được chọn */}
                     {isSelected && (
                       <View
                         style={{
@@ -819,7 +804,6 @@ const AllAppointmentTab = () => {
         </View>
       </Modal>
 
-      {/* --- MODAL CHI TIẾT LỊCH KHÁM --- */}
       <Modal
         visible={detailModalVisible}
         animationType="slide"
@@ -846,7 +830,6 @@ const AllAppointmentTab = () => {
         </View>
       </Modal>
 
-      {/* --- MODAL CẢNH BÁO CHƯA CÓ HỒ SƠ Y TẾ --- */}
       <Modal
         visible={showProfileModal}
         animationType="fade"

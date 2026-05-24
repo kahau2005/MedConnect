@@ -244,8 +244,6 @@ const Payment = () => {
           items={services}
           isService={true}
         />
-
-        {/* THUỐC */}
         <SectionCard
           title="Đơn thuốc"
           icon={
@@ -262,7 +260,6 @@ const Payment = () => {
           isService={false}
         />
 
-        {/* TỔNG KẾT */}
         <View style={Style.summarySection}>
           <View style={Style.sumRow}>
             <Text style={Style.sumLabel}>Dịch vụ y tế</Text>
@@ -282,7 +279,6 @@ const Payment = () => {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* NÚT ZALOPAY */}
       {paymentStatus !== "COMPLETED" && (
         <View style={Style.bottomContainer}>
           <TouchableOpacity
