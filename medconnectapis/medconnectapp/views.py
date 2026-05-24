@@ -156,8 +156,28 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
             self.throttle_scope = "booking"
         elif self.action == "checkout":
             self.throttle_scope = "checkout"
+        elif self.action in [
+            "list",
+            "retrieve",
+            "today",
+            "status",
+            "doctors",
+            "video_call_info",
+        ]:
+            self.throttle_scope = "appointment_read"
+        elif self.action == "partial_update":
+            self.throttle_scope = "appointment_update"
+        elif self.action == "prescriptions":
+            self.throttle_scope = "appointment_prescriptions"
+        elif self.action == "services":
+            self.throttle_scope = "appointment_services_action"
+        elif self.action == "review":
+            self.throttle_scope = "appointment_review"
+        elif self.action == "chat_rooms":
+            self.throttle_scope = "appointment_chat_rooms"
         else:
             self.throttle_scope = "appointment"
+
         return [ScopedRateThrottle()]
 
     def retrieve(self, request, pk=None):
@@ -214,7 +234,6 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -228,14 +247,12 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
             )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-
     def partial_update(self, request, pk=None):
         appointment = self.get_object()
         serializer = self.get_serializer(appointment, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
     @action(
         detail=True,

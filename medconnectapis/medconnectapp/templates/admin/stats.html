@@ -41,111 +41,111 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-    window.onload = function() {
-        let ageLabels = [];
-        let ageData = [];
-        {% for a in age_groups %}
-            ageLabels.push('{{ a.age_group }}');
-            ageData.push({{ a.total }});
-        {% endfor %}
+        window.onload = function () {
+            let ageLabels = [];
+            let ageData = [];
+            {% for a in age_groups %}
+                ageLabels.push('{{ a.age_group }}');
+                ageData.push({{ a.total }});
+            {% endfor %}
 
-        new Chart(document.getElementById('ageChart'), {
-            type: 'pie',
-            data: {
-                labels: ageLabels,
-                datasets: [{
-                    label: 'Số lượng',
-                    data: ageData,
-                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
-                }]
-            },
-            options: { plugins: { title: { display: true, text: 'Phân bố độ tuổi' } } }
-        });
+            new Chart(document.getElementById('ageChart'), {
+                type: 'pie',
+                data: {
+                    labels: ageLabels,
+                    datasets: [{
+                        label: 'Số lượng',
+                        data: ageData,
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
+                    }]
+                },
+                options: {plugins: {title: {display: true, text: 'Phân bố độ tuổi'}}}
+            });
 
-        let specLabels = [];
-        let specData = [];
-        {% for s in specialties %}
-            specLabels.push('{{ s.doctor__specialty__name }}');
-            specData.push({{ s.total }});
-        {% endfor %}
+            let specLabels = [];
+            let specData = [];
+            {% for s in specialties %}
+                specLabels.push('{{ s.doctor__specialty__name }}');
+                specData.push({{ s.total }});
+            {% endfor %}
 
-        new Chart(document.getElementById('specialtyChart'), {
-            type: 'bar',
-            data: {
-                labels: specLabels,
-                datasets: [{
-                    label: 'Số lượng bệnh nhân',
-                    data: specData,
-                    backgroundColor: '#36A2EB'
-                }]
-            },
-            options: { plugins: { title: { display: true, text: 'Bệnh nhân theo Chuyên khoa' } } }
-        });
+            new Chart(document.getElementById('specialtyChart'), {
+                type: 'bar',
+                data: {
+                    labels: specLabels,
+                    datasets: [{
+                        label: 'Số lượng bệnh nhân',
+                        data: specData,
+                        backgroundColor: '#36A2EB'
+                    }]
+                },
+                options: {plugins: {title: {display: true, text: 'Bệnh nhân theo Chuyên khoa'}}}
+            });
 
-        let servLabels = [];
-        let servData = [];
-        {% for s in services %}
-            servLabels.push('{{ s.service__name }}');
-            servData.push({{ s.total_quantity }});
-        {% endfor %}
+            let servLabels = [];
+            let servData = [];
+            {% for s in services %}
+                servLabels.push('{{ s.service__name }}');
+                servData.push({{ s.total_quantity }});
+            {% endfor %}
 
-        new Chart(document.getElementById('serviceChart'), {
-            type: 'bar',
-            data: {
-                labels: servLabels,
-                datasets: [{
-                    label: 'Lượt sử dụng',
-                    data: servData,
-                    backgroundColor: '#4BC0C0'
-                }]
-            },
-            options: { 
-                indexAxis: 'y', 
-                plugins: { title: { display: true, text: 'Tất cả Dịch vụ' } } 
-            }
-        });
+            new Chart(document.getElementById('serviceChart'), {
+                type: 'bar',
+                data: {
+                    labels: servLabels,
+                    datasets: [{
+                        label: 'Lượt sử dụng',
+                        data: servData,
+                        backgroundColor: '#4BC0C0'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    plugins: {title: {display: true, text: 'Tất cả Dịch vụ'}}
+                }
+            });
 
-        let diseaseLabels = [];
-        let diseaseData = [];
-        {% for d in diseases %}
-            diseaseLabels.push('{{ d.diagnosis__disease_category__name }}');
-            diseaseData.push({{ d.total_appointments }});
-        {% endfor %}
+            let diseaseLabels = [];
+            let diseaseData = [];
+            {% for d in diseases %}
+                diseaseLabels.push('{{ d.diagnosis__disease_category__name }}');
+                diseaseData.push({{ d.total_appointments }});
+            {% endfor %}
 
-        new Chart(document.getElementById('diseaseChart'), {
-            type: 'bar',
-            data: {
-                labels: diseaseLabels,
-                datasets: [{
-                    label: 'Số ca mắc',
-                    data: diseaseData,
-                    backgroundColor: '#FF9F40'
-                }]
-            },
-            options: { plugins: { title: { display: true, text: 'Nhóm bệnh lý' } } }
-        });
+            new Chart(document.getElementById('diseaseChart'), {
+                type: 'bar',
+                data: {
+                    labels: diseaseLabels,
+                    datasets: [{
+                        label: 'Số ca mắc',
+                        data: diseaseData,
+                        backgroundColor: '#FF9F40'
+                    }]
+                },
+                options: {plugins: {title: {display: true, text: 'Nhóm bệnh lý'}}}
+            });
 
-        let revenueLabels = [];
-        let revenueData = [];
-        {% for r in revenue_by_date %}
-            revenueLabels.push('{{ r.date|date:"d/m/Y" }}');
-            revenueData.push({{ r.daily_total }});
-        {% endfor %}
+            let revenueLabels = [];
+            let revenueData = [];
+            {% for r in revenue_by_date %}
+                revenueLabels.push('{{ r.date|date:"d/m/Y" }}');
+                revenueData.push({{ r.daily_total }});
+            {% endfor %}
 
-        new Chart(document.getElementById('revenueChart'), {
-            type: 'line',
-            data: {
-                labels: revenueLabels,
-                datasets: [{
-                    label: 'Doanh thu (VNĐ)',
-                    data: revenueData,
-                    borderColor: '#0288d1',
-                    backgroundColor: 'rgba(2, 136, 209, 0.2)',
-                    tension: 0.3
-                }]
-            },
-            options: { plugins: { title: { display: true, text: 'Biến động doanh thu theo thời gian' } } }
-        });
-    };
-</script>
+            new Chart(document.getElementById('revenueChart'), {
+                type: 'line',
+                data: {
+                    labels: revenueLabels,
+                    datasets: [{
+                        label: 'Doanh thu (VNĐ)',
+                        data: revenueData,
+                        borderColor: '#0288d1',
+                        backgroundColor: 'rgba(2, 136, 209, 0.2)',
+                        tension: 0.3
+                    }]
+                },
+                options: {plugins: {title: {display: true, text: 'Doanh thu theo thời gian'}}}
+            });
+        };
+    </script>
 {% endblock %}

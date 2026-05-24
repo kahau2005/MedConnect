@@ -619,12 +619,6 @@ class SpecialtySerializer(ModelSerializer):
             data["image"] = instance.image.url
         return data
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if instance.image:
-            data["image"] = instance.image.url
-        return data
-
 
 class PatientProfileSerializer(ModelSerializer):
     user = HiddenField(default=CurrentUserDefault())
@@ -642,6 +636,11 @@ class PatientProfileSerializer(ModelSerializer):
             "blood_type",
             "address",
         ]
+
+    def validate_dob(self, value):
+        if value >= timezone.localdate():
+            raise serializers.ValidationError("Ngày sinh phải trong quá khứ.")
+        return value
 
     def validate(self, attrs):
         input_fields = ["allergies", "chronic_diseases", "address"]
@@ -678,9 +677,9 @@ class SimpleUserSerializer(ModelSerializer):
         if value:
             if not value.content_type.startswith("image/"):
                 raise serializers.ValidationError("Định dạng file avatar không hợp lệ")
-            if value.size > 10 * 1024 * 1024:
+            if value.size > 20 * 1024 * 1024:
                 raise serializers.ValidationError(
-                    "Ảnh có kích thước quá lớn, vui lòng chọn ảnh dưới 10MB"
+                    "Ảnh có kích thước quá lớn, vui lòng chọn ảnh dưới 20MB"
                 )
         return value
 
