@@ -71,7 +71,6 @@ const PatientProfileTab = () => {
 
     try {
       setLoading(true);
-      // 🌟 Chỉ fetch profile, không cần fetch user info nữa vì đã có sẵn trong Context
       const profileRes = await authApis(user.access_token).get(
         endpoint.patient_profile,
       );
@@ -571,12 +570,6 @@ const PatientProfileTab = () => {
           )}
 
           <View style={Style.menuList}>
-            <TouchableOpacity style={Style.menuItem}>
-              <Feather name="settings" size={22} color="#4B5563" />
-              <Text style={Style.menuItemText}>Cài đặt tài khoản</Text>
-              <Feather name="chevron-right" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={Style.menuItem}
               onPress={async () => {
