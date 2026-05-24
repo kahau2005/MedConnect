@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useRef, useContext } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useContext,
+  useCallback,
+} from "react";
 import {
   View,
   Text,
@@ -7,17 +13,19 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  Modal,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { DatePickerInput, TimePickerModal } from "react-native-paper-dates";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 import SelectorModal from "../../components/SelectorModel/SelectorModal";
 import Apis, { authApis, endpoint } from "../../configs/Apis";
 import { UserContext } from "../../contexts/UserContext";
 import LoadingModal from "../../components/LoadingModel/LoadingModel";
+import Style from "./Style";
 
 const Appointment = () => {
   const [inputDate, setInputDate] = useState(undefined);
@@ -48,6 +56,9 @@ const Appointment = () => {
 
   const [user] = useContext(UserContext);
 
+  const [hasProfile, setHasProfile] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
   const loadSpecialty = async (isLoadMore = false) => {
     if (isSpecLoadingRef.current || (!specHasMore && isLoadMore)) return;
 
@@ -75,6 +86,21 @@ const Appointment = () => {
     } finally {
       isSpecLoadingRef.current = false;
       setSpecLoading(false);
+    }
+  };
+
+  const getProfile = async () => {
+    try {
+      const res = await authApis(user.access_token).get(
+        endpoint.patient_profile,
+      );
+      if (res.data && res.data.active) {
+        setHasProfile(true);
+        setShowProfileModal(false);
+      }
+    } catch (err) {
+      setHasProfile(false);
+      setShowProfileModal(true);
     }
   };
 
@@ -169,6 +195,14 @@ const Appointment = () => {
     setDocHasMore(true);
     loadDoctors(false);
   }, [selectedSpecialty]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        getProfile();
+      }
+    }, [user]),
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
@@ -339,6 +373,85 @@ const Appointment = () => {
         onSelect={(item) => setSelectedDoctor(item)}
       />
       {loading && <LoadingModal />}
+      <Modal
+        visible={showProfileModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => {}}
+      >
+        <View style={Style.modalOverlay}>
+          <View
+            style={[Style.modalContent, { padding: 24, alignItems: "center" }]}
+          >
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: "#EBF4FF",
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <MaterialCommunityIcons
+                name="clipboard-account-outline"
+                size={32}
+                color="#0066FF"
+              />
+            </View>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "bold",
+                color: "#111827",
+                marginBottom: 8,
+                textAlign: "center",
+              }}
+            >
+              Chưa có hồ sơ y tế
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#6B7280",
+                textAlign: "center",
+                marginBottom: 24,
+                lineHeight: 20,
+              }}
+            >
+              Bạn cần cập nhật hồ sơ y tế đầy đủ để có thể sử dụng các dịch vụ
+              đặt lịch và khám bệnh.
+            </Text>
+            <TouchableOpacity
+              style={[
+                Style.actionBtnPrimary,
+                {
+                  width: "100%",
+                  paddingVertical: 12,
+                  justifyContent: "center",
+                  alignItems: "center",
+                },
+              ]}
+              onPress={() => {
+                setShowProfileModal(false);
+                navigation.navigate("Home", { screen: "Profile" });
+              }}
+            >
+              <Text style={Style.actionBtnPrimaryText}>Cập nhật ngay</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ marginTop: 20 }}
+              onPress={() => {
+                setShowProfileModal(false);
+                navigation.navigate("Home");
+              }}
+            >
+              <Text>Thoát</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
