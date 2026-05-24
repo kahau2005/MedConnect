@@ -29,6 +29,7 @@ import UserReducer from "./reducers/UserReducer";
 import CallStream from "./screens/CallStream/CallStream";
 import Register from "./screens/Register/Register";
 import { registerDevice } from "./configs/FCMService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Stack = createNativeStackNavigator();
 
@@ -54,6 +55,24 @@ const theme = {
 
 export default function App() {
   const [user, dispatch] = useReducer(UserReducer, null);
+
+  useEffect(() => {
+    const checkPersistedUser = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("user");
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          dispatch({
+            type: "LOGIN",
+            payload: parsedUser,
+          });
+        }
+      } catch (error) {
+        console.error("Error loading user:", error);
+      }
+    };
+    checkPersistedUser();
+  }, []);
 
   useEffect(() => {
     const messagingInstance = getMessaging();

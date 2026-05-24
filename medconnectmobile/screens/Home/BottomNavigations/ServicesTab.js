@@ -23,7 +23,7 @@ const ServicesTab = () => {
       let res = await Apis.get(`${endpoint.services}popular`);
       console.log(
         "API response for popular services:",
-        PopularServiceItemMapper(res.data),
+        res.data[0]?.image || "Không có",
       );
       setPopularServices(PopularServiceItemMapper(res.data));
     } catch (error) {
@@ -36,11 +36,6 @@ const ServicesTab = () => {
     fetchPopularServices();
   }, []);
 
-  useEffect(() => {
-    console.log("---------Popular Services State (Sau khi re-render)---------");
-    console.log(popularServices);
-    console.log("---------------------------------------");
-  }, [popularServices]);
   return (
     <CollapsingToolBar
       headerMaxHeight={220}

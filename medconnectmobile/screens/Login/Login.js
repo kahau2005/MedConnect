@@ -19,6 +19,7 @@ import Apis, { authApis, endpoint } from "../../configs/Apis";
 import LoadingModal from "../../components/LoadingModel/LoadingModel";
 import { UserContext } from "../../contexts/UserContext";
 import { requestUserPermission } from "../../configs/FCMService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Login = () => {
   const nav = useNavigation();
@@ -48,6 +49,7 @@ const Login = () => {
         ...currentUser,
         access_token: res.data.access_token,
       };
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
       dispatch({
         type: "LOGIN",
         payload: userData,
