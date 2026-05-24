@@ -1,4 +1,10 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   View,
   Text,
@@ -9,11 +15,14 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+
 import Style from "./Style";
 import Apis, { authApis, endpoint } from "../../../../configs/Apis";
 import { UserContext } from "../../../../contexts/UserContext";
@@ -42,6 +51,12 @@ const AllAppointmentTab = () => {
   const [kw, setKw] = useState("");
   const [offset, setOffset] = useState(0);
 
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [doctorModalVisible, setDoctorModalVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [doctorsList, setDoctorsList] = useState([]);
+
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [detailData, setDetailData] = useState(null);
@@ -52,9 +67,11 @@ const AllAppointmentTab = () => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const isLoadingRef = useRef(false);
   const isDoctorMode = user?.role === "DOCTOR" || false;
+  const [hasProfile, setHasProfile] = useState(false);
 
   const getStatusConfig = (status) => {
     switch (status) {
@@ -83,6 +100,42 @@ const AllAppointmentTab = () => {
     return { date, time };
   };
 
+  const displaySelectedDate = (dateStr) => {
+    if (!dateStr) return "Chọn ngày";
+    const [year, month, day] = dateStr.split("-");
+    return `${day}/${month}/${year}`;
+  };
+
+  const onDateChange = (event, selected) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
+
+    if (event.type === "set" && selected) {
+      const year = selected.getFullYear();
+      const month = String(selected.getMonth() + 1).padStart(2, "0");
+      const day = String(selected.getDate()).padStart(2, "0");
+      setSelectedDate(`${year}-${month}-${day}`);
+    } else if (event.type === "dismissed") {
+      setShowDatePicker(false);
+    }
+  };
+
+  const loadDoctorsList = async () => {
+    if (!user?.access_token || isDoctorMode) return;
+    try {
+      const res = await authApis(user.access_token).get(
+        `${endpoint.appointment}/doctors/`,
+      );
+      setDoctorsList(res.data);
+    } catch (error) {
+      console.log("Lỗi tải danh sách bác sĩ:", error);
+    }
+  };
+  useEffect(() => {
+    loadDoctorsList();
+  }, [user]);
+
   const loadAppointment = async (isLoadMore = false) => {
     if (isLoadingRef.current || (!hasMore && isLoadMore) || !user?.access_token)
       return;
@@ -90,8 +143,13 @@ const AllAppointmentTab = () => {
     if (!refreshing) setLoading(true);
     try {
       const statusParam = activeFilter === "ALL" ? "" : activeFilter;
+      const dateParam = selectedDate ? `&from_date=${selectedDate}` : "";
+      const doctorParam = selectedDoctor
+        ? `&doctor_id=${selectedDoctor.id}`
+        : "";
+
       const res = await authApis(user.access_token).get(
-        `${endpoint.appointment}?offset=${offset}&kw=${kw}&status=${statusParam}`,
+        `${endpoint.appointment}?offset=${offset}&kw=${kw}&status=${statusParam}${dateParam}${doctorParam}`,
       );
       const newData = res.data.results || [];
       if (isLoadMore) {
@@ -122,6 +180,41 @@ const AllAppointmentTab = () => {
     setRefreshing(false);
   };
 
+  const getProfile = async () => {
+    try {
+      const res = await authApis(user.access_token).get(
+        endpoint.patient_profile,
+      );
+      if (res.data && res.data.active) {
+        setHasProfile(true);
+        setShowProfileModal(false);
+      }
+    } catch (err) {
+      setHasProfile(false);
+      setShowProfileModal(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    setHasMore(true);
+    if (offset === 0) loadAppointment(false);
+    else setOffset(0);
+  }, [user, kw, activeFilter, selectedDate, selectedDoctor]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (offset > 0) loadAppointment(true);
+  }, [offset, user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        getProfile();
+      }
+    }, [user]),
+  );
+
   const handleGoToChat = async (appointmentId, status) => {
     try {
       const response = await authApis(user.access_token).post(
@@ -151,7 +244,6 @@ const AllAppointmentTab = () => {
       setDetailData(res.data);
     } catch (err) {
       console.error("Lỗi tải chi tiết:", err.status);
-
       Alert.alert("Lỗi", "Không thể tải chi tiết lịch khám.");
     } finally {
       setLoadingDetail(false);
@@ -162,18 +254,6 @@ const AllAppointmentTab = () => {
     const t = setTimeout(() => setKw(searchTxt), 500);
     return () => clearTimeout(t);
   }, [searchTxt]);
-
-  useEffect(() => {
-    if (!user) return;
-    setHasMore(true);
-    if (offset === 0) loadAppointment(false);
-    else setOffset(0);
-  }, [user, kw, activeFilter]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (offset > 0) loadAppointment(true);
-  }, [offset, user]);
 
   if (!user) {
     return (
@@ -203,14 +283,10 @@ const AllAppointmentTab = () => {
         </View>
       );
     }
-
     if (!detailData) return null;
-
     const services = detailData.items.filter((i) => i.type === "SERVICE");
     const medicines = detailData.items.filter((i) => i.type === "MEDICINE");
     const total = parseFloat(detailData.total_amount);
-    const isPaid =
-      detailData.status === "PAID" || detailData.status === "COMPLETED";
 
     return (
       <ScrollView
@@ -227,43 +303,26 @@ const AllAppointmentTab = () => {
               />
             </View>
             <Text style={Style.sectionTitle}>Dịch vụ y tế</Text>
-            <View
-              style={{
-                marginLeft: "auto",
-                backgroundColor: "#F3E8FF",
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-                borderRadius: 10,
-              }}
-            >
-              <Text
-                style={{ fontSize: 11, fontWeight: "600", color: "#9333EA" }}
-              >
-                {services.length} dịch vụ
-              </Text>
-            </View>
           </View>
-
           <View style={Style.itemList}>
-            {services.map((svc, idx) => {
-              const lineTotal = svc.unit_price * svc.quantity;
-              return (
-                <View key={idx} style={Style.itemRow}>
-                  <View style={Style.itemLeft}>
-                    <View style={Style.bulletPoint} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={Style.itemName}>{svc.name}</Text>
-                      <Text
-                        style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}
-                      >
-                        SL: {svc.quantity} × {fmt(svc.unit_price)}
-                      </Text>
-                    </View>
+            {services.map((svc, idx) => (
+              <View key={idx} style={Style.itemRow}>
+                <View style={Style.itemLeft}>
+                  <View style={Style.bulletPoint} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={Style.itemName}>{svc.name}</Text>
+                    <Text
+                      style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}
+                    >
+                      SL: {svc.quantity} × {fmt(svc.unit_price)}
+                    </Text>
                   </View>
-                  <Text style={Style.itemPrice}>{fmt(lineTotal)}</Text>
                 </View>
-              );
-            })}
+                <Text style={Style.itemPrice}>
+                  {fmt(svc.unit_price * svc.quantity)}
+                </Text>
+              </View>
+            ))}
           </View>
         </View>
 
@@ -274,23 +333,7 @@ const AllAppointmentTab = () => {
                 <MaterialCommunityIcons name="pill" size={20} color="#00D084" />
               </View>
               <Text style={Style.sectionTitle}>Đơn thuốc</Text>
-              <View
-                style={{
-                  marginLeft: "auto",
-                  backgroundColor: "#E8FBF4",
-                  paddingHorizontal: 8,
-                  paddingVertical: 2,
-                  borderRadius: 10,
-                }}
-              >
-                <Text
-                  style={{ fontSize: 11, fontWeight: "600", color: "#059669" }}
-                >
-                  {medicines.length} mục
-                </Text>
-              </View>
             </View>
-
             <View style={Style.itemList}>
               {medicines.map((med, idx) => {
                 const lineTotal = med.total ?? med.unit_price * med.quantity;
@@ -321,57 +364,6 @@ const AllAppointmentTab = () => {
         )}
         <View style={Style.receiptCard}>
           <Text style={Style.receiptTitle}>Tổng quan thanh toán</Text>
-          <View style={Style.receiptDashedLine} />
-
-          <View style={Style.receiptRow}>
-            <Text style={Style.receiptLabel}>Dịch vụ y tế</Text>
-            <Text
-              style={[
-                Style.receiptLabel,
-                { color: "#111827", fontWeight: "600" },
-              ]}
-            >
-              {fmt(services.reduce((a, i) => a + i.unit_price * i.quantity, 0))}
-            </Text>
-          </View>
-
-          <View style={Style.receiptRow}>
-            <Text style={Style.receiptLabel}>Thuốc</Text>
-            <Text
-              style={[
-                Style.receiptLabel,
-                { color: "#111827", fontWeight: "600" },
-              ]}
-            >
-              {fmt(
-                medicines.reduce(
-                  (a, i) => a + (i.total ?? i.unit_price * i.quantity),
-                  0,
-                ),
-              )}
-            </Text>
-          </View>
-
-          <View style={Style.receiptRow}>
-            <Text style={Style.receiptLabel}>Trạng thái</Text>
-            <View style={Style.checkoutStatusBadge}>
-              <MaterialCommunityIcons
-                name={isPaid ? "check-circle" : "clock-outline"}
-                size={14}
-                color={isPaid ? "#059669" : "#D97706"}
-              />
-              <Text
-                style={[
-                  Style.checkoutStatusText,
-                  !isPaid && { color: "#D97706" },
-                ]}
-              >
-                {" "}
-                {isPaid ? "Đã thanh toán" : "Chờ thanh toán"}
-              </Text>
-            </View>
-          </View>
-
           <View style={Style.receiptRowTotal}>
             <Text style={Style.receiptTotalLabel}>Tổng cộng</Text>
             <Text style={Style.receiptTotalAmount}>{fmt(total)}</Text>
@@ -400,17 +392,89 @@ const AllAppointmentTab = () => {
         {!isDoctorMode && (
           <>
             <View style={Style.dateDoctorFilterRow}>
-              <TouchableOpacity style={Style.dropdownBtn}>
-                <Feather name="calendar" size={16} color="#4B5563" />
-                <Text style={Style.dropdownText}>Chọn ngày</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={Style.dropdownBtn}>
+              <View
+                style={[
+                  Style.dropdownBtn,
+                  selectedDate && {
+                    backgroundColor: "#EBF4FF",
+                    borderColor: "#0066FF",
+                    paddingRight: 8,
+                    paddingLeft: 8,
+                  },
+                ]}
+              >
+                <TouchableOpacity
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    flex: 1,
+                  }}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Feather
+                    name="calendar"
+                    size={16}
+                    color={selectedDate ? "#0066FF" : "#4B5563"}
+                  />
+                  <Text
+                    style={[
+                      Style.dropdownText,
+                      selectedDate && { color: "#0066FF", fontWeight: "600" },
+                    ]}
+                  >
+                    {selectedDate
+                      ? displaySelectedDate(selectedDate)
+                      : "Chọn ngày"}
+                  </Text>
+                </TouchableOpacity>
+                {selectedDate && (
+                  <TouchableOpacity
+                    onPress={() => setSelectedDate(null)}
+                    style={{ padding: 4 }}
+                  >
+                    <Feather name="x-circle" size={16} color="#0066FF" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  Style.dropdownBtn,
+                  selectedDoctor && {
+                    backgroundColor: "#EBF4FF",
+                    borderColor: "#0066FF",
+                  },
+                ]}
+                onPress={() => setDoctorModalVisible(true)}
+              >
                 <MaterialCommunityIcons
                   name="stethoscope"
                   size={16}
-                  color="#4B5563"
+                  color={selectedDoctor ? "#0066FF" : "#4B5563"}
                 />
-                <Text style={Style.dropdownText}>Chọn Bác sĩ</Text>
+                <Text
+                  style={[
+                    Style.dropdownText,
+                    selectedDoctor && { color: "#0066FF", fontWeight: "600" },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {selectedDoctor
+                    ? `${selectedDoctor.first_name || ""} ${selectedDoctor.last_name || ""}`.trim()
+                    : "Chọn Bác sĩ"}
+                </Text>
+
+                {selectedDoctor && (
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setSelectedDoctor(null);
+                    }}
+                    style={{ marginLeft: 4 }}
+                  >
+                    <Feather name="x-circle" size={16} color="#0066FF" />
+                  </TouchableOpacity>
+                )}
               </TouchableOpacity>
             </View>
             <ScrollView
@@ -545,7 +609,6 @@ const AllAppointmentTab = () => {
                     </Text>
                   </TouchableOpacity>
                 )}
-
                 {item.status === "COMPLETED" && (
                   <View style={Style.completedActions}>
                     <TouchableOpacity
@@ -556,22 +619,190 @@ const AllAppointmentTab = () => {
                         Xem chi tiết
                       </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={Style.actionBtnReview}>
-                      <Text style={Style.actionBtnReviewText}>Đánh giá</Text>
-                    </TouchableOpacity>
                   </View>
-                )}
-
-                {item.status === "CANCELLED" && (
-                  <TouchableOpacity style={Style.actionBtnOutline}>
-                    <Text style={Style.actionBtnOutlineText}>Đặt lại lịch</Text>
-                  </TouchableOpacity>
                 )}
               </View>
             </TouchableOpacity>
           );
         }}
       />
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate ? new Date(selectedDate) : new Date()}
+          mode="date"
+          display={Platform.OS === "ios" ? "spinner" : "default"}
+          onChange={onDateChange}
+        />
+      )}
+
+      <Modal
+        visible={doctorModalVisible}
+        animationType="slide"
+        transparent={true}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setDoctorModalVisible(false)}
+          />
+
+          <View
+            style={{
+              backgroundColor: "#FFFFFF",
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              paddingHorizontal: 20,
+              paddingTop: 12,
+              paddingBottom: Platform.OS === "ios" ? 32 : 20,
+              maxHeight: "80%",
+            }}
+          >
+            <View
+              style={{
+                alignSelf: "center",
+                width: 48,
+                height: 5,
+                backgroundColor: "#E5E7EB",
+                borderRadius: 3,
+                marginBottom: 16,
+              }}
+            />
+
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 20,
+              }}
+            >
+              <View>
+                <Text
+                  style={{ fontSize: 20, fontWeight: "bold", color: "#111827" }}
+                >
+                  Chọn Bác sĩ
+                </Text>
+                <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
+                  Lọc lịch hẹn theo bác sĩ phụ trách
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setDoctorModalVisible(false)}
+                style={{
+                  backgroundColor: "#F3F4F6",
+                  padding: 8,
+                  borderRadius: 20,
+                }}
+              >
+                <Feather name="x" size={20} color="#4B5563" />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={[
+                { id: null, first_name: "Tất cả", last_name: "Bác sĩ" },
+                ...doctorsList,
+              ]}
+              keyExtractor={(item) => (item.id ? item.id.toString() : "all")}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => {
+                const isSelected = selectedDoctor?.id === item.id;
+                const isAllOption = item.id === null;
+                const name = isAllOption
+                  ? "Tất cả bác sĩ"
+                  : `Bs. ${item.first_name} ${item.last_name}`;
+
+                return (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      padding: 16,
+                      marginBottom: 12,
+                      borderRadius: 16,
+                      borderWidth: 1.5,
+                      borderColor: isSelected ? "#0066FF" : "#F3F4F6",
+                      backgroundColor: isSelected ? "#F5F9FF" : "#FFFFFF",
+                    }}
+                    onPress={() => {
+                      setSelectedDoctor(isAllOption ? null : item);
+                      setDoctorModalVisible(false);
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: 25,
+                        backgroundColor: isAllOption ? "#E8FBF4" : "#EBF4FF",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        marginRight: 16,
+                      }}
+                    >
+                      {isAllOption ? (
+                        <MaterialCommunityIcons
+                          name="account-group"
+                          size={24}
+                          color="#00D084"
+                        />
+                      ) : (
+                        <MaterialCommunityIcons
+                          name="stethoscope"
+                          size={24}
+                          color="#0066FF"
+                        />
+                      )}
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          fontSize: 16,
+                          fontWeight: isSelected ? "700" : "600",
+                          color: isSelected ? "#0066FF" : "#1F2937",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {name}
+                      </Text>
+                      <Text style={{ fontSize: 13, color: "#6B7280" }}>
+                        {isAllOption
+                          ? "Hiển thị lịch hẹn của mọi bác sĩ"
+                          : item.specialty || "Chuyên khoa chung"}
+                      </Text>
+                    </View>
+
+                    {isSelected && (
+                      <View
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          backgroundColor: "#0066FF",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Feather name="check" size={14} color="#FFFFFF" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={detailModalVisible}
@@ -594,8 +825,78 @@ const AllAppointmentTab = () => {
                 <Feather name="x" size={22} color="#6B7280" />
               </TouchableOpacity>
             </View>
-
             {renderDetailContent()}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showProfileModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => {}}
+      >
+        <View style={Style.modalOverlay}>
+          <View
+            style={[Style.modalContent, { padding: 24, alignItems: "center" }]}
+          >
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: "#EBF4FF",
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <MaterialCommunityIcons
+                name="clipboard-account-outline"
+                size={32}
+                color="#0066FF"
+              />
+            </View>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "bold",
+                color: "#111827",
+                marginBottom: 8,
+                textAlign: "center",
+              }}
+            >
+              Chưa có hồ sơ y tế
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#6B7280",
+                textAlign: "center",
+                marginBottom: 24,
+                lineHeight: 20,
+              }}
+            >
+              Bạn cần cập nhật hồ sơ y tế đầy đủ để có thể sử dụng các dịch vụ
+              đặt lịch và khám bệnh.
+            </Text>
+            <TouchableOpacity
+              style={[
+                Style.actionBtnPrimary,
+                {
+                  width: "100%",
+                  paddingVertical: 12,
+                  justifyContent: "center",
+                  alignItems: "center",
+                },
+              ]}
+              onPress={() => {
+                setShowProfileModal(false);
+                nav.navigate("Profile");
+              }}
+            >
+              <Text style={Style.actionBtnPrimaryText}>Cập nhật ngay</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
