@@ -67,11 +67,9 @@ const AllAppointmentTab = () => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const isLoadingRef = useRef(false);
   const isDoctorMode = user?.role === "DOCTOR" || false;
-  const [hasProfile, setHasProfile] = useState(false);
 
   const getStatusConfig = (status) => {
     switch (status) {
@@ -180,21 +178,6 @@ const AllAppointmentTab = () => {
     setRefreshing(false);
   };
 
-  const getProfile = async () => {
-    try {
-      const res = await authApis(user.access_token).get(
-        endpoint.patient_profile,
-      );
-      if (res.data && res.data.active) {
-        setHasProfile(true);
-        setShowProfileModal(false);
-      }
-    } catch (err) {
-      setHasProfile(false);
-      setShowProfileModal(true);
-    }
-  };
-
   useEffect(() => {
     if (!user) return;
     setHasMore(true);
@@ -206,14 +189,6 @@ const AllAppointmentTab = () => {
     if (!user) return;
     if (offset > 0) loadAppointment(true);
   }, [offset, user]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (user) {
-        getProfile();
-      }
-    }, [user]),
-  );
 
   const handleGoToChat = async (appointmentId, status) => {
     try {
@@ -826,77 +801,6 @@ const AllAppointmentTab = () => {
               </TouchableOpacity>
             </View>
             {renderDetailContent()}
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={showProfileModal}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => {}}
-      >
-        <View style={Style.modalOverlay}>
-          <View
-            style={[Style.modalContent, { padding: 24, alignItems: "center" }]}
-          >
-            <View
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 32,
-                backgroundColor: "#EBF4FF",
-                justifyContent: "center",
-                alignItems: "center",
-                marginBottom: 16,
-              }}
-            >
-              <MaterialCommunityIcons
-                name="clipboard-account-outline"
-                size={32}
-                color="#0066FF"
-              />
-            </View>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "bold",
-                color: "#111827",
-                marginBottom: 8,
-                textAlign: "center",
-              }}
-            >
-              Chưa có hồ sơ y tế
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: "#6B7280",
-                textAlign: "center",
-                marginBottom: 24,
-                lineHeight: 20,
-              }}
-            >
-              Bạn cần cập nhật hồ sơ y tế đầy đủ để có thể sử dụng các dịch vụ
-              đặt lịch và khám bệnh.
-            </Text>
-            <TouchableOpacity
-              style={[
-                Style.actionBtnPrimary,
-                {
-                  width: "100%",
-                  paddingVertical: 12,
-                  justifyContent: "center",
-                  alignItems: "center",
-                },
-              ]}
-              onPress={() => {
-                setShowProfileModal(false);
-                nav.navigate("Profile");
-              }}
-            >
-              <Text style={Style.actionBtnPrimaryText}>Cập nhật ngay</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
