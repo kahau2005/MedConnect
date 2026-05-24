@@ -1,5 +1,4 @@
 import "react-native-gesture-handler";
-import messaging from "@react-native-firebase/messaging";
 import { useEffect, useReducer } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
@@ -7,7 +6,11 @@ import { Alert, Platform, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { OverlayProvider } from "stream-chat-expo";
-
+import {
+  getMessaging,
+  onMessage,
+  onTokenRefresh,
+} from "@react-native-firebase/messaging";
 import Home from "./screens/Home/Home";
 import Appointment from "./screens/Appointment/Appointment";
 import {
@@ -25,7 +28,8 @@ import { UserContext } from "./contexts/UserContext";
 import UserReducer from "./reducers/UserReducer";
 import CallStream from "./screens/CallStream/CallStream";
 import Register from "./screens/Register/Register";
-import { registerDevice, requestUserPermission } from "./configs/FCMService";
+import { registerDevice } from "./configs/FCMService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Stack = createNativeStackNavigator();
 
@@ -53,9 +57,30 @@ export default function App() {
   const [user, dispatch] = useReducer(UserReducer, null);
 
   useEffect(() => {
-    const unsubscribeTokenRefresh = messaging().onTokenRefresh(
+    const checkPersistedUser = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("user");
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          dispatch({
+            type: "LOGIN",
+            payload: parsedUser,
+          });
+        }
+      } catch (error) {
+        console.error("Error loading user:", error);
+      }
+    };
+    checkPersistedUser();
+  }, []);
+
+  useEffect(() => {
+    const messagingInstance = getMessaging();
+
+    const unsubscribeTokenRefresh = onTokenRefresh(
+      messagingInstance,
       async (newToken) => {
-        console.log("FCM Token đã được làm mới: ", newToken);
+        console.log(newToken);
 
         if (user && user.access_token) {
           await registerDevice(newToken, user.access_token);
@@ -63,7 +88,8 @@ export default function App() {
       },
     );
 
-    const unsubscribeForeground = messaging().onMessage(
+    const unsubscribeForeground = onMessage(
+      messagingInstance,
       async (remoteMessage) => {
         Alert.alert(
           remoteMessage.notification?.title || "Thông báo",

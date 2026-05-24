@@ -20,6 +20,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import LoadingModal from "../../../../components/LoadingModel/LoadingModel";
 import LoginPanel from "../../../../components/LoginPanel/LoginPanel";
 import { unregisterDevice } from "../../../../configs/FCMService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const PatientProfileTab = () => {
   const nav = useNavigation();
@@ -27,7 +28,6 @@ const PatientProfileTab = () => {
   const [hasProfile, setHasProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // 🌟 Đã xóa currentUser, dùng thẳng biến user từ Context
   const [user, dispatch] = useContext(UserContext);
   const [loading, setLoading] = useState(false);
 
@@ -71,7 +71,6 @@ const PatientProfileTab = () => {
 
     try {
       setLoading(true);
-      // 🌟 Chỉ fetch profile, không cần fetch user info nữa vì đã có sẵn trong Context
       const profileRes = await authApis(user.access_token).get(
         endpoint.patient_profile,
       );
@@ -571,16 +570,11 @@ const PatientProfileTab = () => {
           )}
 
           <View style={Style.menuList}>
-            <TouchableOpacity style={Style.menuItem}>
-              <Feather name="settings" size={22} color="#4B5563" />
-              <Text style={Style.menuItemText}>Cài đặt tài khoản</Text>
-              <Feather name="chevron-right" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={Style.menuItem}
               onPress={async () => {
                 await unregisterDevice();
+                await AsyncStorage.removeItem("user");
                 dispatch({
                   type: "LOGOUT",
                 });

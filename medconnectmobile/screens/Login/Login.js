@@ -9,6 +9,7 @@ import {
   Image,
   TouchableWithoutFeedback,
   Keyboard,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +19,7 @@ import Apis, { authApis, endpoint } from "../../configs/Apis";
 import LoadingModal from "../../components/LoadingModel/LoadingModel";
 import { UserContext } from "../../contexts/UserContext";
 import { requestUserPermission } from "../../configs/FCMService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Login = () => {
   const nav = useNavigation();
@@ -41,18 +43,24 @@ const Login = () => {
         password: password,
         grant_type: "password",
       });
+      console.log(res.data);
       const currentUser = await getCurrentUserInfo(res.data.access_token);
       const userData = {
         ...currentUser,
         access_token: res.data.access_token,
       };
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
       dispatch({
         type: "LOGIN",
         payload: userData,
       });
       nav.navigate("Home");
       requestUserPermission(res.data.access_token);
-    } catch {
+    } catch (err) {
+      Alert.alert(
+        "Đăng nhập thất bại",
+        "Tên đăng nhập hoặc mật khẩu không chính xác!",
+      );
     } finally {
       setLoading(false);
     }
@@ -128,10 +136,6 @@ const Login = () => {
                 </View>
               </View>
 
-              <TouchableOpacity style={Style.forgotPassBtn}>
-                <Text style={Style.forgotPassText}>Quên mật khẩu?</Text>
-              </TouchableOpacity>
-
               <TouchableOpacity
                 style={Style.loginBtn}
                 activeOpacity={0.8}
@@ -143,7 +147,7 @@ const Login = () => {
 
             <View style={Style.registerRow}>
               <Text style={Style.registerText}>Chưa có tài khoản? </Text>
-              <TouchableOpacity onPress={() => nav.navigate("RegisterScreen")}>
+              <TouchableOpacity onPress={() => nav.navigate("Register")}>
                 <Text style={Style.registerLink}>Đăng ký ngay</Text>
               </TouchableOpacity>
             </View>

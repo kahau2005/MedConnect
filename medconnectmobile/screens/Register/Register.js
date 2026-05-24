@@ -16,15 +16,14 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import * as ImagePicker from "expo-image-picker"; // 🌟 Import Image Picker
+import * as ImagePicker from "expo-image-picker";
 import Style from "./Style";
-import Apis, { endpoint } from "../../configs/Apis"; // Nhớ import API của bạn
+import Apis, { endpoint } from "../../configs/Apis";
 
 const Register = () => {
   const nav = useNavigation();
   const [loading, setLoading] = useState(false);
 
-  // States quản lý Form
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
@@ -33,35 +32,30 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // 🌟 Lưu toàn bộ object ảnh thay vì chỉ URI để dễ trích xuất file name, type
   const [avatar, setAvatar] = useState(null);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // 🌟 HÀM XỬ LÝ MỞ THƯ VIỆN ẢNH
   const handleChooseAvatar = async () => {
-    // 1. Xin quyền truy cập thư viện ảnh
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert("Lỗi", "Cần cấp quyền truy cập thư viện ảnh để chọn Avatar!");
       return;
     }
 
-    // 2. Mở thư viện cho phép cắt ảnh tỉ lệ 1:1 (hình vuông)
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.7, // Giảm dung lượng ảnh xuống 70% cho nhẹ
+      quality: 0.7,
     });
 
     if (!result.canceled) {
-      setAvatar(result.assets[0]); // Lưu object ảnh vào State
+      setAvatar(result.assets[0]);
     }
   };
 
-  // 🌟 HÀM ĐĂNG KÝ (MULTIPART FORM DATA)
   const handleRegister = async () => {
     if (password !== confirmPassword) {
       Alert.alert("Lỗi", "Mật khẩu xác nhận không khớp!");
@@ -71,7 +65,6 @@ const Register = () => {
     try {
       setLoading(true);
 
-      // 1. Tạo đối tượng FormData
       const formData = new FormData();
       formData.append("first_name", firstName);
       formData.append("last_name", lastName);
@@ -80,12 +73,10 @@ const Register = () => {
       formData.append("phone", phone);
       formData.append("password", password);
 
-      // 2. Xử lý File Ảnh để đưa vào FormData
       if (avatar) {
         const localUri = avatar.uri;
         const filename = localUri.split("/").pop();
 
-        // Suy luận type của ảnh (jpeg, png, jpg)
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : `image`;
 

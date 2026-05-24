@@ -46,6 +46,7 @@ const ChatStream = () => {
 
   useEffect(() => {
     if (user && user.role === "DOCTOR" && status !== "PENDING") {
+      console.log(user);
       const handleUpdateAppointmentStatus = async () => {
         try {
           await authApis(user.access_token).patch(
@@ -132,7 +133,7 @@ const ChatStream = () => {
       <Header
         nav={nav}
         appointmentId={appointmentId}
-        isDevDoctor={user?.role === "DOCTOR"} // Tự động check role
+        isDevDoctor={user?.role === "DOCTOR"}
         onOpenMenu={() => setActionMenuVisible(true)}
         onAudioCall={handleAudioCall}
         onVideoCall={handleVideoCall}
