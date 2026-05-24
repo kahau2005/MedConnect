@@ -20,6 +20,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import LoadingModal from "../../../../components/LoadingModel/LoadingModel";
 import LoginPanel from "../../../../components/LoginPanel/LoginPanel";
 import { unregisterDevice } from "../../../../configs/FCMService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const PatientProfileTab = () => {
   const nav = useNavigation();
@@ -573,6 +574,7 @@ const PatientProfileTab = () => {
               style={Style.menuItem}
               onPress={async () => {
                 await unregisterDevice();
+                await AsyncStorage.removeItem("user");
                 dispatch({
                   type: "LOGOUT",
                 });

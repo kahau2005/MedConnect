@@ -822,11 +822,13 @@ class PaymentViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_200_OK,
             )
 
+        callback_url = request.build_absolute_uri("/payments/zalopay-callback/")
         description = f"Thanh toán hóa đơn cho lịch khám #{payment.appointment.id}"
         zalopay_res = utils.create_order(
             order_id=payment.id,
             amount=int(payment.total_amount),
             description=description,
+            callback_url=callback_url,
         )
 
         if zalopay_res.get("return_code") == 1:

@@ -46,6 +46,7 @@ const ChatStream = () => {
 
   useEffect(() => {
     if (user && user.role === "DOCTOR" && status !== "PENDING") {
+      console.log(user);
       const handleUpdateAppointmentStatus = async () => {
         try {
           await authApis(user.access_token).patch(
