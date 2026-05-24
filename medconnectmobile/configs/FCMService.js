@@ -1,10 +1,16 @@
-import messaging from "@react-native-firebase/messaging";
+import {
+  getMessaging,
+  requestPermission,
+  getToken,
+  deleteToken,
+} from "@react-native-firebase/messaging";
 import { Platform } from "react-native";
 import { authApis, endpoint } from "./Apis";
 
 export const requestUserPermission = async (accessToken) => {
   try {
-    const authStatus = await messaging().requestPermission();
+    const messaging = getMessaging();
+    const authStatus = await requestPermission(messaging);
     const enabled = authStatus === 1 || authStatus === 2;
 
     if (enabled) {
@@ -20,7 +26,8 @@ export const requestUserPermission = async (accessToken) => {
 
 export const getFcmToken = async (accessToken) => {
   try {
-    const fcmToken = await messaging().getToken();
+    const messaging = getMessaging();
+    const fcmToken = await getToken(messaging);
     if (fcmToken) {
       console.log("FCM Token: ", fcmToken);
       await registerDevice(fcmToken, accessToken);
@@ -48,9 +55,11 @@ export const registerDevice = async (token, accessToken) => {
     );
   }
 };
-export const unregisterDevice = async (token) => {
+
+export const unregisterDevice = async () => {
   try {
-    await messaging().deleteToken();
+    const messaging = getMessaging();
+    await deleteToken(messaging);
     console.log("Hủy đăng ký thiết bị thành công khi logout");
   } catch (error) {
     console.error(

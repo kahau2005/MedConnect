@@ -209,3 +209,5 @@ firebase-credentials.json
 *.pyc
 db.sqlite3
 staticfiles/
+aca.yaml
+.env*

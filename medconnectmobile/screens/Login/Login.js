@@ -145,7 +145,7 @@ const Login = () => {
 
             <View style={Style.registerRow}>
               <Text style={Style.registerText}>Chưa có tài khoản? </Text>
-              <TouchableOpacity onPress={() => nav.navigate("RegisterScreen")}>
+              <TouchableOpacity onPress={() => nav.navigate("Register")}>
                 <Text style={Style.registerLink}>Đăng ký ngay</Text>
               </TouchableOpacity>
             </View>

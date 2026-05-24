@@ -132,7 +132,7 @@ const ChatStream = () => {
       <Header
         nav={nav}
         appointmentId={appointmentId}
-        isDevDoctor={user?.role === "DOCTOR"} // Tự động check role
+        isDevDoctor={user?.role === "DOCTOR"}
         onOpenMenu={() => setActionMenuVisible(true)}
         onAudioCall={handleAudioCall}
         onVideoCall={handleVideoCall}

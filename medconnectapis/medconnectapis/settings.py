@@ -24,6 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env_path = os.path.join(BASE_DIR, ".env")
 load_dotenv(env_path)
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -64,14 +65,19 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES": {
         "register": "3/m",
-        "login": "5/m",
         "current_user": "10/m",
         "patient_profile": "10/m",
         "checkout": "3/m",
         "payment": "3/m",
         "booking": "10/h",
-        "appointment": "100/m",
+        "appointment_read": "20/m",
+        "appointment_update": "20/m",
+        "appointment_prescriptions": "20/m",
+        "appointment_services_action": "20/m",
+        "appointment_review": "20/m",
+        "appointment_chat_rooms": "20/m",
         "appointment_service": "10/m",
+        "appointment": "20/m",
         "prescription": "10/m",
         "prescription_details": "5/m",
         "disease_category": "20/m",
