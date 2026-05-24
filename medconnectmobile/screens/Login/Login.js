@@ -9,6 +9,7 @@ import {
   Image,
   TouchableWithoutFeedback,
   Keyboard,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -41,6 +42,7 @@ const Login = () => {
         password: password,
         grant_type: "password",
       });
+      console.log(res.data);
       const currentUser = await getCurrentUserInfo(res.data.access_token);
       const userData = {
         ...currentUser,
@@ -52,7 +54,11 @@ const Login = () => {
       });
       nav.navigate("Home");
       requestUserPermission(res.data.access_token);
-    } catch {
+    } catch (err) {
+      Alert.alert(
+        "Đăng nhập thất bại",
+        "Tên đăng nhập hoặc mật khẩu không chính xác!",
+      );
     } finally {
       setLoading(false);
     }
@@ -127,10 +133,6 @@ const Login = () => {
                   </TouchableOpacity>
                 </View>
               </View>
-
-              <TouchableOpacity style={Style.forgotPassBtn}>
-                <Text style={Style.forgotPassText}>Quên mật khẩu?</Text>
-              </TouchableOpacity>
 
               <TouchableOpacity
                 style={Style.loginBtn}
