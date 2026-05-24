@@ -17,7 +17,6 @@ import { useRoute } from "@react-navigation/native";
 
 const { ZaloPayModule } = NativeModules;
 
-// ── HELPERS ───────────────────────────────────────────────────
 const fmt = (n) => Math.round(n).toLocaleString("vi-VN") + "đ";
 
 const formatDate = (isoString) => {
@@ -25,7 +24,6 @@ const formatDate = (isoString) => {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 };
 
-// ── SUB COMPONENTS ────────────────────────────────────────────
 const ItemRow = ({ item, isService }) => {
   const lineTotal = isService
     ? item.unit_price * item.quantity
@@ -83,7 +81,6 @@ const SectionCard = ({ title, icon, badge, badgeStyle, items, isService }) => (
   </View>
 );
 
-// ── MAIN COMPONENT ────────────────────────────────────────────
 const Payment = () => {
   const route = useRoute();
   const appointmentId = route.params?.appointmentId;
@@ -94,7 +91,6 @@ const Payment = () => {
   const [loadingPay, setLoadingPay] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("PENDING");
 
-  // ── LOAD DỮ LIỆU HOÁ ĐƠN ──
   const loadPaymentData = async () => {
     try {
       setLoadingData(true);
@@ -113,11 +109,9 @@ const Payment = () => {
     if (user) loadPaymentData();
   }, [appointmentId]);
 
-  // ── XỬ LÝ THANH TOÁN ZALOPAY ──
   const handlePay = async () => {
     setLoadingPay(true);
     try {
-      // Gọi checkout để lấy zp_trans_token mới nhất trước khi thanh toán
       const res = await authApis(user.access_token).post(
         endpoint.zalopay(paymentData.id),
       );
@@ -129,13 +123,11 @@ const Payment = () => {
         return;
       }
 
-      // Gọi Native Module ZaloPay
       const result = await ZaloPayModule.payOrder(zpTransToken);
 
       if (result === "SUCCESS") {
         Alert.alert("Thành công", "Thanh toán ZaloPay thành công!");
         setPaymentStatus("COMPLETED");
-        // TODO: navigate về màn hình xác nhận hoặc reload trạng thái
       }
     } catch (error) {
       if (error.code === "CANCELED") {
@@ -149,7 +141,6 @@ const Payment = () => {
     }
   };
 
-  // ── LOADING SCREEN ──
   if (loadingData) {
     return (
       <SafeAreaView
@@ -168,7 +159,6 @@ const Payment = () => {
 
   if (!paymentData) return null;
 
-  // ── TÍNH TOÁN ──
   const services = paymentData.items.filter((i) => i.type === "SERVICE");
   const medicines = paymentData.items.filter((i) => i.type === "MEDICINE");
   const sumService = services.reduce(
@@ -184,7 +174,6 @@ const Payment = () => {
   return (
     <SafeAreaView style={Style.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* HERO */}
         <View style={Style.hero}>
           <View
             style={[
@@ -202,7 +191,6 @@ const Payment = () => {
           <Text style={Style.heroLabel}>Tổng thanh toán</Text>
           <Text style={Style.heroAmount}>{fmt(total)}</Text>
 
-          {/* Pill đổi màu theo status */}
           <View
             style={[
               Style.statusPill,

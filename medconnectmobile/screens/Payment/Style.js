@@ -6,7 +6,6 @@ export default StyleSheet.create({
     backgroundColor: "#F3F4F6",
   },
 
-  // ── HEADER ──
   headerBar: {
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
@@ -33,7 +32,6 @@ export default StyleSheet.create({
     color: "#111827",
   },
 
-  // ── HERO ──
   hero: {
     backgroundColor: "#FFFFFF",
     paddingVertical: 24,
@@ -99,7 +97,6 @@ export default StyleSheet.create({
     color: "#111827",
   },
 
-  // ── SECTION ──
   section: {
     backgroundColor: "#FFFFFF",
     marginBottom: 8,
@@ -144,7 +141,6 @@ export default StyleSheet.create({
     color: "#15803D",
   },
 
-  // ── ITEM ROW ──
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -188,7 +184,6 @@ export default StyleSheet.create({
     flexShrink: 0,
   },
 
-  // ── SUMMARY ──
   summarySection: {
     backgroundColor: "#FFFFFF",
     marginBottom: 8,
@@ -226,7 +221,6 @@ export default StyleSheet.create({
     color: "#111827",
   },
 
-  // ── BOTTOM ──
   bottomContainer: {
     position: "absolute",
     bottom: 0,

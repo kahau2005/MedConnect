@@ -27,7 +27,6 @@ const PatientProfileTab = () => {
   const [hasProfile, setHasProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // 🌟 Đã xóa currentUser, dùng thẳng biến user từ Context
   const [user, dispatch] = useContext(UserContext);
   const [loading, setLoading] = useState(false);
 

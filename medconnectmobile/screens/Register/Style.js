@@ -13,14 +13,12 @@ export default StyleSheet.create({
     justifyContent: "center",
     alignItems: "flex-start",
   },
-  // 🌟 Đã thêm class cho ScrollView để cuộn mượt hơn và có khoảng trống đáy
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 40,
   },
-  // 🌟 Nút Back dành riêng cho màn hình Register
   headerBackBtn: {
     marginBottom: 20,
     alignSelf: "flex-start",
@@ -109,7 +107,6 @@ export default StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  // 🌟 Nút Submit của Register cần cách Form phía trên một chút
   registerSubmitBtn: {
     marginTop: 10,
   },

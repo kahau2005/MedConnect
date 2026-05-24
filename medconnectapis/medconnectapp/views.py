@@ -117,7 +117,6 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
                 queryset = queryset.filter(
                     Q(reason__icontains=kw)
                     | Q(symptoms__icontains=kw)
-                    | Q(note__icontains=kw)
                     | Q(diagnosis__name__icontains=kw)
                 )
             if doctor_id:

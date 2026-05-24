@@ -19,7 +19,6 @@ import Apis, { authApis, endpoint } from "../../../../configs/Apis";
 import { UserContext } from "../../../../contexts/UserContext";
 import LoginPanel from "../../../../components/LoginPanel/LoginPanel";
 
-// ── HELPERS ───────────────────────────────────────────────────
 const fmt = (n) => Math.round(n).toLocaleString("vi-VN") + "đ";
 
 const getInstructionLabel = (val) => {
@@ -139,7 +138,6 @@ const AllAppointmentTab = () => {
     }
   };
 
-  // ── MỞ MODAL CHI TIẾT — gọi API checkout để lấy data thực ──
   const openDetail = async (item) => {
     if (item.status !== "COMPLETED") return;
     setSelectedAppointment(item);
