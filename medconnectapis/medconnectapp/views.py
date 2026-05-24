@@ -88,6 +88,8 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
                 queryset = queryset.filter(user=user)
             elif user.role == User.UserRole.DOCTOR:
                 queryset = queryset.filter(Q(user=user) | Q(doctor__user=user))
+            elif user.role == User.UserRole.ADMIN:
+                queryset = queryset.all()
 
             status_param = self.request.query_params.get("status")
             from_date = self.request.query_params.get("from_date")
