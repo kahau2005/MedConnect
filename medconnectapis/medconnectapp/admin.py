@@ -76,7 +76,9 @@ class MyAdminSite(admin.AdminSite):
         to_date = request.GET.get("to_date")
 
         service_qs = AppointmentService.objects.filter(active=True)
-        disease_qs = Appointment.objects.filter(active=True)
+        disease_qs = Appointment.objects.filter(
+            active=True, status=Appointment.AppointmentStatus.COMPLETED
+        )
 
         payment_qs = Payment.objects.filter(
             status=Payment.PaymentStatus.PAID, active=True

@@ -59,7 +59,7 @@ class PrescriptionDetailListSerializer(ListSerializer):
             medicines = Medicine.objects.filter(id__in=medicine_ids).select_for_update()
             medicine_map = {medicine.id: medicine for medicine in medicines}
 
-            if len(medicine_map) != len(set(medicine_ids)):
+            if len(medicine_map) != len(medicine_ids):
                 raise serializers.ValidationError(
                     {"medicine": "Có id thuốc không tồn tại"}
                 )
@@ -77,7 +77,7 @@ class PrescriptionDetailListSerializer(ListSerializer):
                 if medicine.stock < quantity:
                     raise serializers.ValidationError(
                         {
-                            "quantity": f"Thuốc {medicine.name} không đủ số lượng (chỉ còn {medicine.stock} {medicine.unit} trong kho)."
+                            "quantity": f"Thuốc {medicine.name} không đủ số lượng. Chỉ còn {medicine.stock} {medicine.unit} trong kho"
                         }
                     )
 
@@ -164,7 +164,7 @@ class PrescriptionDetailSerializer(ModelSerializer):
         if appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError(
                 {
-                    "status": "Thuốc chỉ có thể được cập nhật khi lịch khám ở trạng thái ĐANG KHÁM"
+                    "status": "Thuốc chỉ có thể được cập nhật khi lịch khám ở trạng thái đang khám"
                 }
             )
 
@@ -174,11 +174,11 @@ class PrescriptionDetailSerializer(ModelSerializer):
         new_quantity = validated_data.get("quantity", old_quantity)
 
         if new_medicine_id != old_medicine_id or new_quantity != old_quantity:
-            medicines_to_lock = list(
+            lock_medicines = list(
                 set([m for m in [old_medicine_id, new_medicine_id] if m])
             )
             medicines = Medicine.objects.filter(
-                id__in=medicines_to_lock
+                id__in=lock_medicines
             ).select_for_update()
             medicine_map = {m.id: m for m in medicines}
 
@@ -193,7 +193,7 @@ class PrescriptionDetailSerializer(ModelSerializer):
             if new_medicine.stock < new_quantity:
                 raise serializers.ValidationError(
                     {
-                        "quantity": f"Thuốc {new_medicine.name} không đủ số lượng (chỉ còn {new_medicine.stock} {new_medicine.unit} trong kho)."
+                        "quantity": f"Thuốc {new_medicine.name} không đủ số lượng. Chỉ còn {new_medicine.stock} {new_medicine.unit} trong kho"
                     }
                 )
             if old_medicine:
@@ -386,18 +386,18 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
             "diagnosis": {"read_only": False},
         }
 
-        def validate(self, attrs):
-            request = self.context.get("request")
-            if request and request.user:
-                user = request.user
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if request and request.user:
+            user = request.user
 
-                if user.role == User.UserRole.PATIENT:
-                    if "symptoms" in attrs or "diagnosis" in attrs:
-                        raise serializers.ValidationError(
-                            "Bệnh nhân không thể cập nhật triệu chứng hay chẩn đoán"
-                        )
+            if user.role == User.UserRole.PATIENT:
+                if "symptoms" in attrs or "diagnosis" in attrs:
+                    raise serializers.ValidationError(
+                        "Bệnh nhân không thể cập nhật triệu chứng hay chẩn đoán"
+                    )
 
-            return super().validate(attrs)
+        return super().validate(attrs)
 
     def validate_status(self, value):
         if not self.instance:
@@ -418,16 +418,16 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
                 )
             if current_status != Appointment.AppointmentStatus.SCHEDULED:
                 raise serializers.ValidationError(
-                    "Chỉ có thể hủy lịch khám khi đang ở trạng thái SCHEDULED"
+                    "Chỉ có thể hủy lịch khám khi đang ở trạng thái SẮP TỚI"
                 )
         elif user.role == User.UserRole.DOCTOR:
             if value != Appointment.AppointmentStatus.PENDING:
                 raise serializers.ValidationError(
-                    "Bác sĩ chỉ có quyền chuyển trạng thái thành PENDING"
+                    "Bác sĩ chỉ có quyền chuyển trạng thái thành ĐANG KHÁM"
                 )
             if current_status != Appointment.AppointmentStatus.SCHEDULED:
                 raise serializers.ValidationError(
-                    "Chỉ có thể bắt đầu khám khi lịch đang ở trạng thái SCHEDULED"
+                    "Chỉ có thể bắt đầu khám khi lịch đang ở trạng thái SẮP TỚI"
                 )
 
         return value
