@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 
 from django.db import IntegrityError, transaction
 from django.db.models import (
@@ -13,11 +12,10 @@ from django.db.models import (
     Value,
 )
 from django.db.models.functions import Coalesce, Concat
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django_filters.rest_framework import DjangoFilterBackend
 from django_ratelimit.decorators import ratelimit
-from getstream.models import ChannelInput, ChannelMemberRequest, UserRequest
 from oauth2_provider.views.base import TokenView
 from rest_framework import generics, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -27,6 +25,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
 from . import paginators, perms, serializers, utils
+from .filters import AppointmentFilter
 from .models import (
     Appointment,
     AppointmentService,
@@ -55,10 +54,19 @@ from .models import (
 class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
     permission_classes = [perms.AppointmentOwnerOrDoctor]
     pagination_class = paginators.AppointmentPaginator
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = AppointmentFilter
 
     def get_queryset(self):
         user = self.request.user
         queryset = Appointment.objects.filter(active=True)
+
+        if user.role == User.UserRole.PATIENT:
+            queryset = queryset.filter(user=user)
+        elif user.role == User.UserRole.DOCTOR:
+            queryset = queryset.filter(Q(user=user) | Q(doctor__user=user))
+        elif user.role == User.UserRole.ADMIN:
+            queryset = queryset.all()
 
         if self.action == "retrieve":
             queryset = queryset.select_related("diagnosis").prefetch_related(
@@ -82,48 +90,35 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
             )
             return queryset
 
-        if self.action in ["list", "today"]:
+        elif self.action == "checkout":
+            queryset = queryset.select_related("user", "doctor__user").prefetch_related(
+                Prefetch(
+                    "services",
+                    queryset=AppointmentService.objects.filter(
+                        active=True
+                    ).select_related("service"),
+                ),
+                Prefetch(
+                    "prescription_set",
+                    queryset=Prescription.objects.filter(active=True).prefetch_related(
+                        Prefetch(
+                            "details",
+                            queryset=PrescriptionDetail.objects.filter(
+                                active=True
+                            ).select_related("medicine"),
+                        )
+                    ),
+                ),
+            )
+
+        elif self.action in ["list", "today"]:
+            queryset = queryset.select_related("user", "doctor__user").order_by(
+                "-start"
+            )
+
+        elif self.action == "chat_rooms":
             queryset = queryset.select_related("user", "doctor__user")
-            if user.role == User.UserRole.PATIENT:
-                queryset = queryset.filter(user=user)
-            elif user.role == User.UserRole.DOCTOR:
-                queryset = queryset.filter(Q(user=user) | Q(doctor__user=user))
-            elif user.role == User.UserRole.ADMIN:
-                queryset = queryset.all()
 
-            status_param = self.request.query_params.get("status")
-            from_date = self.request.query_params.get("from_date")
-            to_date = self.request.query_params.get("to_date")
-            kw = self.request.query_params.get("kw")
-            doctor_id = self.request.query_params.get("doctor_id")
-
-            if status_param:
-                queryset = queryset.filter(status=status_param)
-            if from_date:
-                try:
-                    parsed_from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
-                    queryset = queryset.filter(start__date__gte=parsed_from_date)
-                except Exception:
-                    raise ValueError(
-                        {"from_date": "Khoảng thời gian bắt đầu không hợp lệ"}
-                    )
-            if to_date:
-                try:
-                    parsed_to_date = datetime.strptime(to_date, "%Y-%m-%d").date()
-                    queryset = queryset.filter(start__date__lte=parsed_to_date)
-                except Exception:
-                    raise ValueError(
-                        {"to_date": "Khoảng thời gian kết thúc không hợp lệ"}
-                    )
-            if kw:
-                queryset = queryset.filter(
-                    Q(reason__icontains=kw)
-                    | Q(symptoms__icontains=kw)
-                    | Q(diagnosis__name__icontains=kw)
-                )
-            if doctor_id:
-                queryset = queryset.filter(doctor_id=doctor_id)
-            queryset = queryset.order_by("-start")
         return queryset
 
     def get_serializer_class(self):
@@ -208,7 +203,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
 
     @action(
         methods=["get"],
-        url_name="status",
+        url_path="status",
         detail=True,
     )
     def status(self, request, pk):
@@ -217,7 +212,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
 
     @action(
         methods=["get"],
-        url_name="today",
+        url_path="today",
         detail=False,
         permission_classes=[perms.IsDoctor],
     )
@@ -229,6 +224,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
             start__date=today,
             status__in=[
                 Appointment.AppointmentStatus.SCHEDULED,
+                Appointment.AppointmentStatus.PENDING,
                 Appointment.AppointmentStatus.COMPLETED,
             ],
         ).order_by("start")
@@ -305,29 +301,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
 
     @action(methods=["post"], url_path="checkout", detail=True)
     def checkout(self, request, pk=None):
-        appointment = (
-            Appointment.objects.filter(active=True)
-            .prefetch_related(
-                Prefetch(
-                    "services",
-                    queryset=AppointmentService.objects.filter(
-                        active=True
-                    ).select_related("service"),
-                ),
-                Prefetch(
-                    "prescription_set",
-                    queryset=Prescription.objects.filter(active=True).prefetch_related(
-                        Prefetch(
-                            "details",
-                            queryset=PrescriptionDetail.objects.filter(
-                                active=True
-                            ).select_related("medicine"),
-                        )
-                    ),
-                ),
-            )
-            .get(pk=pk)
-        )
+        appointment = self.get_object()
 
         if appointment.status != Appointment.AppointmentStatus.PENDING:
             return Response(
@@ -366,6 +340,12 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
     @action(methods=["post"], url_path="review", detail=True)
     def review(self, request, pk=None):
         appointment = self.get_object()
+        if appointment.status != Appointment.AppointmentStatus.COMPLETED:
+            return Response(
+                {"error": "Chỉ có thể đánh giá sau khi hoàn thành lịch khám"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = serializers.ReviewSerializer(
             data=request.data, context={"appointment": appointment}
         )
@@ -375,53 +355,21 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
 
     @action(methods=["post"], url_path="chat-rooms", detail=True)
     def chat_rooms(self, request, pk=None):
-        queryset = self.get_queryset().select_related("user", "doctor__user")
-        appointment = get_object_or_404(queryset, pk=pk)
+        appointment = self.get_object()
 
-        chat_room, created = ChatRoom.objects.get_or_create(appointment=appointment)
-        stream_channel_id = f"appointment_{appointment.id}"
-
-        doctor_id = str(appointment.doctor_id)
-        user_id = str(appointment.user_id)
-        doctor_fullname = (
-            f"{appointment.doctor.user.first_name} {appointment.doctor.user.last_name}"
-        )
-        user_fullname = f"{appointment.user.first_name} {appointment.user.last_name}"
-
-        utils.chat_client.upsert_users(
-            UserRequest(
-                id=doctor_id,
-                name=doctor_fullname,
-                role="user",
-            ),
-            UserRequest(
-                id=user_id,
-                name=user_fullname,
-                role="user",
-            ),
-        )
-
-        channel = utils.chat_client.chat.channel("messaging", stream_channel_id)
-
-        channel.get_or_create(
-            data=ChannelInput(
-                created_by_id=doctor_id,
-                members=[
-                    ChannelMemberRequest(user_id=doctor_id),
-                    ChannelMemberRequest(user_id=user_id),
-                ],
-                custom={
-                    "name": f"Lịch khám với BS. {doctor_fullname} của BN. {user_fullname}",
-                    "appointment_id": appointment.id,
-                },
+        try:
+            chat_room, channel_id, created = utils.get_or_create_chatroom(appointment)
+        except Exception:
+            return Response(
+                {"error": "Tạo phòng chat thất bại"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        )
 
         return Response(
             {
                 "message": "Phòng chat đã được tạo",
                 "chat_room_id": chat_room.id,
-                "stream_channel_id": stream_channel_id,
+                "stream_channel_id": channel_id,
                 "stream_channel_type": "messaging",
             },
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
@@ -516,14 +464,14 @@ class PrescriptionViewSet(viewsets.GenericViewSet, generics.RetrieveAPIView):
     @action(detail=True, methods=["post"], url_path="details")
     def details(self, request, pk=None):
         prescription = self.get_object()
-        s = self.get_serializer(
+        serializer = self.get_serializer(
             data=request.data,
             many=True,
             context={"prescription": prescription},
         )
-        s.is_valid(raise_exception=True)
-        s.save()
-        return Response(s.data, status=status.HTTP_201_CREATED)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class PrescriptionDetailViewSet(viewsets.GenericViewSet):

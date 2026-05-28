@@ -791,9 +791,9 @@ class PaymentReceiptSerializer(ModelSerializer):
         model = Payment
         fields = ["id", "status", "total_amount", "items", "created_at", "updated_at"]
 
-    def get_items(self, obj):
+    def get_items(self, payment):
         items = []
-        for appointment_service in obj.appointment.services.all():
+        for appointment_service in payment.appointment.services.all():
             items.append(
                 {
                     "name": appointment_service.service.name,
@@ -803,7 +803,7 @@ class PaymentReceiptSerializer(ModelSerializer):
                 }
             )
 
-        for prescription in obj.appointment.prescription_set.all():
+        for prescription in payment.appointment.prescription_set.all():
             for detail in prescription.details.all():
                 items.append(
                     {
