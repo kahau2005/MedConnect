@@ -54,7 +54,7 @@ const Login = () => {
         type: "LOGIN",
         payload: userData,
       });
-      nav.navigate("Home");
+      nav.navigate("HomeScreen");
       requestUserPermission(res.data.access_token);
     } catch (err) {
       Alert.alert(

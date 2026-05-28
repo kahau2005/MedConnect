@@ -119,6 +119,20 @@ const AllAppointmentTab = () => {
     }
   };
 
+  const handleCancelAppointment = async (appointmentId) => {
+    try {
+      await authApis(user.access_token).patch(
+        endpoint.update_appointment(appointmentId),
+        {
+          status: "CANCELED",
+        },
+      );
+      Alert.alert("Thành công!", "Hủy lịch khám thành công!");
+    } catch (err) {
+      Alert.alert("Lỗi hủy lịch!", err);
+    }
+  };
+
   const loadDoctorsList = async () => {
     if (!user?.access_token || isDoctorMode) return;
     try {
@@ -457,7 +471,7 @@ const AllAppointmentTab = () => {
               showsHorizontalScrollIndicator={false}
               style={Style.statusScroll}
             >
-              {["ALL", "PENDING", "SCHEDULED", "COMPLETED", "CANCELLED"].map(
+              {["ALL", "PENDING", "SCHEDULED", "COMPLETED", "CANCELED"].map(
                 (status) => (
                   <TouchableOpacity
                     key={status}
@@ -558,7 +572,7 @@ const AllAppointmentTab = () => {
                 </View>
               </View>
 
-              <View style={Style.cardBottom}>
+              <View style={[Style.cardBottom, { gap: 10 }]}>
                 {(item.status === "SCHEDULED" || item.status === "PENDING") && (
                   <TouchableOpacity
                     onPress={() => handleGoToChat(item.id, item.status)}
@@ -592,6 +606,23 @@ const AllAppointmentTab = () => {
                     >
                       <Text style={Style.actionBtnOutlineText}>
                         Xem chi tiết
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {item.status === "SCHEDULED" && !isDoctorMode && (
+                  <View style={Style.completedActions}>
+                    <TouchableOpacity
+                      style={[
+                        Style.actionBtnOutline,
+                        { backgroundColor: "#e83232" },
+                      ]}
+                      onPress={() => handleCancelAppointment(item.id)}
+                    >
+                      <Text
+                        style={[Style.actionBtnOutlineText, { color: "white" }]}
+                      >
+                        Hủy lịch khám
                       </Text>
                     </TouchableOpacity>
                   </View>
