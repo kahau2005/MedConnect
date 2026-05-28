@@ -62,7 +62,6 @@ def create_order(
 
 
 def verify_callback(data):
-
     mac = data.get("mac")
     data_str = data.get("data")
 
@@ -73,9 +72,8 @@ def verify_callback(data):
         ZALOPAY_CONFIG["KEY2"].encode("utf-8"), data_str.encode("utf-8"), hashlib.sha256
     ).hexdigest()
 
-    if mac == mac_key2:
+    if hmac.compare_digest(mac, mac_key2):
         return True, json.loads(data_str)
-
     return False, "Mac nhận được không đúng"
 
 

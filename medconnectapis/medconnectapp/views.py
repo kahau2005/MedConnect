@@ -329,6 +329,12 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
             .get(pk=pk)
         )
 
+        if appointment.status != Appointment.AppointmentStatus.PENDING:
+            return Response(
+                {"error": "Chỉ có thể thanh toán cho lịch khám ở trạng thái Đang khám"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         service_total = 0
         for service in appointment.services.all():
             service_total += service.quantity * service.unit_price
@@ -419,14 +425,6 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
                 "stream_channel_type": "messaging",
             },
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
-        )
-
-    @action(methods=["get"], url_path="video-call-info", detail=True)
-    def video_call_info(self, request, pk=None):
-        appointment = self.get_object()
-        call_id = f"call_{appointment.id}"
-        return Response(
-            {"call_id": call_id, "call_type": "default"}, status=status.HTTP_200_OK
         )
 
 
@@ -906,6 +904,8 @@ class PaymentViewSet(viewsets.GenericViewSet):
 
 
 class StreamViewSet(viewsets.GenericViewSet):
+    serializer_class = None
+
     @action(
         methods=["get"],
         url_path="token",

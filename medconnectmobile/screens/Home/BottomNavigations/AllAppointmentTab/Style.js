@@ -161,6 +161,7 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
+
   actionBtnOutlineText: {
     color: "#374151",
     fontWeight: "600",
