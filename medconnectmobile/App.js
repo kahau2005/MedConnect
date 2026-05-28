@@ -112,14 +112,14 @@ export default function App() {
             <PaperProvider theme={theme}>
               <NavigationContainer>
                 <Stack.Navigator
-                  initialRouteName="Home"
+                  initialRouteName="HomeScreen"
                   screenOptions={{
                     headerShown: true,
                     headerTitleAlign: "center",
                   }}
                 >
                   <Stack.Screen
-                    name="Home"
+                    name="HomeScreen"
                     component={Home}
                     options={{ headerShown: false }}
                   />

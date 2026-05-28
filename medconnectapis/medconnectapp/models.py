@@ -140,7 +140,6 @@ class Appointment(BaseModel):
     def save(self, *args, **kwargs):
         if self.status == Appointment.AppointmentStatus.CANCELED:
             self.active_start = None
-            self.active = False
         else:
             self.active_start = self.start
         super().save(*args, **kwargs)
