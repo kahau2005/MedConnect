@@ -435,7 +435,7 @@ const Appointment = () => {
               ]}
               onPress={() => {
                 setShowProfileModal(false);
-                navigation.navigate("Home", { screen: "Profile" });
+                navigation.navigate("HomeScreen", { screen: "Profile" });
               }}
             >
               <Text style={Style.actionBtnPrimaryText}>Cập nhật ngay</Text>
@@ -444,7 +444,7 @@ const Appointment = () => {
               style={{ marginTop: 20 }}
               onPress={() => {
                 setShowProfileModal(false);
-                navigation.navigate("Home");
+                navigation.navigate("HomeScreen");
               }}
             >
               <Text>Thoát</Text>
