@@ -4,6 +4,7 @@ from datetime import timedelta
 import nh3
 from django.db import transaction
 from django.utils import timezone
+from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers
 from rest_framework.fields import CurrentUserDefault, HiddenField
 from rest_framework.serializers import ListSerializer, ModelSerializer
@@ -677,9 +678,17 @@ class SimpleUserSerializer(ModelSerializer):
         if value:
             if not value.content_type.startswith("image/"):
                 raise serializers.ValidationError("Định dạng file avatar không hợp lệ")
-            if value.size > 20 * 1024 * 1024:
+            if value.size > 10 * 1024 * 1024:
                 raise serializers.ValidationError(
-                    "Ảnh có kích thước quá lớn, vui lòng chọn ảnh dưới 20MB"
+                    "Ảnh có kích thước quá lớn, vui lòng chọn ảnh dưới 10MB"
+                )
+            try:
+                img = Image.open(value)
+                img.verify()
+                value.seek(0)
+            except UnidentifiedImageError, AttributeError, Exception:
+                raise serializers.ValidationError(
+                    {"avatar": "File tải lên không phải là ảnh hợp lệ"}
                 )
         return value
 
