@@ -449,7 +449,8 @@ const AllAppointmentTab = () => {
           <Feather name="search" size={20} color="#9CA3AF" />
           <TextInput
             style={Style.searchInput}
-            placeholder="Tìm kiếm theo tên, dịch vụ..."
+            placeholder="Tên bác sĩ, triệu chứng, tên bệnh..."
+            placeholderTextColor="#9CA3AF"
             value={searchTxt}
             onChangeText={setSearchTxt}
           />
@@ -472,6 +473,7 @@ const AllAppointmentTab = () => {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
+                    paddingHorizontal: 10,
                     flex: 1,
                   }}
                   onPress={() => setShowDatePicker(true)}
