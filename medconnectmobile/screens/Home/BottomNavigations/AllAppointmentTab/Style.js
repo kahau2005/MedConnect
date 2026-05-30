@@ -58,7 +58,7 @@ export default StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 8,
   },
-  dropdownText: { fontSize: 13, color: "#4B5563", fontWeight: "500" },
+  dropdownText: { fontSize: 13, color: "#4B5563", fontWeight: "500", marginLeft: 4 },
   statusScroll: { marginTop: 12, flexDirection: "row" },
   statusChip: {
     paddingHorizontal: 16,

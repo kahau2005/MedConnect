@@ -315,7 +315,7 @@ const Register = () => {
 
             <View style={Style.registerRow}>
               <Text style={Style.registerText}>Đã có tài khoản? </Text>
-              <TouchableOpacity onPress={() => nav.navigate("LoginScreen")}>
+              <TouchableOpacity onPress={() => nav.navigate("Login")}>
                 <Text style={Style.registerLink}>Đăng nhập</Text>
               </TouchableOpacity>
             </View>

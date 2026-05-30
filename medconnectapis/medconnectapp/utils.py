@@ -8,7 +8,10 @@ import firebase_admin
 import requests
 from django.conf import settings
 from firebase_admin import credentials, messaging
+from getstream.models import ChannelInput, ChannelMemberRequest, UserRequest
 from getstream.stream import Stream
+
+from medconnectapp.models import ChatRoom
 
 ZALOPAY_CONFIG = {
     "APP_ID": settings.ZALOPAY_APP_ID,
@@ -105,6 +108,41 @@ def send_push_notification(tokens, title, body, data=None):
     )
     response = messaging.send_each_for_multicast(message)
     return response
+
+
+def get_or_create_chatroom(appointment):
+    chat_room, created = ChatRoom.objects.get_or_create(appointment=appointment)
+    channel_id = f"appointment_{appointment.id}"
+
+    doctor_id = str(appointment.doctor_id)
+    patient_id = str(appointment.user_id)
+
+    doctor_fullname = (
+        f"{appointment.doctor.user.first_name} {appointment.doctor.user.last_name}"
+    )
+    patient_fullname = f"{appointment.user.first_name} {appointment.user.last_name}"
+    chat_client.upsert_users(
+        UserRequest(id=doctor_id, name=doctor_fullname, role="user"),
+        UserRequest(id=patient_id, name=patient_fullname, role="user"),
+    )
+
+    channel = chat_client.chat.channel("messaging", channel_id)
+
+    channel.get_or_create(
+        data=ChannelInput(
+            created_by_id=doctor_id,
+            members=[
+                ChannelMemberRequest(user_id=doctor_id),
+                ChannelMemberRequest(user_id=patient_id),
+            ],
+            custom={
+                "name": f"Lịch khám với BS. {doctor_fullname} của BN. {patient_fullname}",
+                "appointment_id": appointment.id,
+            },
+        )
+    )
+
+    return chat_room, channel_id, created
 
 
 def verify_stream_webhook(request):

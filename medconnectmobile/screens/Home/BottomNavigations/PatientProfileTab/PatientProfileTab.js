@@ -205,6 +205,7 @@ const PatientProfileTab = () => {
                 <TextInput
                   style={Style.input}
                   placeholder="Nhập địa chỉ của bạn"
+                  placeholderTextColor="#9CA3AF"
                   value={formData.address}
                   onChangeText={(text) =>
                     setFormData({ ...formData, address: text })
@@ -289,6 +290,7 @@ const PatientProfileTab = () => {
                   <TextInput
                     style={Style.input}
                     placeholder="160"
+                    placeholderTextColor="#9CA3AF"
                     keyboardType="numeric"
                     value={formData.height}
                     onChangeText={(text) =>
@@ -301,6 +303,7 @@ const PatientProfileTab = () => {
                   <TextInput
                     style={Style.input}
                     placeholder="50"
+                    placeholderTextColor="#9CA3AF"
                     keyboardType="numeric"
                     value={formData.weight}
                     onChangeText={(text) =>
@@ -345,7 +348,8 @@ const PatientProfileTab = () => {
                 </Text>
                 <TextInput
                   style={Style.textArea}
-                  placeholder="Ví dụ: đậu phộng, hải sản, phấn hoa..."
+                  placeholder="Đậu phộng, hải sản, phấn hoa..."
+                  placeholderTextColor="#9CA3AF"
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
@@ -361,7 +365,8 @@ const PatientProfileTab = () => {
                 </Text>
                 <TextInput
                   style={Style.textArea}
-                  placeholder="Ví dụ: Cao huyết áp, Tiểu đường..."
+                  placeholder="Cao huyết áp, Tiểu đường..."
+                  placeholderTextColor="#9CA3AF"
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
@@ -508,7 +513,7 @@ const PatientProfileTab = () => {
             <View style={Style.profileDataCard}>
               <View style={Style.profileDataHeader}>
                 <Text style={Style.profileDataTitle}>
-                  Hồ sơ bệnh nhân (Patient Profile)
+                  Hồ sơ bệnh nhân
                 </Text>
                 <TouchableOpacity
                   onPress={() => setIsEditing(true)}

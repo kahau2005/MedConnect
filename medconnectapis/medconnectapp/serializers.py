@@ -4,6 +4,7 @@ from datetime import timedelta
 import nh3
 from django.db import transaction
 from django.utils import timezone
+from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers
 from rest_framework.fields import CurrentUserDefault, HiddenField
 from rest_framework.serializers import ListSerializer, ModelSerializer
@@ -264,22 +265,12 @@ class DoctorSerializer(ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-
         user = instance.user
         data["id"] = instance.user_id
         data["first_name"] = user.first_name
         data["last_name"] = user.last_name
         data["email"] = user.email
         data["avatar"] = user.avatar.url if user and user.avatar else None
-
-        comment_content = getattr(instance, "comment_content", None)
-        comment_user = getattr(instance, "comment_user", None)
-
-        if comment_content:
-            data["comment"] = {"user": comment_user, "content": comment_content}
-        else:
-            data["comment"] = None
-
         return data
 
 
@@ -364,11 +355,11 @@ class AppointmentSerializer(ModelSerializer):
         input_fields = ["reason", "symptoms"]
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
-                cleaned = nh3.clean(attrs[field], tags=set()).strip()
-                if not cleaned and attrs[field]:
+                if nh3.is_html(attrs[field]):
                     raise serializers.ValidationError(
-                        f"Dữ liệu của {field} không hợp lệ"
+                        f"Dữ liệu {field} không được chứa HTML tag"
                     )
+
         return attrs
 
 
@@ -459,8 +450,8 @@ class ReviewSerializer(ModelSerializer):
 
     def validate_comment(self, value):
         if value:
-            cleaned = nh3.clean(value, tags=set()).strip()
-            return cleaned
+            if nh3.is_html(value):
+                raise serializers.ValidationError("Comment không được chứa HTML tag")
         return value
 
 
@@ -479,10 +470,9 @@ class TestResultSerializer(ModelSerializer):
 
     def validate(self, attrs):
         if "conclusion" in attrs and isinstance(attrs["conclusion"], str):
-            cleaned = nh3.clean(attrs["conclusion"], tags=set()).strip()
-            if not cleaned and attrs["conclusion"]:
+            if nh3.is_html(attrs["conclusion"]):
                 raise serializers.ValidationError(
-                    {"error": "Dữ liệu conclusion không hợp lệ"}
+                    {"conclusion": "Dữ liệu conclusion không được chứa HTML tag"}
                 )
 
         if "result_data" in attrs and attrs["result_data"]:
@@ -646,14 +636,10 @@ class PatientProfileSerializer(ModelSerializer):
         input_fields = ["allergies", "chronic_diseases", "address"]
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
-                cleaned = nh3.clean(attrs[field], tags=set()).strip()
-
-                if not cleaned and attrs[field]:
+                if nh3.is_html(attrs[field]):
                     raise serializers.ValidationError(
-                        f"Dữ liệu của {field} không hợp lệ"
+                        f"Dữ liệu của {field} không được chứa HTML tag"
                     )
-                attrs[field] = cleaned
-
         return attrs
 
 
@@ -677,9 +663,17 @@ class SimpleUserSerializer(ModelSerializer):
         if value:
             if not value.content_type.startswith("image/"):
                 raise serializers.ValidationError("Định dạng file avatar không hợp lệ")
-            if value.size > 20 * 1024 * 1024:
+            if value.size > 10 * 1024 * 1024:
                 raise serializers.ValidationError(
-                    "Ảnh có kích thước quá lớn, vui lòng chọn ảnh dưới 20MB"
+                    "Ảnh có kích thước quá lớn, vui lòng chọn ảnh dưới 10MB"
+                )
+            try:
+                img = Image.open(value)
+                img.verify()
+                value.seek(0)
+            except UnidentifiedImageError, AttributeError, Exception:
+                raise serializers.ValidationError(
+                    {"avatar": "File tải lên không phải là ảnh hợp lệ"}
                 )
         return value
 
@@ -687,13 +681,10 @@ class SimpleUserSerializer(ModelSerializer):
         input_fields = ["first_name", "last_name"]
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
-                cleaned = nh3.clean(attrs[field], tags=set()).strip()
-
-                if not cleaned and attrs[field]:
+                if nh3.is_html(attrs[field]):
                     raise serializers.ValidationError(
-                        f"Dữ liệu của {field} không hợp lệ"
+                        f"Dữ liệu của {field} không được chứa HTML tag"
                     )
-                attrs[field] = cleaned
         return attrs
 
 
@@ -713,11 +704,10 @@ class UserSerializer(SimpleUserSerializer):
         attrs = super().validate(attrs)
 
         if "username" in attrs and isinstance(attrs["username"], str):
-            cleaned = nh3.clean(attrs["username"], tags=set()).strip()
-            if not cleaned:
-                raise serializers.ValidationError("Dữ liệu của username không hợp lệ")
-            attrs["username"] = cleaned
-
+            if nh3.is_html(attrs["username"]):
+                raise serializers.ValidationError(
+                    "Dữ liệu của username không được chứa HTML tag"
+                )
         return attrs
 
     def to_representation(self, instance):
@@ -791,9 +781,9 @@ class PaymentReceiptSerializer(ModelSerializer):
         model = Payment
         fields = ["id", "status", "total_amount", "items", "created_at", "updated_at"]
 
-    def get_items(self, obj):
+    def get_items(self, payment):
         items = []
-        for appointment_service in obj.appointment.services.all():
+        for appointment_service in payment.appointment.services.all():
             items.append(
                 {
                     "name": appointment_service.service.name,
@@ -803,7 +793,7 @@ class PaymentReceiptSerializer(ModelSerializer):
                 }
             )
 
-        for prescription in obj.appointment.prescription_set.all():
+        for prescription in payment.appointment.prescription_set.all():
             for detail in prescription.details.all():
                 items.append(
                     {

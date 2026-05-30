@@ -80,6 +80,7 @@ const AllAppointmentTab = () => {
       case "COMPLETED":
         return { label: "Hoàn thành", bg: "#E8FBF4", text: "#00D084" };
       case "CANCELLED":
+      case "CANCELED":
         return { label: "Đã hủy", bg: "#FEF2F2", text: "#EF4444" };
       default:
         return { label: status, bg: "#F3F4F6", text: "#374151" };
@@ -128,8 +129,9 @@ const AllAppointmentTab = () => {
         },
       );
       Alert.alert("Thành công!", "Hủy lịch khám thành công!");
+      handleRefresh();
     } catch (err) {
-      Alert.alert("Lỗi hủy lịch!", err);
+      Alert.alert("Lỗi hủy lịch!", err.message);
     }
   };
 
@@ -144,6 +146,7 @@ const AllAppointmentTab = () => {
       console.log("Lỗi tải danh sách bác sĩ:", error);
     }
   };
+
   useEffect(() => {
     loadDoctorsList();
   }, [user]);
@@ -227,12 +230,12 @@ const AllAppointmentTab = () => {
     setDetailModalVisible(true);
     setLoadingDetail(true);
     try {
-      const res = await authApis(user.access_token).post(
-        endpoint.checkout(item.id),
+      const res = await authApis(user.access_token).get(
+        endpoint.appointmentDetails(item.id),
       );
       setDetailData(res.data);
     } catch (err) {
-      console.error("Lỗi tải chi tiết:", err.status);
+      console.error("Lỗi tải chi tiết: ", err.status);
       Alert.alert("Lỗi", "Không thể tải chi tiết lịch khám.");
     } finally {
       setLoadingDetail(false);
@@ -272,48 +275,108 @@ const AllAppointmentTab = () => {
         </View>
       );
     }
+
     if (!detailData) return null;
-    const services = detailData.items.filter((i) => i.type === "SERVICE");
-    const medicines = detailData.items.filter((i) => i.type === "MEDICINE");
-    const total = parseFloat(detailData.total_amount);
+
+    // Mapping new data structure
+    const services = detailData.services || [];
+    const medicines = (detailData.prescriptions || []).flatMap(
+      (p) => p.details || [],
+    );
+
+    const totalService = services.reduce(
+      (acc, curr) => acc + curr.quantity * parseFloat(curr.unit_price),
+      0,
+    );
+    const totalMed = medicines.reduce(
+      (acc, curr) => acc + curr.quantity * parseFloat(curr.unit_price),
+      0,
+    );
+    const totalAmount = totalService + totalMed;
 
     return (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={Style.modalScroll}
       >
-        <View style={Style.sectionCard}>
-          <View style={Style.sectionHeader}>
-            <View style={[Style.iconBox, { backgroundColor: "#F3E8FF" }]}>
-              <MaterialCommunityIcons
-                name="flask-outline"
-                size={20}
-                color="#9333EA"
-              />
-            </View>
-            <Text style={Style.sectionTitle}>Dịch vụ y tế</Text>
-          </View>
-          <View style={Style.itemList}>
-            {services.map((svc, idx) => (
-              <View key={idx} style={Style.itemRow}>
-                <View style={Style.itemLeft}>
-                  <View style={Style.bulletPoint} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={Style.itemName}>{svc.name}</Text>
-                    <Text
-                      style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}
-                    >
-                      SL: {svc.quantity} × {fmt(svc.unit_price)}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={Style.itemPrice}>
-                  {fmt(svc.unit_price * svc.quantity)}
-                </Text>
+        {(detailData.diagnosis || detailData.symptoms || detailData.reason) && (
+          <View style={Style.sectionCard}>
+            <View style={Style.sectionHeader}>
+              <View style={[Style.iconBox, { backgroundColor: "#FCE7F3" }]}>
+                <MaterialCommunityIcons
+                  name="clipboard-pulse-outline"
+                  size={20}
+                  color="#DB2777"
+                />
               </View>
-            ))}
+              <Text style={Style.sectionTitle}>Thông tin khám</Text>
+            </View>
+            <View style={{ padding: 16 }}>
+              {detailData.reason ? (
+                <Text
+                  style={{ fontSize: 14, color: "#374151", marginBottom: 6 }}
+                >
+                  <Text style={{ fontWeight: "700" }}>Lý do khám: </Text>
+                  {detailData.reason}
+                </Text>
+              ) : null}
+              {detailData.symptoms ? (
+                <Text
+                  style={{ fontSize: 14, color: "#374151", marginBottom: 6 }}
+                >
+                  <Text style={{ fontWeight: "700" }}>Triệu chứng: </Text>
+                  {detailData.symptoms}
+                </Text>
+              ) : null}
+              {detailData.diagnosis ? (
+                <Text style={{ fontSize: 14, color: "#374151" }}>
+                  <Text style={{ fontWeight: "700" }}>Chẩn đoán: </Text>
+                  {detailData.diagnosis.name}
+                </Text>
+              ) : null}
+            </View>
           </View>
-        </View>
+        )}
+
+        {services.length > 0 && (
+          <View style={Style.sectionCard}>
+            <View style={Style.sectionHeader}>
+              <View style={[Style.iconBox, { backgroundColor: "#F3E8FF" }]}>
+                <MaterialCommunityIcons
+                  name="flask-outline"
+                  size={20}
+                  color="#9333EA"
+                />
+              </View>
+              <Text style={Style.sectionTitle}>Dịch vụ y tế</Text>
+            </View>
+            <View style={Style.itemList}>
+              {services.map((svc, idx) => {
+                const lineTotal = svc.quantity * parseFloat(svc.unit_price);
+                return (
+                  <View key={`svc-${idx}`} style={Style.itemRow}>
+                    <View style={Style.itemLeft}>
+                      <View style={Style.bulletPoint} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={Style.itemName}>{svc.service?.name}</Text>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: "#9CA3AF",
+                            marginTop: 2,
+                          }}
+                        >
+                          SL: {svc.quantity} × {fmt(parseFloat(svc.unit_price))}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={Style.itemPrice}>{fmt(lineTotal)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {medicines.length > 0 && (
           <View style={Style.sectionCard}>
@@ -325,18 +388,30 @@ const AllAppointmentTab = () => {
             </View>
             <View style={Style.itemList}>
               {medicines.map((med, idx) => {
-                const lineTotal = med.total ?? med.unit_price * med.quantity;
+                const lineTotal = med.quantity * parseFloat(med.unit_price);
                 return (
-                  <View key={idx} style={Style.itemRow}>
+                  <View key={`med-${idx}`} style={Style.itemRow}>
                     <View style={Style.itemLeft}>
                       <View style={Style.bulletPoint} />
                       <View style={{ flex: 1 }}>
                         <Text style={Style.itemName}>
-                          {med.name}{" "}
+                          {med.medicine?.name}{" "}
                           <Text style={Style.itemQty}>×{med.quantity}</Text>
                         </Text>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: "#9CA3AF",
+                            marginTop: 2,
+                          }}
+                        >
+                          {med.dose} liều/lần, {med.frequency} lần/ngày (trong{" "}
+                          {med.duration_day} ngày)
+                        </Text>
                         {med.instruction && (
-                          <View style={Style.instructionBadge}>
+                          <View
+                            style={[Style.instructionBadge, { marginTop: 6 }]}
+                          >
                             <Text style={Style.instructionText}>
                               {getInstructionLabel(med.instruction)}
                             </Text>
@@ -351,11 +426,12 @@ const AllAppointmentTab = () => {
             </View>
           </View>
         )}
+
         <View style={Style.receiptCard}>
           <Text style={Style.receiptTitle}>Tổng quan thanh toán</Text>
           <View style={Style.receiptRowTotal}>
             <Text style={Style.receiptTotalLabel}>Tổng cộng</Text>
-            <Text style={Style.receiptTotalAmount}>{fmt(total)}</Text>
+            <Text style={Style.receiptTotalAmount}>{fmt(totalAmount)}</Text>
           </View>
         </View>
       </ScrollView>
@@ -373,7 +449,8 @@ const AllAppointmentTab = () => {
           <Feather name="search" size={20} color="#9CA3AF" />
           <TextInput
             style={Style.searchInput}
-            placeholder="Tìm kiếm theo tên, dịch vụ..."
+            placeholder="Tên bác sĩ, triệu chứng, tên bệnh..."
+            placeholderTextColor="#9CA3AF"
             value={searchTxt}
             onChangeText={setSearchTxt}
           />
@@ -396,6 +473,7 @@ const AllAppointmentTab = () => {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
+                    paddingHorizontal: 10,
                     flex: 1,
                   }}
                   onPress={() => setShowDatePicker(true)}
@@ -615,7 +693,7 @@ const AllAppointmentTab = () => {
                     <TouchableOpacity
                       style={[
                         Style.actionBtnOutline,
-                        { backgroundColor: "#e83232" },
+                        { backgroundColor: "#e83232", borderColor: "#e83232" },
                       ]}
                       onPress={() => handleCancelAppointment(item.id)}
                     >

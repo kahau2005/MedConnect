@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_yasg",
     "oauth2_provider",
+    "django_filters",
     "medconnectapp.apps.MedconnectappConfig",
     "corsheaders",
     "django_celery_beat",
@@ -126,7 +127,7 @@ DATABASES = {
         },
     }
 }
-SECRET_KEY = os.environ.get("SECRET_KEY", "fallback-dev-key")
+SECRET_KEY = os.environ.get("SECRET_KEY")
 AUTH_USER_MODEL = "medconnectapp.User"
 
 cloudinary.config(
@@ -134,6 +135,8 @@ cloudinary.config(
     api_key=os.getenv("CLOUDINARY_API_KEY"),
     api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")

@@ -34,7 +34,6 @@ const ListItemView = ({ searchTitle, items, clickProcess, setItemId }) => {
               }
               clickProcess={() => {
                 clickProcess(item);
-                console.log("Clicked item ID:", item.id);
               }}
               price={item.price}
             />
