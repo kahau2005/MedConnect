@@ -27,11 +27,7 @@ class User(AbstractUser, BaseModel):
         max_length=20, choices=UserRole.choices, default=UserRole.PATIENT
     )
     phone = models.CharField(max_length=10, null=False)
-    avatar = CloudinaryField(
-        null=True,
-        default="d4outkeghzi4x3tsuclc.jpg",
-        resource_type="image",
-    )
+    avatar = CloudinaryField(null=True, default="d4outkeghzi4x3tsuclc.jpg")
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -68,9 +64,7 @@ class Specialty(BaseModel):
     name = models.CharField(max_length=100)
     description = models.TextField(null=True, blank=True)
     image = CloudinaryField(
-        null=True,
-        default="Pngtree_doctor_check_the_eye_health_5315645_y7jg2j.png",
-        resource_type="image",
+        null=True, default="Pngtree_doctor_check_the_eye_health_5315645_y7jg2j.png"
     )
 
     def __str__(self):
@@ -235,10 +229,7 @@ class Service(BaseModel):
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField(null=True, blank=True)
-    image = CloudinaryField(
-        default="Orthopedic-pana_feiopk.png",
-        resource_type="image",
-    )
+    image = CloudinaryField(default="Orthopedic-pana_feiopk.png")
 
     def __str__(self):
         return self.name
