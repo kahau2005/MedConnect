@@ -23,7 +23,13 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.medconnectmobile",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.WAKE_LOCK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -39,6 +45,11 @@
           "microphonePermissionText": "Ứng dụng cần quyền truy cập Micro để thực hiện gọi thoại."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6dbcfe7d-74c9-4a33-b3cd-1849c2424a3f"
+      }
+    }
   }
 }
