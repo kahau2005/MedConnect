@@ -1,7 +1,7 @@
 import re
-import nh3
 from datetime import timedelta
 
+import nh3
 from django.db import transaction
 from django.utils import timezone
 from PIL import Image, UnidentifiedImageError
@@ -265,22 +265,12 @@ class DoctorSerializer(ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-
         user = instance.user
         data["id"] = instance.user_id
         data["first_name"] = user.first_name
         data["last_name"] = user.last_name
         data["email"] = user.email
         data["avatar"] = user.avatar.url if user and user.avatar else None
-
-        comment_content = getattr(instance, "comment_content", None)
-        comment_user = getattr(instance, "comment_user", None)
-
-        if comment_content:
-            data["comment"] = {"user": comment_user, "content": comment_content}
-        else:
-            data["comment"] = None
-
         return data
 
 
@@ -370,10 +360,6 @@ class AppointmentSerializer(ModelSerializer):
                         f"Dữ liệu {field} không được chứa HTML tag"
                     )
 
-                if not attrs[field].strip():
-                    raise serializers.ValidationError(
-                        f"Dữ liệu của {field} không hợp lệ"
-                    )
         return attrs
 
 
@@ -466,7 +452,6 @@ class ReviewSerializer(ModelSerializer):
         if value:
             if nh3.is_html(value):
                 raise serializers.ValidationError("Comment không được chứa HTML tag")
-            return value.strip()
         return value
 
 
@@ -488,11 +473,6 @@ class TestResultSerializer(ModelSerializer):
             if nh3.is_html(attrs["conclusion"]):
                 raise serializers.ValidationError(
                     {"conclusion": "Dữ liệu conclusion không được chứa HTML tag"}
-                )
-
-            if not attrs["conclusion"].strip():
-                raise serializers.ValidationError(
-                    {"error": "Dữ liệu conclusion không hợp lệ"}
                 )
 
         if "result_data" in attrs and attrs["result_data"]:
@@ -660,14 +640,6 @@ class PatientProfileSerializer(ModelSerializer):
                     raise serializers.ValidationError(
                         f"Dữ liệu của {field} không được chứa HTML tag"
                     )
-
-                stripped = attrs[field].strip()
-                if not stripped:
-                    raise serializers.ValidationError(
-                        f"Dữ liệu của {field} không hợp lệ"
-                    )
-                attrs[field] = stripped
-
         return attrs
 
 
@@ -713,13 +685,6 @@ class SimpleUserSerializer(ModelSerializer):
                     raise serializers.ValidationError(
                         f"Dữ liệu của {field} không được chứa HTML tag"
                     )
-
-                stripped = attrs[field].strip()
-                if not stripped:
-                    raise serializers.ValidationError(
-                        f"Dữ liệu của {field} không hợp lệ"
-                    )
-                attrs[field] = stripped
         return attrs
 
 
@@ -743,12 +708,6 @@ class UserSerializer(SimpleUserSerializer):
                 raise serializers.ValidationError(
                     "Dữ liệu của username không được chứa HTML tag"
                 )
-
-            stripped_value = attrs["username"].strip()
-            if not stripped_value:
-                raise serializers.ValidationError("Dữ liệu của username không hợp lệ")
-            attrs["username"] = stripped_value
-
         return attrs
 
     def to_representation(self, instance):

@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_yasg",
     "oauth2_provider",
+    "django_filters",
     "medconnectapp.apps.MedconnectappConfig",
     "corsheaders",
     "django_celery_beat",
