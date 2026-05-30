@@ -26,6 +26,7 @@ export const endpoint = {
   service: (appointmentId) => `/appointments/${appointmentId}/services/`,
   disease: "/diseases/",
   checkout: (appointmentId) => `/appointments/${appointmentId}/checkout/`,
+  appointmentDetails: (appointmentId) => `/appointments/${appointmentId}/`,
   zalopay: (paymentId) => `/payments/${paymentId}/zalopay/`,
   registerDevice: "/users/register-device/",
 };
