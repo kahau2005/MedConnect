@@ -19,8 +19,8 @@ const Specialty = () => {
       });
   }, []);
 
-  const handleSpeciatyClick = (spectialtyId) => {
-    nav.navigate("Doctor", { spectialtyId: spectialtyId });
+  const handleSpecialtyClick = (specialtyId) => {
+    nav.navigate("Doctor", { specialtyId: specialtyId });
   };
   return (
     <View>
@@ -29,7 +29,7 @@ const Specialty = () => {
         data={specialties}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <ListItem item={item} onClick={() => handleSpeciatyClick(item.id)} />
+          <ListItem item={item} onClick={() => handleSpecialtyClick(item.id)} />
         )}
       />
     </View>
