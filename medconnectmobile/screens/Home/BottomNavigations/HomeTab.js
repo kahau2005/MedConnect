@@ -173,7 +173,6 @@ const HomeTab = ({ navigation }) => {
             key={doc.id}
             style={styles.doctorCard}
             activeOpacity={0.8}
-            onPress={() => handleButtonClick("DoctorDetail")}
           >
             <Image source={{ uri: doc.avatar }} style={styles.doctorImage} />
             <View style={styles.doctorInfo}>
