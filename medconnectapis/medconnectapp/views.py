@@ -119,6 +119,8 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         elif self.action == "chat_rooms":
             queryset = queryset.select_related("user", "doctor__user")
 
+        elif self.action == "doctors":
+            queryset = queryset.filter(status=Appointment.AppointmentStatus.COMPLETED)
         return queryset
 
     def get_serializer_class(self):
@@ -187,15 +189,12 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         detail=False,
     )
     def doctors(self, request):
-        completed_appointments = Appointment.objects.filter(
-            active=True,
-            user=request.user,
-            status=Appointment.AppointmentStatus.COMPLETED,
-        )
+        completed_appointments = self.get_queryset()
 
         doctor_ids = completed_appointments.values_list(
             "doctor_id", flat=True
         ).distinct()
+
         doctors = Doctor.objects.filter(user_id__in=doctor_ids).select_related("user")
 
         serializer = serializers.DoctorSerializer(doctors, many=True)
@@ -918,29 +917,37 @@ class StreamViewSet(viewsets.GenericViewSet):
 
             caller_id = call_json.get("created_by", {}).get("id")
 
-            participants = call_json.get("session", {}).get("participants", [])
-            receiver_id = next(
-                (
-                    p.get("user_id")
-                    for p in participants
-                    if p.get("user_id") != caller_id
-                ),
-                None,
-            )
-
             try:
-                room = ChatRoom.objects.get(appointment_id=appointment_id)
+                room = ChatRoom.objects.select_related("appointment__doctor").get(
+                    appointment_id=appointment_id
+                )
+                appointment = room.appointment
 
+                if caller_id and str(caller_id) == str(appointment.user_id):
+                    receiver_id = appointment.doctor.user_id
+                else:
+                    receiver_id = appointment.user_id
+
+                session = call_json.get("session", {})
+                start = (
+                    session.get("started_at")
+                    or call_json.get("starts_at")
+                    or data.get("created_at")
+                )
+                end = (
+                    session.get("ended_at")
+                    or call_json.get("ended_at")
+                    or data.get("created_at")
+                )
                 with transaction.atomic():
                     call_log = VideoCallLog.objects.create(
                         room=room,
                         caller_id=caller_id,
                         receiver_id=receiver_id,
                         status=VideoCallLog.CallStatus.COMPLETED,
-                        start=call_json.get("session", {}).get("started_at"),
-                        end=call_json.get("session", {}).get("ended_at"),
+                        start=start,
+                        end=end,
                     )
-
                     ChatMessage.objects.create(
                         room=room,
                         chat_type=ChatMessage.MessageType.CALL,
