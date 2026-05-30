@@ -5,6 +5,7 @@ import Apis, { endpoint } from "../../configs/Apis";
 import ListCardItem from "../../components/ListCardItem/ListCardItem";
 import Style from "./Style";
 import LoadingModal from "../../components/LoadingModel/LoadingModel";
+import { useRoute } from "@react-navigation/native";
 
 const Doctor = () => {
   const [doctors, setDoctors] = useState([]);
@@ -13,10 +14,15 @@ const Doctor = () => {
 
   const [kw, setKw] = useState("");
 
+  const route = useRoute();
+  const { spectialtyId } = route.params || "";
+
   const loadDoctor = async () => {
     try {
       setLoading(true);
-      let result = await Apis.get(`${endpoint.doctors}?offset=${offset}`);
+      let result = await Apis.get(
+        `${endpoint.doctors}?offset=${offset}&specialty_id=${spectialtyId}`,
+      );
       setDoctors([...doctors, ...result.data.results]);
     } finally {
       setLoading(false);
