@@ -232,7 +232,7 @@ const AllAppointmentTab = () => {
       );
       setDetailData(res.data);
     } catch (err) {
-      console.error("Lỗi tải chi tiết:", err.status);
+      console.error("Lỗi tải chi tiết: ", err.status);
       Alert.alert("Lỗi", "Không thể tải chi tiết lịch khám.");
     } finally {
       setLoadingDetail(false);

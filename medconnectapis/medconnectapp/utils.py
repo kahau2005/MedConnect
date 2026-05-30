@@ -47,7 +47,7 @@ def create_order(
         "item": item,
         "embed_data": embed_data,
         "bank_code": "",
-        "callback_url": "https://dreaded-chain-securely.ngrok-free.dev/payments/zalopay-callback/",
+        "callback_url": callback_url,
     }
 
     data_str = f"{app_id}|{trans_id}|{params.get('app_user')}|{amount}|{app_time}|{embed_data}|{item}"
