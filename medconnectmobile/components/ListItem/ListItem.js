@@ -2,12 +2,13 @@ import { StyleSheet, Text } from "react-native";
 import { Image, View } from "react-native";
 import { List } from "react-native-paper";
 
-const ListItem = ({ item }) => {
+const ListItem = ({ item, onClick }) => {
   return (
     <List.Item
       style={listStyle.item}
       title={item.name}
       description={item.description}
+      onPress={onClick}
       left={() => (
         <Image
           source={{ uri: item.image }}

@@ -3,9 +3,11 @@ import QueryArea from "../../components/QueryArea/QueryArea";
 import { useEffect, useState } from "react";
 import Apis, { endpoint } from "../../configs/Apis";
 import ListItem from "../../components/ListItem/ListItem";
+import { useNavigation } from "@react-navigation/native";
 
 const Specialty = () => {
   const [specialties, setSpecialties] = useState([]);
+  const nav = useNavigation();
 
   useEffect(() => {
     Apis.get(endpoint.specialties)
@@ -16,13 +18,19 @@ const Specialty = () => {
         console.error("Error fetching specialties:", error);
       });
   }, []);
+
+  const handleSpeciatyClick = (spectialtyId) => {
+    nav.navigate("Doctor", { spectialtyId: spectialtyId });
+  };
   return (
     <View>
       <QueryArea />
       <FlatList
         data={specialties}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <ListItem item={item} />}
+        renderItem={({ item }) => (
+          <ListItem item={item} onClick={() => handleSpeciatyClick(item.id)} />
+        )}
       />
     </View>
   );
