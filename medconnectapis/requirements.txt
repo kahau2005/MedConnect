@@ -74,6 +74,7 @@ mysqlclient==2.2.8
 nh3==0.3.5
 oauthlib==3.3.1
 packaging==26.0
+pillow==12.2.0
 prompt-toolkit==3.0.52
 propcache==0.4.1
 proto-plus==1.27.2

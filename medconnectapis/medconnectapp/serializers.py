@@ -1,7 +1,7 @@
 import re
+import nh3
 from datetime import timedelta
 
-import nh3
 from django.db import transaction
 from django.utils import timezone
 from PIL import Image, UnidentifiedImageError
@@ -365,8 +365,12 @@ class AppointmentSerializer(ModelSerializer):
         input_fields = ["reason", "symptoms"]
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
-                cleaned = nh3.clean(attrs[field], tags=set()).strip()
-                if not cleaned and attrs[field]:
+                if nh3.is_html(attrs[field]):
+                    raise serializers.ValidationError(
+                        f"Dữ liệu {field} không được chứa HTML tag"
+                    )
+
+                if not attrs[field].strip():
                     raise serializers.ValidationError(
                         f"Dữ liệu của {field} không hợp lệ"
                     )
@@ -460,8 +464,9 @@ class ReviewSerializer(ModelSerializer):
 
     def validate_comment(self, value):
         if value:
-            cleaned = nh3.clean(value, tags=set()).strip()
-            return cleaned
+            if nh3.is_html(value):
+                raise serializers.ValidationError("Comment không được chứa HTML tag")
+            return value.strip()
         return value
 
 
@@ -480,8 +485,12 @@ class TestResultSerializer(ModelSerializer):
 
     def validate(self, attrs):
         if "conclusion" in attrs and isinstance(attrs["conclusion"], str):
-            cleaned = nh3.clean(attrs["conclusion"], tags=set()).strip()
-            if not cleaned and attrs["conclusion"]:
+            if nh3.is_html(attrs["conclusion"]):
+                raise serializers.ValidationError(
+                    {"conclusion": "Dữ liệu conclusion không được chứa HTML tag"}
+                )
+
+            if not attrs["conclusion"].strip():
                 raise serializers.ValidationError(
                     {"error": "Dữ liệu conclusion không hợp lệ"}
                 )
@@ -647,13 +656,17 @@ class PatientProfileSerializer(ModelSerializer):
         input_fields = ["allergies", "chronic_diseases", "address"]
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
-                cleaned = nh3.clean(attrs[field], tags=set()).strip()
+                if nh3.is_html(attrs[field]):
+                    raise serializers.ValidationError(
+                        f"Dữ liệu của {field} không được chứa HTML tag"
+                    )
 
-                if not cleaned and attrs[field]:
+                stripped = attrs[field].strip()
+                if not stripped:
                     raise serializers.ValidationError(
                         f"Dữ liệu của {field} không hợp lệ"
                     )
-                attrs[field] = cleaned
+                attrs[field] = stripped
 
         return attrs
 
@@ -696,13 +709,17 @@ class SimpleUserSerializer(ModelSerializer):
         input_fields = ["first_name", "last_name"]
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
-                cleaned = nh3.clean(attrs[field], tags=set()).strip()
+                if nh3.is_html(attrs[field]):
+                    raise serializers.ValidationError(
+                        f"Dữ liệu của {field} không được chứa HTML tag"
+                    )
 
-                if not cleaned and attrs[field]:
+                stripped = attrs[field].strip()
+                if not stripped:
                     raise serializers.ValidationError(
                         f"Dữ liệu của {field} không hợp lệ"
                     )
-                attrs[field] = cleaned
+                attrs[field] = stripped
         return attrs
 
 
@@ -722,10 +739,15 @@ class UserSerializer(SimpleUserSerializer):
         attrs = super().validate(attrs)
 
         if "username" in attrs and isinstance(attrs["username"], str):
-            cleaned = nh3.clean(attrs["username"], tags=set()).strip()
-            if not cleaned:
+            if nh3.is_html(attrs["username"]):
+                raise serializers.ValidationError(
+                    "Dữ liệu của username không được chứa HTML tag"
+                )
+
+            stripped_value = attrs["username"].strip()
+            if not stripped_value:
                 raise serializers.ValidationError("Dữ liệu của username không hợp lệ")
-            attrs["username"] = cleaned
+            attrs["username"] = stripped_value
 
         return attrs
 

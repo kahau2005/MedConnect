@@ -25,7 +25,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
 from . import paginators, perms, serializers, utils
-from .filters import AppointmentFilter
+from .filters import AppointmentFilter, DoctorFilter
 from .models import (
     Appointment,
     AppointmentService,
@@ -656,20 +656,12 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPI
     queryset = Doctor.objects.filter(user__is_active=True)
     serializer_class = serializers.DoctorSerializer
     pagination_class = paginators.DoctorPaginator
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = DoctorFilter
     throttle_scope = "doctor"
 
     def get_queryset(self):
-        queryset = super().get_queryset().select_related("user", "specialty")
-        specialty_id = self.request.query_params.get("specialty_id")
-        kw = self.request.query_params.get("kw")
-
-        if specialty_id:
-            queryset = queryset.filter(specialty_id=specialty_id)
-        if kw:
-            queryset = queryset.filter(
-                Q(user__first_name__icontains=kw) | Q(user__last_name__icontains=kw)
-            )
-        return queryset
+        return super().get_queryset().select_related("user", "specialty")
 
     @action(
         methods=["get"], url_path="popular", detail=False, permission_classes=[AllowAny]

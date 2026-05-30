@@ -126,7 +126,7 @@ DATABASES = {
         },
     }
 }
-SECRET_KEY = os.environ.get("SECRET_KEY", "klasdfkdsajfadieuroqiewu1203981230123(*()*(")
+SECRET_KEY = os.environ.get("SECRET_KEY")
 AUTH_USER_MODEL = "medconnectapp.User"
 
 cloudinary.config(
