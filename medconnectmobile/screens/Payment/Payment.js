@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -115,7 +115,6 @@ const Payment = () => {
       const res = await authApis(user.access_token).post(
         endpoint.zalopay(paymentData.id),
       );
-      console.log(res.data);
       const zpTransToken = res.data.zp_trans_token;
 
       if (!zpTransToken) {
@@ -133,7 +132,6 @@ const Payment = () => {
       if (error.code === "CANCELED") {
         Alert.alert("Thông báo", "Bạn đã huỷ quá trình thanh toán.");
       } else {
-        console.error("Lỗi thanh toán:", error);
         Alert.alert("Lỗi", error.message || "Không thể hoàn tất thanh toán.");
       }
     } finally {

@@ -48,7 +48,6 @@ const ServiceModal = ({ visible, onClose, appointmentId }) => {
       setAssignedServices(resAssigned.data);
       setShowList(resAssigned.data.length === 0);
     } catch (error) {
-      console.error("Lỗi tải danh mục dịch vụ:", error);
     } finally {
       setLoading(false);
     }

@@ -55,7 +55,6 @@ export default function CallStream() {
           setCall(currentCall);
         }
       } catch (error) {
-        console.error("Lỗi khởi tạo cuộc gọi:", error);
         Alert.alert("Lỗi", "Không thể kết nối cuộc gọi lúc này.");
         nav.goBack();
       }

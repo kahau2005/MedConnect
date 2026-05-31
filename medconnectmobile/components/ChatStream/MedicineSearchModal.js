@@ -53,9 +53,7 @@ const MedicineSearchModal = ({
         endpoint.medicine_categories,
       );
       setCategories([{ id: "ALL", name: "Tất cả" }, ...(resCats.data || [])]);
-    } catch (error) {
-      console.error("Lỗi tải danh mục thuốc:", error);
-    }
+    } catch (error) {}
   };
 
   const fetchMedicines = async (categoryId, kw = "") => {
@@ -71,7 +69,6 @@ const MedicineSearchModal = ({
       const resMeds = await authApis(user.access_token).get(url);
       setMedicines(resMeds.data || []);
     } catch (error) {
-      console.error("Lỗi tải danh sách thuốc:", error);
     } finally {
       setLoading(false);
     }

@@ -46,16 +46,13 @@ const ChatStream = () => {
 
   useEffect(() => {
     if (user && user.role === "DOCTOR" && status !== "PENDING") {
-      console.log(user);
       const handleUpdateAppointmentStatus = async () => {
         try {
           await authApis(user.access_token).patch(
             `${endpoint.appointment}${appointmentId}/`,
             { status: "PENDING" },
           );
-        } catch (err) {
-          console.error("Lỗi cập nhật trạng thái cuộc hẹn ngầm:", err);
-        }
+        } catch (err) {}
       };
       handleUpdateAppointmentStatus();
     }
@@ -95,9 +92,7 @@ const ChatStream = () => {
           setChannel(currentChannel);
           setClientReady(true);
         }
-      } catch (error) {
-        console.error("Lỗi cấu hình Stream Chat:", error);
-      }
+      } catch (error) {}
     };
 
     if (user) setupStream();

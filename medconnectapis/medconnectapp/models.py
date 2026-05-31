@@ -270,15 +270,6 @@ class FCMDevice(BaseModel):
         return f"{self.user.username} - {self.device_type}"
 
 
-class ChatRoom(BaseModel):
-    appointment = models.OneToOneField(
-        Appointment, on_delete=models.PROTECT, related_name="chat_room"
-    )
-
-    def __str__(self):
-        return f"Phòng chat của lịch khám {self.appointment.id}"
-
-
 class MedicineAlert(BaseModel):
     class AlertType(models.TextChoices):
         LOW_STOCK = "LOW_STOCK", "Sắp hết hàng"

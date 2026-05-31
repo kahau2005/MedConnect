@@ -49,13 +49,7 @@ const Doctor = () => {
         offset === 0 ? newDoctors : [...prev, ...newDoctors],
       );
       setHasMore(result.data.next !== null);
-
-      console.log("Dữ liệu API trả về:", result.data);
     } catch (error) {
-      console.error(
-        "Lỗi khi tải danh sách bác sĩ:",
-        error.response?.data || error.message,
-      );
     } finally {
       setLoading(false);
     }
@@ -71,12 +65,7 @@ const Doctor = () => {
     loadDoctor();
   }, [offset, kw, specialtyId]);
 
-  const renderItem = ({ item }) => (
-    <ListCardItem
-      item={item}
-      onPress={() => console.log("Pressed doctor:", item.id)}
-    />
-  );
+  const renderItem = ({ item }) => <ListCardItem item={item} />;
 
   return (
     <View style={Style.container}>

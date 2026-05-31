@@ -43,10 +43,9 @@ class AppointmentViewSet(
     generics.UpdateAPIView,
     generics.CreateAPIView,
 ):
-    permission_classes = [perms.AppointmentOwnerOrDoctor]
     pagination_class = paginators.AppointmentPaginator
     filter_backends = [filters.OrderingFilter, filters.SearchFilter]
-    search_fields = ["diagnosis__name", "symptoms__icontains"]
+    search_fields = ["diagnosis__name", "symptoms"]
     ordering_fields = ["status", "start", "created_at"]
 
     def get_queryset(self):
@@ -156,7 +155,7 @@ class AppointmentViewSet(
             return [perms.AppointmentOwnerOrDoctor()]
         elif self.action in ["review", "checkout"]:
             return [perms.AppointmentOwner()]
-        return super().get_permissions()
+        return [perms.AppointmentOwnerOrDoctor()]
 
     def get_throttles(self):
         if self.action == "create":
@@ -317,11 +316,10 @@ class AppointmentViewSet(
     @action(methods=["post"], url_path="chat-rooms", detail=True)
     def chat_rooms(self, request, pk=None):
         appointment = self.get_object()
-        chat_room, channel_id, created = utils.get_or_create_chatroom(appointment)
+        channel_id = utils.get_or_create_chatroom(appointment)
         return Response(
             {
                 "message": "Phòng chat đã được tạo",
-                "chat_room_id": chat_room.id,
                 "stream_channel_id": channel_id,
                 "stream_channel_type": "messaging",
             },
@@ -459,15 +457,15 @@ class MedicineViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveA
 
     def get_queryset(self):
         queryset = Medicine.objects.filter(active=True)
-        
+
         category_id = self.request.query_params.get("category_id")
         if category_id:
             queryset = queryset.filter(category_id=category_id)
-            
+
         kw = self.request.query_params.get("kw")
         if kw:
             queryset = queryset.filter(name__icontains=kw)
-            
+
         return queryset
 
     def get_serializer_class(self):

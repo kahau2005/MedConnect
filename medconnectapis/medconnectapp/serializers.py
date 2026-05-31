@@ -288,9 +288,9 @@ class AppointmentSerializer(ModelSerializer):
         request = self.context.get("request")
         if request and request.user:
             user = request.user
-
-            if not hasattr(user, "patient_profile"):
-                raise serializers.ValidationError("Thiếu hồ sơ bệnh nhân")
+            if user.role == User.UserRole.PATIENT:
+                if not hasattr(user, "patient_profile"):
+                    raise serializers.ValidationError("Thiếu hồ sơ bệnh nhân")
 
         doctor = attrs.get("doctor")
         start = attrs.get("start")

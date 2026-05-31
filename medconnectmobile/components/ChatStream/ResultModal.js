@@ -57,7 +57,6 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
       setConclusion("");
       setIsReadOnly(false);
     } catch (err) {
-      console.error("Lỗi tải dịch vụ chỉ định:", err);
     } finally {
       setLoading(false);
     }

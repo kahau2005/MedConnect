@@ -21,12 +21,7 @@ const CallActionBooking = () => {
       }}
     >
       <Text style={Style.text}>Đặt lịch khám ngay</Text>
-      <IconButton
-        style={Style.button}
-        icon="calendar-plus"
-        size={30}
-        onPress={() => console.log("Booking pressed")}
-      />
+      <IconButton style={Style.button} icon="calendar-plus" size={30} />
     </TouchableOpacity>
   );
 };

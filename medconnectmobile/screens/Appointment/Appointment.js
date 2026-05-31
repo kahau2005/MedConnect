@@ -82,7 +82,6 @@ const Appointment = () => {
 
       setSpecHasMore(!!res.data.next);
     } catch (error) {
-      console.error("Lỗi tải chuyên khoa:", error);
     } finally {
       isSpecLoadingRef.current = false;
       setSpecLoading(false);
@@ -130,7 +129,6 @@ const Appointment = () => {
 
       setDocHasMore(!!res.data.next);
     } catch (error) {
-      console.error("Lỗi tải danh sách bác sĩ:", error);
     } finally {
       isDocLoadingRef.current = false;
       setDocLoading(false);
@@ -174,7 +172,6 @@ const Appointment = () => {
         payload,
       );
 
-      console.log("Thành công!", res.data);
       Alert.alert("Thành công", "Đặt lịch khám thành công!");
     } catch (error) {
       const errorMsg = error.response?.data?.start?.[0]

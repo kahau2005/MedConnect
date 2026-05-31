@@ -136,10 +136,6 @@ const PatientProfileTab = () => {
       setHasProfile(true);
       setIsEditing(false);
     } catch (error) {
-      console.error(
-        "Lỗi khi lưu hồ sơ:",
-        error.response?.data || error.message,
-      );
       alert("Có lỗi xảy ra khi lưu hồ sơ. Vui lòng kiểm tra lại thông tin!");
     } finally {
       setLoading(false);
@@ -512,9 +508,7 @@ const PatientProfileTab = () => {
           ) : (
             <View style={Style.profileDataCard}>
               <View style={Style.profileDataHeader}>
-                <Text style={Style.profileDataTitle}>
-                  Hồ sơ bệnh nhân
-                </Text>
+                <Text style={Style.profileDataTitle}>Hồ sơ bệnh nhân</Text>
                 <TouchableOpacity
                   onPress={() => setIsEditing(true)}
                   style={Style.editBtn}

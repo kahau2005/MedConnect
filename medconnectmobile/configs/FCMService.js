@@ -4,7 +4,7 @@ import {
   getToken,
   deleteToken,
 } from "@react-native-firebase/messaging";
-import { Platform } from "react-native";
+import { Alert, Platform } from "react-native";
 import { authApis, endpoint } from "./Apis";
 
 export const requestUserPermission = async (accessToken) => {
@@ -14,14 +14,11 @@ export const requestUserPermission = async (accessToken) => {
     const enabled = authStatus === 1 || authStatus === 2;
 
     if (enabled) {
-      console.log(authStatus);
       await getFcmToken(accessToken);
     } else {
-      console.log("Quyền thông báo: Bị từ chối.");
+      Alert.alert("Bị từ chối quyền");
     }
-  } catch (err) {
-    console.error("Lỗi khi yêu cầu quyền thông báo: ", err);
-  }
+  } catch (err) {}
 };
 
 export const getFcmToken = async (accessToken) => {
@@ -29,14 +26,9 @@ export const getFcmToken = async (accessToken) => {
     const messaging = getMessaging();
     const fcmToken = await getToken(messaging);
     if (fcmToken) {
-      console.log("FCM Token: ", fcmToken);
       await registerDevice(fcmToken, accessToken);
-    } else {
-      console.log("Không nhận được FCM token");
     }
-  } catch (error) {
-    console.error("Lỗi khi lấy FCM token: ", error);
-  }
+  } catch (err) {}
 };
 
 export const registerDevice = async (token, accessToken) => {
@@ -47,24 +39,12 @@ export const registerDevice = async (token, accessToken) => {
     };
 
     await authApis(accessToken).post(endpoint.registerDevice, payload);
-    console.log("Đăng ký thiết bị thành công");
-  } catch (error) {
-    console.error(
-      "Lỗi khi đăng ký thiết bị: ",
-      error?.response?.data || error.message,
-    );
-  }
+  } catch (err) {}
 };
 
 export const unregisterDevice = async () => {
   try {
     const messaging = getMessaging();
     await deleteToken(messaging);
-    console.log("Hủy đăng ký thiết bị thành công khi logout");
-  } catch (error) {
-    console.error(
-      "Lỗi khi hủy đăng ký thiết bị: ",
-      error?.response?.data || error.message,
-    );
-  }
+  } catch (err) {}
 };
