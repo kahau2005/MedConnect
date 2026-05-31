@@ -568,7 +568,7 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPI
         specialty_id = self.request.query_params.get("specialty_id")
         if specialty_id:
             queryset = queryset.filter(specialty_id=specialty_id)
-        return super().get_queryset().select_related("user", "specialty")
+        return queryset.select_related("user", "specialty")
 
     @action(
         methods=["get"], url_path="popular", detail=False, permission_classes=[AllowAny]
