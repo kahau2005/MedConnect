@@ -118,26 +118,6 @@ class Appointment(BaseModel):
     reason = models.TextField(null=True, blank=True)
     symptoms = models.TextField(null=True, blank=True)
     diagnosis = models.ForeignKey(Disease, on_delete=models.PROTECT, default=1)
-    active_start = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["doctor", "active_start"],
-                name="unique_appointment_doctor_active_start",
-            ),
-            models.UniqueConstraint(
-                fields=["user", "active_start"],
-                name="unique_appointment_user_active_start",
-            ),
-        ]
-
-    def save(self, *args, **kwargs):
-        if self.status == Appointment.AppointmentStatus.CANCELED:
-            self.active_start = None
-        else:
-            self.active_start = self.start
-        super().save(*args, **kwargs)
 
 
 class Review(BaseModel):
