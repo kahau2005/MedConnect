@@ -4,41 +4,6 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { modalStyles as styles } from "./Style";
 
 const DoctorActionSheet = ({ visible, onClose, onSelectModal }) => {
-  const menus = [
-    {
-      id: "PRESCRIPTION_LIST",
-      bg: "#EBF4FF",
-      icon: "clipboard-pulse",
-      color: "#0066FF",
-      label: "Quản lý Đơn thuốc",
-      desc: "Tạo đơn & Thêm thuốc",
-    },
-    {
-      id: "SERVICE",
-      bg: "#FFF7E6",
-      icon: "needle",
-      color: "#FF9800",
-      label: "Thêm dịch vụ cho cuộc hẹn",
-      desc: "Thêm dịch vụ khám",
-    },
-    {
-      id: "DIAGNOSIS",
-      bg: "#E6FFFA",
-      icon: "stethoscope",
-      color: "#0D9488",
-      label: "Chuẩn đoán",
-      desc: "Cập nhật kết quả khám bệnh",
-    },
-    {
-      id: "RESULT",
-      bg: "#F3E8FF",
-      icon: "file-document-edit-outline",
-      color: "#9333EA",
-      label: "Xét Nghiệm",
-      desc: "Thêm kết quả xét nghiệm",
-    },
-  ];
-
   return (
     <Modal
       visible={visible}
@@ -54,31 +19,100 @@ const DoctorActionSheet = ({ visible, onClose, onSelectModal }) => {
         <View style={styles.actionSheet}>
           <View style={styles.dragIndicator} />
           <Text style={styles.actionSheetTitle}>Menu Bác Sĩ</Text>
-          {menus.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.actionItem}
-              onPress={() => {
-                onClose();
-                onSelectModal(item.id);
-              }}
+
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => {
+              onClose();
+              onSelectModal("PRESCRIPTION_LIST");
+            }}
+          >
+            <View
+              style={[styles.actionIconBox, { backgroundColor: "#EBF4FF" }]}
             >
-              <View
-                style={[styles.actionIconBox, { backgroundColor: item.bg }]}
-              >
-                <MaterialCommunityIcons
-                  name={item.icon}
-                  size={24}
-                  color={item.color}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.actionItemText}>{item.label}</Text>
-                <Text style={styles.actionItemSubText}>{item.desc}</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-          ))}
+              <MaterialCommunityIcons
+                name="clipboard-pulse"
+                size={24}
+                color="#0066FF"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.actionItemText}>Quản lý Đơn thuốc</Text>
+              <Text style={styles.actionItemSubText}>Tạo đơn & Thêm thuốc</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => {
+              onClose();
+              onSelectModal("SERVICE");
+            }}
+          >
+            <View
+              style={[styles.actionIconBox, { backgroundColor: "#FFF7E6" }]}
+            >
+              <MaterialCommunityIcons name="needle" size={24} color="#FF9800" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.actionItemText}>
+                Thêm dịch vụ cho cuộc hẹn
+              </Text>
+              <Text style={styles.actionItemSubText}>Thêm dịch vụ khám</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => {
+              onClose();
+              onSelectModal("DIAGNOSIS");
+            }}
+          >
+            <View
+              style={[styles.actionIconBox, { backgroundColor: "#E6FFFA" }]}
+            >
+              <MaterialCommunityIcons
+                name="stethoscope"
+                size={24}
+                color="#0D9488"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.actionItemText}>Chuẩn đoán</Text>
+              <Text style={styles.actionItemSubText}>
+                Cập nhật kết quả khám bệnh
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => {
+              onClose();
+              onSelectModal("RESULT");
+            }}
+          >
+            <View
+              style={[styles.actionIconBox, { backgroundColor: "#F3E8FF" }]}
+            >
+              <MaterialCommunityIcons
+                name="file-document-edit-outline"
+                size={24}
+                color="#9333EA"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.actionItemText}>Xét Nghiệm</Text>
+              <Text style={styles.actionItemSubText}>
+                Thêm kết quả xét nghiệm
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     </Modal>

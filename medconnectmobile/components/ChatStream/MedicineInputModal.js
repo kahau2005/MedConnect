@@ -29,7 +29,6 @@ const EMPTY_FORM = {
 const instructionOptions = [
   { label: "Sau ăn", value: "AFTER_MEAL" },
   { label: "Trước ăn", value: "BEFORE_MEAL" },
-  { label: "Khi đau", value: "WHEN_PAIN" },
 ];
 
 const MedicineInputModal = ({
@@ -129,7 +128,7 @@ const MedicineInputModal = ({
       <KeyboardAvoidingView
         style={styles.modalOverlay}
         behavior="padding"
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        keyboardVerticalOffset="0"
       >
         <View style={[styles.formModal, { maxHeight: "85%" }]}>
           <View style={styles.formHeader}>
