@@ -1,38 +1,28 @@
-import json
-
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models import (
     Avg,
     Count,
-    FloatField,
-    OuterRef,
     Prefetch,
     Q,
-    Subquery,
-    Value,
 )
-from django.db.models.functions import Coalesce, Concat
+from django.db.models.functions import Round
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django_filters.rest_framework import DjangoFilterBackend
 from django_ratelimit.decorators import ratelimit
 from oauth2_provider.views.base import TokenView
-from rest_framework import generics, parsers, permissions, status, viewsets
+from rest_framework import filters, generics, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
 from . import paginators, perms, serializers, utils
-from .filters import AppointmentFilter, DoctorFilter
+from .filters import DoctorFilter
 from .models import (
     Appointment,
     AppointmentService,
-    ChatMessage,
-    ChatRoom,
     Disease,
-    DiseaseCategory,
     Doctor,
     DoctorSchedule,
     FCMDevice,
@@ -42,20 +32,24 @@ from .models import (
     Payment,
     Prescription,
     PrescriptionDetail,
-    Review,
     Service,
     Specialty,
-    TestResult,
     User,
-    VideoCallLog,
 )
 
 
-class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
+class AppointmentViewSet(
+    viewsets.ViewSet,
+    generics.ListAPIView,
+    generics.RetrieveAPIView,
+    generics.UpdateAPIView,
+    generics.CreateAPIView,
+):
     permission_classes = [perms.AppointmentOwnerOrDoctor]
     pagination_class = paginators.AppointmentPaginator
-    filter_backends = [DjangoFilterBackend]
-    filterset_class = AppointmentFilter
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    search_fields = ["diagnosis__name", "symptoms__icontains"]
+    ordering_fields = ["status", "start", "created_at"]
 
     def get_queryset(self):
         user = self.request.user
@@ -67,6 +61,23 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
             queryset = queryset.filter(Q(user=user) | Q(doctor__user=user))
         elif user.role == User.UserRole.ADMIN:
             queryset = queryset.all()
+
+        params = self.request.query_params
+        status = params.get("status")
+        if status:
+            queryset = queryset.filter(status=status)
+
+        doctor_id = params.get("doctor_id")
+        if doctor_id:
+            queryset = queryset.filter(doctor_id=doctor_id)
+
+        from_date = params.get("from_date")
+        if from_date:
+            queryset = queryset.filter(start__date__gte=from_date)
+
+        to_date = params.get("to_date")
+        if to_date:
+            queryset = queryset.filter(start__date__lte=to_date)
 
         if self.action == "retrieve":
             queryset = queryset.select_related("diagnosis").prefetch_related(
@@ -178,10 +189,8 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
 
         return [ScopedRateThrottle()]
 
-    def retrieve(self, request, pk=None):
-        appointment = self.get_object()
-        serializer = self.get_serializer(appointment)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
     @action(
         methods=["get"],
@@ -202,52 +211,26 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
 
     @action(
         methods=["get"],
-        url_path="status",
-        detail=True,
-    )
-    def status(self, request, pk):
-        appointment = self.get_object()
-        return Response({"status": appointment.status}, status=status.HTTP_200_OK)
-
-    @action(
-        methods=["get"],
         url_path="today",
         detail=False,
         permission_classes=[perms.IsDoctor],
     )
     def today(self, request):
-        queryset = self.get_queryset()
         today = timezone.localdate()
-        queryset = queryset.filter(
-            doctor_id=request.user.id,
-            start__date=today,
-            status__in=[
-                Appointment.AppointmentStatus.SCHEDULED,
-                Appointment.AppointmentStatus.PENDING,
-                Appointment.AppointmentStatus.COMPLETED,
-            ],
-        ).order_by("start")
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def create(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            serializer.save(user=request.user)
-        except IntegrityError:
-            raise ValidationError(
-                {
-                    "start": "Khung giờ này đã có cuộc hẹn khác, vui lòng chọn khung giờ khác"
-                }
+        queryset = (
+            self.get_queryset()
+            .filter(
+                doctor_id=request.user.id,
+                start__date=today,
+                status__in=[
+                    Appointment.AppointmentStatus.SCHEDULED,
+                    Appointment.AppointmentStatus.PENDING,
+                    Appointment.AppointmentStatus.COMPLETED,
+                ],
             )
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def partial_update(self, request, pk=None):
-        appointment = self.get_object()
-        serializer = self.get_serializer(appointment, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+            .order_by("start")
+        )
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
@@ -303,10 +286,7 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         appointment = self.get_object()
 
         if appointment.status != Appointment.AppointmentStatus.PENDING:
-            return Response(
-                {"error": "Chỉ có thể thanh toán cho lịch khám ở trạng thái Đang khám"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         service_total = 0
         for service in appointment.services.all():
@@ -333,17 +313,28 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
 
         payment.appointment = appointment
 
-        serializer = serializers.PaymentReceiptSerializer(payment)
+        serializer = serializers.PaymentSerializer(payment)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(methods=["post"], url_path="chat-rooms", detail=True)
+    def chat_rooms(self, request, pk=None):
+        appointment = self.get_object()
+        chat_room, channel_id, created = utils.get_or_create_chatroom(appointment)
+        return Response(
+            {
+                "message": "Phòng chat đã được tạo",
+                "chat_room_id": chat_room.id,
+                "stream_channel_id": channel_id,
+                "stream_channel_type": "messaging",
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
     @action(methods=["post"], url_path="review", detail=True)
     def review(self, request, pk=None):
         appointment = self.get_object()
         if appointment.status != Appointment.AppointmentStatus.COMPLETED:
-            return Response(
-                {"error": "Chỉ có thể đánh giá sau khi hoàn thành lịch khám"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = serializers.ReviewSerializer(
             data=request.data, context={"appointment": appointment}
@@ -352,30 +343,8 @@ class AppointmentViewSet(viewsets.GenericViewSet, generics.ListAPIView):
         serializer.save(appointment=appointment)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(methods=["post"], url_path="chat-rooms", detail=True)
-    def chat_rooms(self, request, pk=None):
-        appointment = self.get_object()
 
-        try:
-            chat_room, channel_id, created = utils.get_or_create_chatroom(appointment)
-        except Exception:
-            return Response(
-                {"error": "Tạo phòng chat thất bại"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        return Response(
-            {
-                "message": "Phòng chat đã được tạo",
-                "chat_room_id": chat_room.id,
-                "stream_channel_id": channel_id,
-                "stream_channel_type": "messaging",
-            },
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
-        )
-
-
-class AppointmentServiceViewSet(viewsets.GenericViewSet):
+class AppointmentServiceViewSet(viewsets.ViewSet, generics.UpdateAPIView):
     queryset = AppointmentService.objects.filter(active=True).select_related(
         "appointment"
     )
@@ -386,51 +355,28 @@ class AppointmentServiceViewSet(viewsets.GenericViewSet):
         self.throttle_scope = "appointment_service"
         return [ScopedRateThrottle()]
 
-    def partial_update(self, request, pk=None):
-        service = self.get_object()
-        appointment = service.appointment
-        serializer = self.get_serializer(
-            service,
-            data=request.data,
-            partial=True,
-            context={"appointment": appointment},
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
     @action(methods=["get", "post"], url_path="results", detail=True)
     def test_results(self, request, pk=None):
         appointment_service = self.get_object()
         if request.method == "GET":
-            try:
-                result = appointment_service.test_result
-                return Response(
-                    serializers.TestResultSerializer(result).data,
-                    status=status.HTTP_200_OK,
-                )
-            except TestResult.DoesNotExist:
-                return Response(
-                    {"error": "Không tìm thấy kết quả xét nghiệm cho dịch vụ này"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+            result = appointment_service.test_result
+            return Response(
+                serializers.TestResultSerializer(result).data,
+                status=status.HTTP_200_OK,
+            )
 
         serializer = serializers.TestResultSerializer(
             data=request.data,
             context={"request": request, "appointment_service": appointment_service},
         )
-        try:
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except IntegrityError:
-            return Response(
-                {"error": "Kết quả xét nghiệm cho dịch vụ này đã tồn tại"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class PrescriptionViewSet(viewsets.GenericViewSet, generics.RetrieveAPIView):
+class PrescriptionViewSet(
+    viewsets.ViewSet, generics.RetrieveAPIView, generics.UpdateAPIView
+):
     queryset = Prescription.objects.filter(active=True)
     permission_classes = [perms.AppointmentDoctor]
 
@@ -447,13 +393,6 @@ class PrescriptionViewSet(viewsets.GenericViewSet, generics.RetrieveAPIView):
         else:
             self.throttle_scope = "prescription"
         return [ScopedRateThrottle()]
-
-    def partial_update(self, request, pk=None):
-        prescription = self.get_object()
-        serializer = self.get_serializer(prescription, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
         detail=True,
@@ -473,27 +412,11 @@ class PrescriptionViewSet(viewsets.GenericViewSet, generics.RetrieveAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class PrescriptionDetailViewSet(viewsets.GenericViewSet):
+class PrescriptionDetailViewSet(viewsets.ViewSet, generics.UpdateAPIView):
     queryset = PrescriptionDetail.objects.filter(active=True)
     serializer_class = serializers.PrescriptionDetailSerializer
     permission_classes = [perms.AppointmentDoctor]
     throttle_scope = "prescription_details"
-
-    def partial_update(self, request, pk=None):
-        detail = self.get_object()
-        serializer = self.get_serializer(detail, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class DiseaseCategoryViewSet(
-    viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView
-):
-    queryset = DiseaseCategory.objects.filter(active=True)
-    serializer_class = serializers.DiseaseCategorySerializer
-    permission_classes = [perms.IsDoctorOrAdmin]
-    throttle_scope = "disease_category"
 
 
 class DiseaseViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
@@ -528,7 +451,6 @@ class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
             .filter(total__gt=0)
             .order_by("-total")[:5]
         )
-
         serializer = self.get_serializer(popular, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -556,7 +478,7 @@ class RateLimitLoginView(TokenView):
     pass
 
 
-class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
+class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser, parsers.JSONParser]
@@ -592,24 +514,15 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
     )
     def patient_profile(self, request):
         if request.method == "GET":
-            try:
-                profile = PatientProfile.objects.get(user=request.user)
-                return Response(
-                    serializers.DetailPatientProfileSerializer(profile).data,
-                    status=status.HTTP_200_OK,
-                )
-            except PatientProfile.DoesNotExist:
-                return Response(
-                    {"error": "Người dùng chưa có hồ sơ bệnh nhân"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+            profile = PatientProfile.objects.get(user=request.user)
+            return Response(
+                serializers.DetailPatientProfileSerializer(profile).data,
+                status=status.HTTP_200_OK,
+            )
 
         if request.method == "POST":
             if PatientProfile.objects.filter(user=request.user).exists():
-                return Response(
-                    {"error": "Người dùng đã có hồ sơ bệnh nhân, không cần tạo mới"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                return Response(status=status.HTTP_400_BAD_REQUEST)
             serializer = serializers.PatientProfileSerializer(
                 data=request.data, context={"request": self.request}
             )
@@ -618,13 +531,7 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == "PATCH":
-            try:
-                profile = PatientProfile.objects.get(user=request.user)
-            except PatientProfile.DoesNotExist:
-                return Response(
-                    {"error": "Người dùng chưa có hồ sơ bệnh nhân"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+            profile = PatientProfile.objects.get(user=request.user)
             serializer = serializers.PatientProfileSerializer(
                 profile, data=request.data, partial=True
             )
@@ -648,7 +555,7 @@ class UserViewSet(viewsets.GenericViewSet, generics.CreateAPIView):
             token=token,
             defaults={"user": request.user, "device_type": device_type, "active": True},
         )
-        return Response({"message": "Đăng ký thiết bị thành công"})
+        return Response(status=status.HTTP_200_OK)
 
 
 class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
@@ -667,33 +574,7 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPI
     )
     def popular(self, request):
         queryset = self.get_queryset()
-
-        top_comment_subquery = (
-            Review.objects.filter(
-                appointment__doctor_id=OuterRef("user_id"), comment__isnull=False
-            )
-            .exclude(comment__exact="")
-            .order_by("-rating", "-created_at")
-            .values("comment")[:1]
-        )
-        top_comment_user = (
-            Review.objects.filter(
-                appointment__doctor_id=OuterRef("user_id"),
-                comment__isnull=False,
-            )
-            .exclude(comment__exact="")
-            .order_by("-rating", "-created_at")
-            .annotate(
-                full_name=Concat(
-                    "appointment__user__first_name",
-                    Value(" "),
-                    "appointment__user__last_name",
-                )
-            )
-            .values("full_name")[:1]
-        )
-
-        popular_doctors = queryset.annotate(
+        doctors = queryset.annotate(
             appointment_count=Count(
                 "doctor_appointments",
                 filter=Q(
@@ -701,16 +582,9 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPI
                     doctor_appointments__status=Appointment.AppointmentStatus.COMPLETED,
                 ),
             ),
-            avg_rating=Coalesce(
-                Avg("doctor_appointments__review__rating"),
-                0.0,
-                output_field=FloatField(),
-            ),
-            comment_content=Subquery(top_comment_subquery),
-            comment_user=Subquery(top_comment_user),
-        ).order_by("-avg_rating", "-appointment_count")[:4]
-
-        serializer = self.get_serializer(popular_doctors, many=True)
+            avg_rating=Round(Avg("doctor_appointments__review__rating"), 2),
+        ).order_by("-avg_rating", "-appointment_count")[:5]
+        serializer = self.get_serializer(doctors, many=True)
         return Response(serializer.data)
 
 
@@ -733,7 +607,7 @@ class DoctorScheduleViewSet(viewsets.ViewSet):
 class PaymentViewSet(viewsets.GenericViewSet):
     permission_classes = [perms.AppointmentOwner]
     queryset = Payment.objects.filter(active=True).select_related("appointment")
-    serializer_class = serializers.PaymentReceiptSerializer
+    serializer_class = serializers.PaymentSerializer
     throttle_scope = "payment"
 
     @action(methods=["post"], url_path="zalopay", detail=True)
@@ -742,7 +616,7 @@ class PaymentViewSet(viewsets.GenericViewSet):
 
         if payment.status == Payment.PaymentStatus.PAID:
             return Response(
-                {"error": "Hóa đơn đã được thanh toán"},
+                "Hóa đơn đã được thanh toán",
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if payment.total_amount == 0:
@@ -798,7 +672,7 @@ class PaymentViewSet(viewsets.GenericViewSet):
             is_valid, data = utils.verify_callback(request.data)
             if not is_valid:
                 res["return_code"] = -1
-                res["return_message"] = f"Xác thực callback thất bại: {data}"
+                res["return_message"] = f"Xác thực callback thất bại"
                 return Response(res)
 
             app_trans_id = data["app_trans_id"]
@@ -842,7 +716,7 @@ class PaymentViewSet(viewsets.GenericViewSet):
         return Response(res, status=status.HTTP_200_OK)
 
 
-class StreamViewSet(viewsets.GenericViewSet):
+class StreamViewSet(viewsets.ViewSet):
     serializer_class = None
 
     @action(
@@ -864,98 +738,3 @@ class StreamViewSet(viewsets.GenericViewSet):
             },
             status=status.HTTP_200_OK,
         )
-
-    @action(
-        methods=["post"],
-        url_path="webhook",
-        detail=False,
-        permission_classes=[AllowAny],
-    )
-    def webhook(self, request):
-        if not utils.verify_stream_webhook(request):
-            return Response(
-                {"error": "Chữ ký Stream không hợp lệ"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        data = json.loads(request.body)
-        event_type = data.get("type")
-
-        if event_type and event_type.startswith("message."):
-            msg_json = data.get("message", {})
-            channel_id = data.get("channel_id", "")
-            appointment_id = channel_id.split("_")[-1]
-
-            try:
-                room = ChatRoom.objects.get(appointment_id=appointment_id)
-
-                if event_type == "message.new":
-                    ChatMessage.objects.update_or_create(
-                        room=room,
-                        chat_type=ChatMessage.MessageType.TEXT,
-                        sender_id=msg_json["user"]["id"],
-                        stream_id=msg_json["id"],
-                        defaults={"content": msg_json["text"]},
-                    )
-                elif event_type == "message.updated":
-                    ChatMessage.objects.filter(stream_id=msg_json["id"]).update(
-                        content=msg_json["text"]
-                    )
-                elif event_type == "message.deleted":
-                    ChatMessage.objects.filter(stream_id=msg_json["id"]).update(
-                        active=False
-                    )
-
-            except ChatRoom.DoesNotExist:
-                pass
-
-        elif event_type == "call.ended":
-            call_json = data.get("call", {})
-            channel_id = data.get("call_cid", "")
-
-            appointment_id = channel_id.split("_")[-1]
-
-            caller_id = call_json.get("created_by", {}).get("id")
-
-            try:
-                room = ChatRoom.objects.select_related("appointment__doctor").get(
-                    appointment_id=appointment_id
-                )
-                appointment = room.appointment
-
-                if caller_id and str(caller_id) == str(appointment.user_id):
-                    receiver_id = appointment.doctor.user_id
-                else:
-                    receiver_id = appointment.user_id
-
-                session = call_json.get("session", {})
-                start = (
-                    session.get("started_at")
-                    or call_json.get("starts_at")
-                    or data.get("created_at")
-                )
-                end = (
-                    session.get("ended_at")
-                    or call_json.get("ended_at")
-                    or data.get("created_at")
-                )
-                with transaction.atomic():
-                    call_log = VideoCallLog.objects.create(
-                        room=room,
-                        caller_id=caller_id,
-                        receiver_id=receiver_id,
-                        status=VideoCallLog.CallStatus.COMPLETED,
-                        start=start,
-                        end=end,
-                    )
-                    ChatMessage.objects.create(
-                        room=room,
-                        chat_type=ChatMessage.MessageType.CALL,
-                        sender_id=caller_id,
-                        call_log=call_log,
-                        content="Cuộc gọi video đã kết thúc",
-                    )
-            except ChatRoom.DoesNotExist:
-                pass
-
-        return Response({}, status=status.HTTP_200_OK)

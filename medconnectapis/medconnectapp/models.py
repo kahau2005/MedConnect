@@ -1,6 +1,6 @@
-from django.core.validators import MinValueValidator, MaxValueValidator
 from cloudinary.models import CloudinaryField
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -91,13 +91,8 @@ class DoctorSchedule(BaseModel):
     duration = models.PositiveSmallIntegerField(default=15)
 
 
-class DiseaseCategory(BaseModel):
-    name = models.CharField(max_length=100)
-
-
 class Disease(BaseModel):
     name = models.CharField(max_length=100)
-    disease_category = models.ForeignKey(DiseaseCategory, on_delete=models.PROTECT)
 
     def __str__(self):
         return self.name
@@ -209,22 +204,6 @@ class Medicine(BaseModel):
         return self.name
 
 
-class MedicineAlert(BaseModel):
-    class AlertType(models.TextChoices):
-        LOW_STOCK = "LOW_STOCK", "Sắp hết hàng"
-        EXPIRING = "EXPIRING", "Sắp hết hạn"
-
-    medicine = models.ForeignKey(
-        Medicine, on_delete=models.CASCADE, related_name="alerts"
-    )
-    alert_type = models.CharField(max_length=20, choices=AlertType)
-    message = models.TextField()
-    is_resolved = models.BooleanField(default=False, verbose_name="Đã xử lý")
-
-    def __str__(self):
-        return f"{self.get_alert_type_display()} - {self.medicine.name}"
-
-
 class Service(BaseModel):
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -300,50 +279,16 @@ class ChatRoom(BaseModel):
         return f"Phòng chat của lịch khám {self.appointment.id}"
 
 
-class VideoCallLog(BaseModel):
-    class CallStatus(models.TextChoices):
-        CONNECTED = "CONNECTED", "Đã kết nối"
-        COMPLETED = "COMPLETED", "Đã kết thúc"
-        MISSED = "MISSED", "Gọi nhỡ"
-        REJECTED = "REJECTED", "Đã từ chối"
-        FAILED = "FAILED", "Đã thất bại"
+class MedicineAlert(BaseModel):
+    class AlertType(models.TextChoices):
+        LOW_STOCK = "LOW_STOCK", "Sắp hết hàng"
+        EXPIRING = "EXPIRING", "Sắp hết hạn"
 
-    room = models.ForeignKey(
-        ChatRoom, on_delete=models.PROTECT, related_name="video_calls"
+    medicine = models.ForeignKey(
+        Medicine, on_delete=models.CASCADE, related_name="alerts"
     )
-    caller = models.ForeignKey(
-        User, on_delete=models.PROTECT, related_name="outgoing_calls"
-    )
-    receiver = models.ForeignKey(
-        User, on_delete=models.PROTECT, related_name="incoming_calls"
-    )
-    status = models.CharField(
-        max_length=20, choices=CallStatus.choices, default=CallStatus.CONNECTED
-    )
-    start = models.DateTimeField(null=False)
-    end = models.DateTimeField(null=True, blank=True)
+    alert_type = models.CharField(max_length=20, choices=AlertType)
+    message = models.TextField()
 
-
-class ChatMessage(BaseModel):
-    class MessageType(models.TextChoices):
-        TEXT = "TEXT", "Tin nhắn"
-        CALL = "CALL", "Thông tin cuộc gọi"
-
-    room = models.ForeignKey(
-        ChatRoom, on_delete=models.PROTECT, related_name="messages"
-    )
-    stream_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
-    sender = models.ForeignKey(
-        User, on_delete=models.PROTECT, related_name="user_messages"
-    )
-    chat_type = models.CharField(
-        max_length=10, choices=MessageType.choices, default=MessageType.TEXT
-    )
-    content = models.TextField(null=True, blank=True)
-    call_log = models.OneToOneField(
-        null=True,
-        blank=True,
-        to=VideoCallLog,
-        on_delete=models.PROTECT,
-        related_name="chat_message",
-    )
+    def __str__(self):
+        return f"{self.get_alert_type_display()} - {self.medicine.name}"

@@ -1,12 +1,10 @@
-from django.contrib import messages
 from datetime import datetime
 
-from django import forms
 from django.contrib import admin
 from django.db.models import Case, CharField, Count, Sum, Value, When
 from django.db.models.functions import ExtractYear, Now, TruncMonth
 from django.template.response import TemplateResponse
-from django.urls import path, reverse
+from django.urls import path
 from django.utils.safestring import mark_safe
 from django_celery_beat.admin import (
     ClockedScheduleAdmin,
@@ -22,9 +20,9 @@ from django_celery_beat.models import (
 )
 
 from medconnectapp.models import (
-    PatientProfile,
     Appointment,
     AppointmentService,
+    PatientProfile,
     Payment,
 )
 
@@ -109,7 +107,7 @@ class MyAdminSite(admin.AdminSite):
         )
 
         diseases = list(
-            disease_qs.values("diagnosis__disease_category__name")
+            disease_qs.values("diagnosis__name")
             .annotate(total_appointments=Count("id"))
             .order_by("-total_appointments")
         )
@@ -139,62 +137,53 @@ class MyAdminSite(admin.AdminSite):
         return TemplateResponse(request, "admin/stats.html", context)
 
 
-class SpecialtyForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["description"].required = False
-        self.fields["image"].required = False
+class MyServiceAdmin(admin.ModelAdmin):
+    readonly_fields = ["image_view"]
 
-    class Meta:
-        model = models.Specialty
-        fields = "__all__"
+    def image_view(self, service):
+        if service.image:
+            return mark_safe(f"<img src='{service.image.url}' width='400' />")
+        return None
+
+
+class MyUserAdmin(admin.ModelAdmin):
+    readonly_fields = ["image_view"]
+
+    def image_view(self, user):
+        if user.avatar:
+            return mark_safe(f"<img src='{user.avatar.url}' width='400' />")
+        return None
 
 
 class MySpecialtyAdmin(admin.ModelAdmin):
-    form = SpecialtyForm
-    readonly_fields = ("image_preview",)
+    readonly_fields = ["image_view"]
 
-    def image_preview(self, specialty):
+    def image_view(self, specialty):
         if specialty.image:
-            return mark_safe(f'<img src="{specialty.image.url}" width="200" />')
-
-
-class MedicineAlertAdmin(admin.ModelAdmin):
-    list_display = ("alert_type", "medicine", "message", "is_resolved", "created_at")
-    list_filter = ("alert_type", "is_resolved", "created_at")
-    search_fields = ("medicine__name", "message")
-    readonly_fields = ("medicine", "alert_type", "message", "created_at")
-    actions = ["mark_as_resolved"]
-
-    def mark_as_resolved(self, request, queryset):
-        queryset.update(is_resolved=True)
-
-    mark_as_resolved.short_description = "Đánh dấu đã xử lý"
+            return mark_safe(f"<img src='{specialty.image.url}' width='200' />")
+        return None
 
 
 admin_site = MyAdminSite()
 
 admin_site.register(models.Specialty, MySpecialtyAdmin)
-admin_site.register(models.User, admin.ModelAdmin)
+admin_site.register(models.User, MyUserAdmin)
 admin_site.register(models.Doctor, admin.ModelAdmin)
 admin_site.register(models.PatientProfile, admin.ModelAdmin)
 admin_site.register(models.DoctorSchedule, admin.ModelAdmin)
 admin_site.register(models.MedicineCategory, admin.ModelAdmin)
 admin_site.register(models.Medicine, admin.ModelAdmin)
-admin_site.register(models.DiseaseCategory, admin.ModelAdmin)
 admin_site.register(models.Disease, admin.ModelAdmin)
-admin_site.register(models.Service, admin.ModelAdmin)
+admin_site.register(models.Service, MyServiceAdmin)
 admin_site.register(models.Appointment, admin.ModelAdmin)
 admin_site.register(models.Prescription, admin.ModelAdmin)
 admin_site.register(models.PrescriptionDetail, admin.ModelAdmin)
 admin_site.register(models.AppointmentService, admin.ModelAdmin)
 admin_site.register(models.Payment, admin.ModelAdmin)
 admin_site.register(models.ChatRoom, admin.ModelAdmin)
-admin_site.register(models.VideoCallLog, admin.ModelAdmin)
-admin_site.register(models.ChatMessage, admin.ModelAdmin)
 admin_site.register(PeriodicTask, PeriodicTaskAdmin)
 admin_site.register(IntervalSchedule)
 admin_site.register(CrontabSchedule, CrontabScheduleAdmin)
 admin_site.register(SolarSchedule)
 admin_site.register(ClockedSchedule, ClockedScheduleAdmin)
-admin_site.register(models.MedicineAlert, MedicineAlertAdmin)
+admin_site.register(models.MedicineAlert, admin.ModelAdmin)
