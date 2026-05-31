@@ -43,9 +43,7 @@ class PrescriptionDetailListSerializer(ListSerializer):
         prescription = self.context["prescription"]
         appointment = prescription.appointment
         if appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError(
-                "Thuốc chỉ có thể được kê vào đơn thuốc khi lịch khám ở trạng thái ĐANG KHÁM "
-            )
+            raise serializers.ValidationError("Trạng thái lịch khám không hợp lệ")
 
         medicine_ids = [
             item["medicine_id"] for item in validated_data if "medicine_id" in item
@@ -56,9 +54,6 @@ class PrescriptionDetailListSerializer(ListSerializer):
         with transaction.atomic():
             medicines = Medicine.objects.filter(id__in=medicine_ids).select_for_update()
             medicine_map = {medicine.id: medicine for medicine in medicines}
-
-            if len(medicine_map) != len(medicine_ids):
-                raise serializers.ValidationError("Có id thuốc không tồn tại")
 
             for item in validated_data:
                 medicine_id = item["medicine_id"]
@@ -72,7 +67,7 @@ class PrescriptionDetailListSerializer(ListSerializer):
 
                 if medicine.stock < quantity:
                     raise serializers.ValidationError(
-                        f"Thuốc {medicine.name} không đủ số lượng. Chỉ còn {medicine.stock} {medicine.unit} trong kho"
+                        f"Thuốc {medicine.name} không đủ số lượng"
                     )
 
                 medicine.stock -= quantity

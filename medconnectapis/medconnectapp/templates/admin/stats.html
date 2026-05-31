@@ -100,8 +100,8 @@
                     }]
                 },
                 options: {
-                    indexAxis: 'y',
-                    plugins: {title: {display: true, text: 'Tất cả Dịch vụ'}}
+                    indexAxis: 'x',
+                    plugins: {title: {display: true, text: 'Dịch vụ'}}
                 }
             });
 
@@ -137,14 +137,14 @@
                 data: {
                     labels: revenueLabels,
                     datasets: [{
-                        label: 'Doanh thu (VNĐ)',
+                        label: 'Doanh thu',
                         data: revenueData,
                         borderColor: '#0288d1',
                         backgroundColor: 'rgba(2, 136, 209, 0.2)',
                         tension: 0.3
                     }]
                 },
-                options: {plugins: {title: {display: true, text: 'Doanh thu theo thời gian'}}}
+                options: {plugins: {title: {display: true, text: 'Thống kê doanh thu'}}}
             });
         };
     </script>

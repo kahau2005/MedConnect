@@ -32,7 +32,6 @@ export const endpoint = {
 export const STREAM_API = process.env.EXPO_PUBLIC_STREAM_API_KEY;
 
 export const authApis = (token) => {
-  //https://medconnect-aca.icydesert-d50d1a9e.southeastasia.azurecontainerapps.io/
   return axios.create({
     baseURL:
       "https://medconnect-aca.icydesert-d50d1a9e.southeastasia.azurecontainerapps.io/",

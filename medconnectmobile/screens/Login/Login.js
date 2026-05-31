@@ -61,6 +61,7 @@ const Login = () => {
         "Đăng nhập thất bại",
         "Tên đăng nhập hoặc mật khẩu không chính xác!",
       );
+      console.log(err);
     } finally {
       setLoading(false);
     }

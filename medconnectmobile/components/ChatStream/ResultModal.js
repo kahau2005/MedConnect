@@ -210,7 +210,7 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                   >
                     {selectedService
                       ? selectedService.service.name
-                      : "— Chọn dịch vụ xét nghiệm —"}
+                      : "Chọn dịch vụ xét nghiệm"}
                   </Text>
                   <Feather name="chevron-down" size={20} color="#0066FF" />
                 </TouchableOpacity>
@@ -315,7 +315,8 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                             color: isReadOnly ? "#6B7280" : "#111827",
                             marginRight: 6,
                           }}
-                          placeholder="Chỉ số (VD: Đường huyết)"
+                          placeholder="Chỉ số"
+                          placeholderTextColor={"#6B7280"}
                           value={row.key}
                           onChangeText={(t) => updateRow(row.id, "key", t)}
                           editable={!isReadOnly}
@@ -332,7 +333,8 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                             color: isReadOnly ? "#6B7280" : "#111827",
                             marginRight: isReadOnly ? 0 : 10,
                           }}
-                          placeholder="Giá trị (VD: 16.5)"
+                          placeholder="Giá trị"
+                          placeholderTextColor={"#6B7280"}
                           value={row.value}
                           onChangeText={(t) => updateRow(row.id, "value", t)}
                           editable={!isReadOnly}
@@ -401,6 +403,7 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                         textAlignVertical: "top",
                       }}
                       placeholder="Nhập kết luận chuyên môn..."
+                      placeholderTextColor={"#6B7280"}
                       multiline
                       value={conclusion}
                       onChangeText={setConclusion}

@@ -27,8 +27,11 @@ export const getFcmToken = async (accessToken) => {
     const fcmToken = await getToken(messaging);
     if (fcmToken) {
       await registerDevice(fcmToken, accessToken);
+      console.log(fcmToken);
     }
-  } catch (err) {}
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 export const registerDevice = async (token, accessToken) => {
@@ -39,7 +42,9 @@ export const registerDevice = async (token, accessToken) => {
     };
 
     await authApis(accessToken).post(endpoint.registerDevice, payload);
-  } catch (err) {}
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 export const unregisterDevice = async () => {

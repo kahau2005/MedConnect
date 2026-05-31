@@ -542,7 +542,7 @@ const PatientProfileTab = () => {
                 <View style={Style.dataItem}>
                   <Text style={Style.dataLabel}>Thể trạng</Text>
                   <Text style={Style.dataValue}>
-                    {formData.height}cm / {formData.weight}kg
+                    {formData.height}cm {formData.weight}kg
                   </Text>
                 </View>
               </View>
@@ -560,7 +560,7 @@ const PatientProfileTab = () => {
                 </Text>
               </View>
               <View style={Style.dataRowFull}>
-                <Text style={Style.dataLabel}>Bệnh lý nền (Mạn tính)</Text>
+                <Text style={Style.dataLabel}>Bệnh nền</Text>
                 <Text style={Style.dataValueFull}>
                   {formData.chronic_diseases || "Không có"}
                 </Text>

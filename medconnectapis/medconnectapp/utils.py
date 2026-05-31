@@ -2,11 +2,11 @@ import hashlib
 import hmac
 import json
 import os
-from datetime import datetime
 
 import firebase_admin
 import requests
 from django.conf import settings
+from django.utils import timezone
 from firebase_admin import credentials, messaging
 from getstream.models import ChannelInput, ChannelMemberRequest, UserRequest
 from getstream.stream import Stream
@@ -28,8 +28,8 @@ def create_order(
     app_id = ZALOPAY_CONFIG["APP_ID"]
     key1 = ZALOPAY_CONFIG["KEY1"]
     endpoint = f"{ZALOPAY_CONFIG['ENDPOINT']}/create"
-    trans_id = f"{datetime.now().strftime('%y%m%d_%H%M%S')}_{order_id}"
-    now = datetime.now()
+    trans_id = f"{timezone.now().strftime('%y%m%d_%H%M%S')}_{order_id}"
+    now = timezone.now()
     app_time = int(now.timestamp() * 1000)
 
     embed_data = json.dumps({})
@@ -130,7 +130,7 @@ def get_or_create_chatroom(appointment):
                 ChannelMemberRequest(user_id=patient_id),
             ],
             custom={
-                "name": f"Lịch khám với BS. {doctor_fullname} của BN. {patient_fullname}",
+                "name": f"Appointment {channel_id}",
                 "appointment_id": appointment.id,
             },
         )
