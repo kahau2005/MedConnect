@@ -49,7 +49,7 @@ def check_medicine_stock_and_expired():
         )
 
         if admin_tokens:
-            title = "CẢNH BÁO KHO THUỐC"
+            title = "KHO THUỐC"
             body = f"Hệ thống đang có {unresolved_alerts_count} cảnh báo về thuốc sắp hết kho/hết hạn chưa được xử lý."
 
             send_push_notification(
