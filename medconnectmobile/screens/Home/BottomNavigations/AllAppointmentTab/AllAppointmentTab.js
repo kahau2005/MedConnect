@@ -90,9 +90,9 @@ const AllAppointmentTab = () => {
   const formatDateTime = (isoString) => {
     if (!isoString) return { date: "--/--/----", time: "--:--" };
     const d = new Date(isoString);
-    const date = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-    let hours = d.getHours();
-    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const date = `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
+    let hours = d.getUTCHours();
+    const minutes = String(d.getUTCMinutes()).padStart(2, "0");
     const ampm = hours >= 12 ? "PM" : "AM";
     hours = hours % 12 || 12;
     const time = `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
@@ -164,7 +164,7 @@ const AllAppointmentTab = () => {
         : "";
 
       const res = await authApis(user.access_token).get(
-        `${endpoint.appointment}?offset=${offset}&kw=${kw}&status=${statusParam}${dateParam}${doctorParam}`,
+        `${endpoint.appointment}?offset=${offset}&search=${kw}&status=${statusParam}${dateParam}${doctorParam}`,
       );
       const newData = res.data.results || [];
       if (isLoadMore) {
@@ -181,6 +181,7 @@ const AllAppointmentTab = () => {
       setHasMore(!(!res.data.next || newData.length === 0));
     } catch (error) {
       console.error("Lỗi load appointment:", error);
+      setHasMore(false);
     } finally {
       isLoadingRef.current = false;
       setLoading(false);

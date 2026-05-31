@@ -454,9 +454,21 @@ class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
 
 
 class MedicineViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
-    queryset = Medicine.objects.filter(active=True)
     permission_classes = [perms.IsDoctorOrAdmin]
     throttle_scope = "medicine"
+
+    def get_queryset(self):
+        queryset = Medicine.objects.filter(active=True)
+        
+        category_id = self.request.query_params.get("category_id")
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+            
+        kw = self.request.query_params.get("kw")
+        if kw:
+            queryset = queryset.filter(name__icontains=kw)
+            
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "retrieve":

@@ -11,8 +11,6 @@ export const endpoint = {
   current_user: "/users/current-user/",
   patient_profile: "/users/current-user/patient-profile/",
   appointment: "/appointments/",
-  appointment_status: (appointmentId) =>
-    `/appointments/${appointmentId}/status/`,
   update_appointment: (appointmentId) => `/appointments/${appointmentId}/`,
   streamToken: "/stream/token/",
   chat_room: (appointmentId) => `/appointments/${appointmentId}/chat-rooms/`,
@@ -34,9 +32,9 @@ export const endpoint = {
 export const STREAM_API = process.env.EXPO_PUBLIC_STREAM_API_KEY;
 
 export const authApis = (token) => {
+  //https://medconnect-aca.icydesert-d50d1a9e.southeastasia.azurecontainerapps.io/
   return axios.create({
-    baseURL:
-      "https://medconnect-aca.icydesert-d50d1a9e.southeastasia.azurecontainerapps.io/",
+    baseURL: "http://192.168.1.239:8000/",
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -44,6 +42,5 @@ export const authApis = (token) => {
 };
 
 export default axios.create({
-  baseURL:
-    "https://medconnect-aca.icydesert-d50d1a9e.southeastasia.azurecontainerapps.io/",
+  baseURL: "http://192.168.1.239:8000/",
 });

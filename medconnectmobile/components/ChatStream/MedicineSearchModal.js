@@ -33,38 +33,49 @@ const MedicineSearchModal = ({
 
   useEffect(() => {
     if (visible && user) {
-      fetchMedicineData();
+      fetchCategories();
     }
   }, [visible]);
 
-  const fetchMedicineData = async () => {
+  useEffect(() => {
+    if (visible && user) {
+      const delayDebounceFn = setTimeout(() => {
+        fetchMedicines(activeCategory, searchKw);
+      }, 500);
+
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [visible, activeCategory, searchKw]);
+
+  const fetchCategories = async () => {
     try {
-      setLoading(true);
-      const [resMeds, resCats] = await Promise.all([
-        authApis(user.access_token).get(endpoint.medicines),
-        authApis(user.access_token).get(endpoint.medicine_categories),
-      ]);
-      setMedicines(resMeds.data || []);
+      const resCats = await authApis(user.access_token).get(
+        endpoint.medicine_categories,
+      );
       setCategories([{ id: "ALL", name: "Tất cả" }, ...(resCats.data || [])]);
     } catch (error) {
       console.error("Lỗi tải danh mục thuốc:", error);
+    }
+  };
+
+  const fetchMedicines = async (categoryId, kw = "") => {
+    try {
+      setLoading(true);
+      let url = endpoint.medicines + "?";
+      if (categoryId !== "ALL") {
+        url += `category_id=${categoryId}&`;
+      }
+      if (kw.trim() !== "") {
+        url += `kw=${encodeURIComponent(kw.trim())}&`;
+      }
+      const resMeds = await authApis(user.access_token).get(url);
+      setMedicines(resMeds.data || []);
+    } catch (error) {
+      console.error("Lỗi tải danh sách thuốc:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  const filteredMedicines = useMemo(() => {
-    let result = medicines;
-    if (activeCategory !== "ALL") {
-      result = result.filter((m) => m.category === activeCategory);
-    }
-    if (searchKw.trim() !== "") {
-      result = result.filter((m) =>
-        m.name.toLowerCase().includes(searchKw.toLowerCase()),
-      );
-    }
-    return result;
-  }, [medicines, searchKw, activeCategory]);
 
   const getInstructionLabel = (enumValue) => {
     switch (enumValue) {
@@ -72,8 +83,6 @@ const MedicineSearchModal = ({
         return "Sau ăn";
       case "BEFORE_MEAL":
         return "Trước ăn";
-      case "WHEN_PAIN":
-        return "Khi đau";
       default:
         return enumValue || "Chưa có cách dùng";
     }
@@ -204,72 +213,67 @@ const MedicineSearchModal = ({
             </View>
           </View>
 
-          {loading ? (
-            <View
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <ActivityIndicator size="large" color="#0066FF" />
-              <Text style={{ marginTop: 12, color: "#6B7280" }}>
-                Đang tải danh mục thuốc...
-              </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={filteredMedicines}
-              keyExtractor={(item) => item.id.toString()}
-              ListHeaderComponent={renderHeader}
-              contentContainerStyle={{ paddingBottom: 40 }}
-              ListEmptyComponent={() => (
-                <View style={{ alignItems: "center", marginTop: 40 }}>
-                  <MaterialCommunityIcons
-                    name="pill"
-                    size={48}
-                    color="#D1D5DB"
-                  />
-                  <Text style={{ color: "#6B7280", marginTop: 12 }}>
-                    Không tìm thấy loại thuốc nào.
-                  </Text>
-                </View>
-              )}
-              renderItem={({ item }) => {
-                const isAdded = addedMedicines.some(
-                  (m) => Number(m.medicine?.id) === Number(item.id),
-                );
-                return (
-                  <View style={styles.medCard}>
-                    <View style={{ flex: 1, marginRight: 12 }}>
-                      <Text style={styles.medName}>{item.name}</Text>
-                      <Text style={styles.medUnit}>
-                        Kho: {item.stock} | Giá:{" "}
-                        {parseInt(item.unit_price || 0).toLocaleString("vi-VN")}
-                        đ
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[
-                        styles.addMedBtn,
-                        isAdded && { backgroundColor: "#F3F4F6" },
-                      ]}
-                      onPress={() => onOpenInputForm(item)}
-                    >
-                      <Text
-                        style={[
-                          styles.addMedBtnText,
-                          isAdded && { color: "#6B7280" },
-                        ]}
-                      >
-                        {isAdded ? "Chỉnh sửa" : "+ Chọn"}
-                      </Text>
-                    </TouchableOpacity>
+          <FlatList
+            data={loading ? [] : medicines}
+            keyExtractor={(item) => item.id.toString()}
+            ListHeaderComponent={renderHeader()}
+            contentContainerStyle={{ paddingBottom: 40 }}
+            ListEmptyComponent={() => (
+              <View style={{ alignItems: "center", marginTop: 40 }}>
+                {loading ? (
+                  <>
+                    <ActivityIndicator size="large" color="#0066FF" />
+                    <Text style={{ marginTop: 12, color: "#6B7280" }}>
+                      Đang tải danh mục thuốc...
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <MaterialCommunityIcons
+                      name="pill"
+                      size={48}
+                      color="#D1D5DB"
+                    />
+                    <Text style={{ color: "#6B7280", marginTop: 12 }}>
+                      Không tìm thấy loại thuốc nào.
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
+            renderItem={({ item }) => {
+              const isAdded = addedMedicines.some(
+                (m) => Number(m.medicine?.id) === Number(item.id),
+              );
+              return (
+                <View style={styles.medCard}>
+                  <View style={{ flex: 1, marginRight: 12 }}>
+                    <Text style={styles.medName}>{item.name}</Text>
+                    <Text style={styles.medUnit}>
+                      Kho: {item.stock} | Giá:{" "}
+                      {parseInt(item.unit_price || 0).toLocaleString("vi-VN")}đ
+                    </Text>
                   </View>
-                );
-              }}
-            />
-          )}
+                  <TouchableOpacity
+                    style={[
+                      styles.addMedBtn,
+                      isAdded && { backgroundColor: "#F3F4F6" },
+                    ]}
+                    onPress={() => onOpenInputForm(item)}
+                  >
+                    <Text
+                      style={[
+                        styles.addMedBtnText,
+                        isAdded && { color: "#6B7280" },
+                      ]}
+                    >
+                      {isAdded ? "Chỉnh sửa" : "+ Chọn"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }}
+          />
         </View>
       </KeyboardAvoidingView>
     </Modal>
