@@ -164,7 +164,7 @@ const AllAppointmentTab = () => {
         : "";
 
       const res = await authApis(user.access_token).get(
-        `${endpoint.appointment}?offset=${offset}&kw=${kw}&status=${statusParam}${dateParam}${doctorParam}`,
+        `${endpoint.appointment}?offset=${offset}&search=${kw}&status=${statusParam}${dateParam}${doctorParam}`,
       );
       const newData = res.data.results || [];
       if (isLoadMore) {

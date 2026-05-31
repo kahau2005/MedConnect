@@ -40,7 +40,7 @@ const Doctor = () => {
         url += `&specialty_id=${specialtyId}`;
       }
       if (kw) {
-        url += `&kw=${kw}`;
+        url += `&search=${kw}`;
       }
 
       let result = await Apis.get(url);
