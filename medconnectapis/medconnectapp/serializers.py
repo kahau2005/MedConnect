@@ -310,16 +310,14 @@ class AppointmentSerializer(ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        doctor = validated_data.get("doctor")
         start = validated_data.get("start")
         duration = getattr(self, "duration", 15)
-        appointment_end_time = start + timedelta(minutes=duration)
 
         overlapped_appointment = Appointment.objects.select_for_update().filter(
             active=True,
-            doctor=doctor,
+            doctor=validated_data.get("doctor"),
             status=Appointment.AppointmentStatus.SCHEDULED,
-            start__lt=appointment_end_time,
+            start__lt=start + timedelta(minutes=duration),
             start__gt=start - timedelta(minutes=duration),
         )
 
