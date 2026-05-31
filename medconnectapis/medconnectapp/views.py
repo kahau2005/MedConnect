@@ -8,7 +8,6 @@ from django.db.models import (
 from django.db.models.functions import Round
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from django_filters.rest_framework import DjangoFilterBackend
 from django_ratelimit.decorators import ratelimit
 from oauth2_provider.views.base import TokenView
 from rest_framework import filters, generics, parsers, permissions, status, viewsets
@@ -18,7 +17,6 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
 from . import paginators, perms, serializers, utils
-from .filters import DoctorFilter
 from .models import (
     Appointment,
     AppointmentService,
@@ -559,14 +557,17 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
 
 class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
-    queryset = Doctor.objects.filter(user__is_active=True)
     serializer_class = serializers.DoctorSerializer
     pagination_class = paginators.DoctorPaginator
-    filter_backends = [DjangoFilterBackend]
-    filterset_class = DoctorFilter
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    search_fields = ["user__first_name", "user__last_name"]
     throttle_scope = "doctor"
 
     def get_queryset(self):
+        queryset = Doctor.objects.filter(user__is_active=True)
+        specialty_id = self.request.query_params.get("specialty_id")
+        if specialty_id:
+            queryset = queryset.filter(specialty_id=specialty_id)
         return super().get_queryset().select_related("user", "specialty")
 
     @action(
