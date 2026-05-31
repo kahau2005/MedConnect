@@ -14,9 +14,6 @@ router.register("appointments", views.AppointmentViewSet, "appointment")
 router.register(
     "appointment-services", views.AppointmentServiceViewSet, "appointment-service"
 )
-router.register(
-    "disease-categories", views.DiseaseCategoryViewSet, "disease-categories"
-)
 router.register("diseases", views.DiseaseViewSet, "disease")
 router.register("specialties", views.SpecialtyViewSet, "specialty")
 router.register("users", views.UserViewSet, "user")

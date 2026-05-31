@@ -108,7 +108,7 @@
             let diseaseLabels = [];
             let diseaseData = [];
             {% for d in diseases %}
-                diseaseLabels.push('{{ d.diagnosis__disease_category__name }}');
+                diseaseLabels.push('{{ d.diagnosis__name }}');
                 diseaseData.push({{ d.total_appointments }});
             {% endfor %}
 
@@ -117,12 +117,12 @@
                 data: {
                     labels: diseaseLabels,
                     datasets: [{
-                        label: 'Số ca mắc',
+                        label: 'Số ca',
                         data: diseaseData,
                         backgroundColor: '#FF9F40'
                     }]
                 },
-                options: {plugins: {title: {display: true, text: 'Nhóm bệnh lý'}}}
+                options: {plugins: {title: {display: true, text: 'Thống kê bệnh'}}}
             });
 
             let revenueLabels = [];
