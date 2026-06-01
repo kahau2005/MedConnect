@@ -591,9 +591,32 @@ class DoctorScheduleViewSet(viewsets.ViewSet):
 
 
 class PaymentViewSet(viewsets.GenericViewSet):
-    queryset = Payment.objects.filter(active=True).select_related("appointment")
     permission_classes = [perms.AppointmentOwner]
     throttle_scope = "payment"
+
+    def get_queryset(self):
+        queryset = Payment.objects.filter(active=True).select_related("appointment")
+        if self.action == "pay":
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "appointment__services",
+                    queryset=AppointmentService.objects.filter(
+                        active=True
+                    ).select_related("service"),
+                ),
+                Prefetch(
+                    "appointment__prescription_set",
+                    queryset=Prescription.objects.filter(active=True).prefetch_related(
+                        Prefetch(
+                            "details",
+                            queryset=PrescriptionDetail.objects.filter(
+                                active=True
+                            ).select_related("medicine"),
+                        )
+                    ),
+                ),
+            )
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "pay":
