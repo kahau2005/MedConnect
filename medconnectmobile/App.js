@@ -123,15 +123,43 @@ export default function App() {
                     component={Home}
                     options={{ headerShown: false }}
                   />
-                  <Stack.Screen name="Appointment" component={Appointment} />
-                  <Stack.Screen name="Specialty" component={Specialty} />
-                  <Stack.Screen name="Doctor" component={Doctor} />
-                  <Stack.Screen name="Service" component={Service} />
-                  <Stack.Screen name="Payment" component={Payment} />
+                  <Stack.Screen
+                    options={{ title: "Đặt lịch khám" }}
+                    name="Appointment"
+                    component={Appointment}
+                  />
+                  <Stack.Screen
+                    options={{ title: "Chuyên khoa" }}
+                    name="Specialty"
+                    component={Specialty}
+                  />
+                  <Stack.Screen
+                    name="Doctor"
+                    options={{ title: "Bác sĩ" }}
+                    component={Doctor}
+                  />
+                  <Stack.Screen
+                    options={{ title: "Dịch vụ" }}
+                    name="Service"
+                    component={Service}
+                  />
+                  <Stack.Screen
+                    options={{ title: "Thanh toán" }}
+                    name="Payment"
+                    component={Payment}
+                  />
                   <Stack.Screen name="ChatStream" component={ChatStream} />
                   <Stack.Screen name="CallStream" component={CallStream} />
-                  <Stack.Screen name="Login" component={Login} />
-                  <Stack.Screen name="Register" component={Register} />
+                  <Stack.Screen
+                    options={{ title: "Đăng nhập" }}
+                    name="Login"
+                    component={Login}
+                  />
+                  <Stack.Screen
+                    options={{ title: "Đăng ký" }}
+                    name="Register"
+                    component={Register}
+                  />
                 </Stack.Navigator>
               </NavigationContainer>
             </PaperProvider>

@@ -174,7 +174,6 @@ const Appointment = () => {
         payload,
       );
 
-      console.log("Thành công!", res.data);
       Alert.alert("Thành công", "Đặt lịch khám thành công!");
     } catch (error) {
       const errorMsg = error.response?.data?.start?.[0]

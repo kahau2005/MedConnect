@@ -185,9 +185,6 @@ const HomeTab = ({ navigation }) => {
               <View style={styles.ratingRow}>
                 <MaterialCommunityIcons name="star" size={16} color="#FFB800" />
                 <Text style={styles.ratingText}>{doc.avg_rating}</Text>
-                <Text style={styles.reviewText}>
-                  ({doc.comment?.length || 0} đánh giá)
-                </Text>
               </View>
             </View>
           </TouchableOpacity>

@@ -115,7 +115,6 @@ const Payment = () => {
       const res = await authApis(user.access_token).post(
         endpoint.zalopay(paymentData.id),
       );
-      console.log(res.data);
       const zpTransToken = res.data.zp_trans_token;
 
       if (!zpTransToken) {

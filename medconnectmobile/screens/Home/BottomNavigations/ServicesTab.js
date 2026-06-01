@@ -14,20 +14,16 @@ const ServicesTab = () => {
       let res = await Apis.get(endpoint.services);
       setServices(res.data.results);
     } catch (error) {
-      console.error("Error fetching services:", error);
+      console.error("Lỗi dịch vụ: ", error);
     }
   };
 
   const fetchPopularServices = async () => {
     try {
       let res = await Apis.get(`${endpoint.services}popular`);
-      console.log(
-        "API response for popular services:",
-        res.data[0]?.image || "Không có",
-      );
       setPopularServices(PopularServiceItemMapper(res.data));
     } catch (error) {
-      console.error("Error fetching popular services:", error);
+      console.error("Lỗi dịch vụ phổ biến!");
     }
   };
 

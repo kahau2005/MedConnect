@@ -47,7 +47,6 @@ export const registerDevice = async (token, accessToken) => {
     };
 
     await authApis(accessToken).post(endpoint.registerDevice, payload);
-    console.log("Đăng ký thiết bị thành công");
   } catch (error) {
     console.error(
       "Lỗi khi đăng ký thiết bị: ",
