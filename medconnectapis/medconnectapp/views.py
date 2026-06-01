@@ -527,10 +527,8 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
-    queryset = Doctor.objects.filter(user__is_active=True).select_related(
-        "user", "specialty"
-    )
+class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Doctor.objects.select_related("user", "specialty")
     serializer_class = serializers.DoctorSerializer
     pagination_class = paginators.DoctorPaginator
     filter_backends = [

@@ -76,7 +76,7 @@ const MedicineSearchModal = ({
         url += `search=${encodeURIComponent(kw.trim())}&`;
       }
       const resMeds = await authApis(user.access_token).get(url);
-      setMedicines(resMeds.data || []);
+      setMedicines(resMeds.data.results || []);
     } catch (error) {
       const errData = error?.response?.data?.err;
       const errorMessage = Array.isArray(errData)
