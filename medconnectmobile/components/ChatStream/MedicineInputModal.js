@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Alert,
 } from "react-native";
@@ -90,14 +89,14 @@ const MedicineInputModal = ({
       };
 
       if (form.detailId) {
-        await authApis(user.access_token).patch(
-          endpoint.update_medicine(form.detailId),
+        await authApis(user.access_token).delete(
+          endpoint.delete_medicine(form.detailId),
           payload,
         );
       } else {
         await authApis(user.access_token).post(
           endpoint.add_medicine(selectedPrescription.id),
-          [payload],
+          payload,
         );
       }
 

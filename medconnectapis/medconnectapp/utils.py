@@ -108,6 +108,11 @@ def send_push_notification(tokens, title, body, data=None):
     return response
 
 
+chat_client = Stream(
+    api_key=settings.STREAM_API_KEY, api_secret=settings.STREAM_API_SECRET
+)
+
+
 def get_or_create_chatroom(appointment):
     channel_id = f"appointment_{appointment.id}"
     doctor_id = str(appointment.doctor_id)
@@ -136,22 +141,3 @@ def get_or_create_chatroom(appointment):
         )
     )
     return channel_id
-
-
-def verify_stream_webhook(request):
-    signature = request.headers.get("x-signature")
-    body = request.body
-
-    if not signature or not body:
-        return False
-
-    expected_signature = hmac.new(
-        settings.STREAM_API_SECRET.encode("utf-8"), msg=body, digestmod=hashlib.sha256
-    ).hexdigest()
-
-    return hmac.compare_digest(signature, expected_signature)
-
-
-chat_client = Stream(
-    api_key=settings.STREAM_API_KEY, api_secret=settings.STREAM_API_SECRET
-)

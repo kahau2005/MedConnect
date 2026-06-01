@@ -8,7 +8,7 @@ export const endpoint = {
   test: "/tests/payment/?amount=1000",
   login: "/o/token/",
   register: "/users/",
-  current_user: "/users/current-user/",
+  currentUser: "/users/current-user/",
   patient_profile: "/users/current-user/patient-profile/",
   appointment: "/appointments/",
   update_appointment: (appointmentId) => `/appointments/${appointmentId}/`,
@@ -17,7 +17,7 @@ export const endpoint = {
   medicines: "/medicines/",
   medicine_categories: "/medicine-categories/",
   add_medicine: (prescriptionId) => `/prescriptions/${prescriptionId}/details/`,
-  update_medicine: (prescriptionId) =>
+  delete_medicine: (prescriptionId) =>
     `/prescription-details/${prescriptionId}/`,
   prescription: (appointmentId) =>
     `/appointments/${appointmentId}/prescriptions/`,
@@ -33,8 +33,7 @@ export const STREAM_API = process.env.EXPO_PUBLIC_STREAM_API_KEY;
 
 export const authApis = (token) => {
   return axios.create({
-    baseURL:
-      "https://medconnect-aca.icydesert-d50d1a9e.southeastasia.azurecontainerapps.io/",
+    baseURL: "http://192.168.100.26:8000",
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -42,6 +41,5 @@ export const authApis = (token) => {
 };
 
 export default axios.create({
-  baseURL:
-    "https://medconnect-aca.icydesert-d50d1a9e.southeastasia.azurecontainerapps.io/",
+  baseURL: "http://192.168.100.26:8000",
 });

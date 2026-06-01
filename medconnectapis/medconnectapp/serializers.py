@@ -7,7 +7,7 @@ from django.utils import timezone
 from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers
 from rest_framework.fields import CurrentUserDefault, HiddenField
-from rest_framework.serializers import ListSerializer, ModelSerializer
+from rest_framework.serializers import ModelSerializer
 
 from .models import (
     Appointment,
@@ -28,68 +28,7 @@ from .models import (
     TestResult,
     User,
 )
-
-
-class PrescriptionDetailListSerializer(ListSerializer):
-    class Meta:
-        model = PrescriptionDetail
-        fields = "__all__"
-        extra_kwargs = {
-            "prescription": {"read_only": True},
-            "unit_price": {"read_only": True},
-        }
-
-    @transaction.atomic
-    def create(self, validated_data):
-        prescription = self.context["prescription"]
-        appointment = prescription.appointment
-        if appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError("Trạng thái lịch khám không hợp lệ")
-
-        medicine_ids = [
-            item["medicine_id"] for item in validated_data if "medicine_id" in item
-        ]
-
-        details = []
-
-        medicines = Medicine.objects.filter(id__in=medicine_ids).select_for_update()
-        medicine_map = {medicine.id: medicine for medicine in medicines}
-
-        for item in validated_data:
-            medicine_id = item["medicine_id"]
-            quantity = item["quantity"]
-            medicine = medicine_map.get(medicine_id)
-
-            if not medicine:
-                raise serializers.ValidationError(f"Thuốc #{medicine_id} không tồn tại")
-
-            if medicine.stock < quantity:
-                raise serializers.ValidationError(
-                    f"Thuốc {medicine.name} không đủ số lượng"
-                )
-
-            medicine.stock -= quantity
-
-            detail = PrescriptionDetail.objects.create(
-                prescription=prescription,
-                medicine_id=medicine_id,
-                unit_price=medicine.unit_price,
-                quantity=quantity,
-                dose=item["dose"],
-                frequency=item["frequency"],
-                duration_day=item["duration_day"],
-                instruction=item["instruction"],
-            )
-            details.append(detail)
-
-        Medicine.objects.bulk_update(medicine_map.values(), ["stock"])
-        return details
-
-
-class PrescriptionDetailMedicineSerializer(ModelSerializer):
-    class Meta:
-        model = Medicine
-        fields = ["id", "name"]
+from medconnectapp import utils
 
 
 class PrescriptionDetailSerializer(ModelSerializer):
@@ -120,74 +59,72 @@ class PrescriptionDetailSerializer(ModelSerializer):
             "updated_at": {"read_only": True},
             "unit_price": {"read_only": True},
         }
-        list_serializer_class = PrescriptionDetailListSerializer
 
     def to_internal_value(self, data):
         obj = super().to_internal_value(data)
         if "medicine" in data:
-            medicine_val = data.get("medicine", serializers.empty)
             try:
-                medicine_id = int(medicine_val)
-            except TypeError, ValueError:
-                raise serializers.ValidationError("ID thuốc không hợp lệ")
-            obj["medicine_id"] = medicine_id
+                obj["medicine_id"] = int(data["medicine"])
+            except ValueError, TypeError:
+                raise serializers.ValidationError({"medicine": "Id thuốc không hợp lệ"})
         return obj
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if instance.medicine_id and instance.medicine:
-            data["medicine"] = {
-                "id": instance.medicine_id,
-                "name": instance.medicine.name,
-            }
-        else:
-            data["medicine"] = None
-
+        data["medicine"] = (
+            {"id": instance.medicine_id, "name": instance.medicine.name}
+            if instance.medicine_id and instance.medicine
+            else None
+        )
         return data
 
     @transaction.atomic
-    def update(self, instance, validated_data):
+    def create(self, validated_data):
+        prescription = self.context["prescription"]
+        if prescription.appointment.status != Appointment.AppointmentStatus.PENDING:
+            raise serializers.ValidationError("Trạng thái lịch khám không hợp lệ")
+
+        medicine = (
+            Medicine.objects.select_for_update()
+            .filter(id=validated_data["medicine_id"])
+            .first()
+        )
+
+        if not medicine:
+            raise serializers.ValidationError("Không tìm thấy thuốc cần tạo")
+
+        if medicine.stock < validated_data["quantity"]:
+            raise serializers.ValidationError(
+                f"Thuốc {medicine.name} không đủ số lượng"
+            )
+
+        medicine.stock -= validated_data["quantity"]
+        medicine.save()
+
+        return PrescriptionDetail.objects.create(
+            prescription=prescription,
+            medicine_id=validated_data["medicine_id"],
+            unit_price=medicine.unit_price,
+            quantity=validated_data["quantity"],
+            dose=validated_data["dose"],
+            frequency=validated_data["frequency"],
+            duration_day=validated_data["duration_day"],
+            instruction=validated_data["instruction"],
+        )
+
+    @transaction.atomic
+    def delete(self, instance):
         appointment = instance.prescription.appointment
         if appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError(
-                "Thuốc chỉ có thể được cập nhật khi lịch khám ở trạng thái đang khám"
-            )
-
-        old_medicine_id = instance.medicine_id
-        old_quantity = instance.quantity
-        new_medicine_id = validated_data.get("medicine_id", old_medicine_id)
-        new_quantity = validated_data.get("quantity", old_quantity)
-
-        if new_medicine_id != old_medicine_id or new_quantity != old_quantity:
-            lock_medicines = list(
-                set([m for m in [old_medicine_id, new_medicine_id] if m])
-            )
-            medicines = Medicine.objects.filter(
-                id__in=lock_medicines
-            ).select_for_update()
-            medicine_map = {m.id: m for m in medicines}
-
-            old_medicine = medicine_map.get(old_medicine_id)
-            new_medicine = medicine_map.get(new_medicine_id)
-
-            if not new_medicine:
-                raise serializers.ValidationError(f"{new_medicine_id} không tồn tại")
-
-            if new_medicine.stock < new_quantity:
-                raise serializers.ValidationError(
-                    f"Thuốc {new_medicine.name} không đủ số lượng. Chỉ còn {new_medicine.stock} {new_medicine.unit} trong kho"
-                )
-            if old_medicine:
-                old_medicine.stock += old_quantity
-
-            new_medicine.stock -= new_quantity
-            validated_data["unit_price"] = new_medicine.unit_price
-
-            medicines_to_update = [m for m in [old_medicine, new_medicine] if m]
-            if medicines_to_update:
-                Medicine.objects.bulk_update(medicines_to_update, ["stock"])
-
-        return super().update(instance, validated_data)
+            raise serializers.ValidationError("Trạng thái lịch khám không hợp lệ")
+        medicine = (
+            Medicine.objects.select_for_update().filter(id=instance.medicine_id).first()
+        )
+        if medicine:
+            medicine.stock += instance.quantity
+            medicine.save()
+        instance.active = False
+        instance.save()
 
 
 class PrescriptionSerializer(ModelSerializer):
@@ -681,6 +618,39 @@ class FCMDeviceSerializer(ModelSerializer):
         fields = ["token", "device_type"]
 
 
+class PaymentCheckoutSerializer(serializers.Serializer):
+    def validate(self, attrs):
+        appointment = self.context["appointment"]
+        if appointment.status != Appointment.AppointmentStatus.PENDING:
+            raise serializers.ValidationError("Trạng thái lịch khám không hợp lệ")
+        return attrs
+
+    def save(self):
+        appointment = self.context["appointment"]
+
+        service_total = 0
+        for s in appointment.services.filter(active=True):
+            service_total += s.quantity * s.unit_price
+
+        prescription_total = 0
+        for p in appointment.prescription_set.filter(active=True):
+            for d in p.details.filter(active=True):
+                prescription_total += d.quantity * d.unit_price
+
+        total_amount = service_total + prescription_total
+        payment, created = Payment.objects.get_or_create(
+            appointment=appointment, defaults={"total_amount": total_amount}
+        )
+        if (
+            not created
+            and payment.status == Payment.PaymentStatus.PENDING
+            and payment.total_amount != total_amount
+        ):
+            payment.total_amount = total_amount
+            payment.save()
+        return payment
+
+
 class PaymentSerializer(ModelSerializer):
     items = serializers.SerializerMethodField()
 
@@ -713,3 +683,65 @@ class PaymentSerializer(ModelSerializer):
                 )
 
         return items
+
+
+class ZaloPaySerializer(serializers.Serializer):
+    def validate(self, attrs):
+        payment = self.context["payment"]
+        if payment.status == Payment.PaymentStatus.PAID:
+            raise serializers.ValidationError("Hóa đơn đã được thanh toán")
+        return attrs
+
+    def save(self):
+        payment = self.context["payment"]
+
+        if payment.total_amount == 0:
+            payment.status = Payment.PaymentStatus.PAID
+            payment.save()
+            payment.appointment.prescription_set.filter(active=True).update(
+                status=Prescription.PrescriptionStatus.PAID
+            )
+            return None
+
+        description = f"Thanh toán lịch khám #{payment.appointment.id}"
+        res = utils.create_order(
+            order_id=payment.id,
+            amount=int(payment.total_amount),
+            description=description,
+        )
+
+        if res.get("return_code") != 1:
+            raise Exception("Có lỗi lúc tạo đơn")
+
+        payment.app_trans_id = res["app_trans_id"]
+        payment.save()
+        return res
+
+
+class ZaloPayCallbackSerializer(serializers.Serializer):
+    def validate(self, attrs):
+        valid, data = utils.verify_callback(self.initial_data)
+        if not valid:
+            raise serializers.ValidationError("Xác thực callback thất bại")
+        self._callback_data = data
+        return attrs
+
+    @transaction.atomic
+    def save(self):
+        data = self._callback_data
+        app_trans_id = data["app_trans_id"]
+        zp_trans_id = data["zp_trans_id"]
+        payment_id = app_trans_id.split("_")[-1]
+
+        payment = Payment.objects.select_related("appointment").get(id=payment_id)
+        payment.status = Payment.PaymentStatus.PAID
+        payment.zp_trans_id = zp_trans_id
+        payment.app_trans_id = app_trans_id
+        payment.save()
+
+        appointment = payment.appointment
+        appointment.status = Appointment.AppointmentStatus.COMPLETED
+        appointment.save()
+        appointment.prescription_set.filter(active=True).update(
+            status=Prescription.PrescriptionStatus.PAID
+        )
