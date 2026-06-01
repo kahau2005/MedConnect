@@ -33,6 +33,8 @@ const MedicineSearchModal = ({
   const [categories, setCategories] = useState([]);
   const [searchKw, setSearchKw] = useState("");
   const [activeCategory, setActiveCategory] = useState("ALL");
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     if (visible && user) {
@@ -58,6 +60,7 @@ const MedicineSearchModal = ({
       setCategories([{ id: "ALL", name: "Tất cả" }, ...(resCats.data || [])]);
     } catch (error) {
       const errData = error?.response?.data?.err;
+
       const errorMessage = Array.isArray(errData)
         ? errData[0]
         : errData || "Không xác định!";
@@ -65,10 +68,18 @@ const MedicineSearchModal = ({
     }
   };
 
+  const handleLoadMore = () => {
+    if (!loading && hasMore && medicines.length > 0) {
+      setOffset((prev) => prev + 8);
+    }
+  };
+
   const fetchMedicines = async (categoryId, kw = "") => {
+    if (loading) return;
+    if (offset > 0 && !hasMore) return;
     try {
       setLoading(true);
-      let url = endpoint.medicines + "?";
+      let url = `${endpoint.medicines}?offset=${offset}`;
       if (categoryId !== "ALL") {
         url += `category_id=${categoryId}&`;
       }
@@ -77,6 +88,7 @@ const MedicineSearchModal = ({
       }
       const resMeds = await authApis(user.access_token).get(url);
       setMedicines(resMeds.data.results || []);
+      setHasMore(resMeds.data.next !== null);
     } catch (error) {
       const errData = error?.response?.data?.err;
       const errorMessage = Array.isArray(errData)
@@ -100,7 +112,6 @@ const MedicineSearchModal = ({
           onPress: async () => {
             try {
               setLoading(true);
-              console.log(detailId);
               await authApis(user.access_token).delete(
                 endpoint.delete_medicine(detailId),
               );
@@ -138,87 +149,84 @@ const MedicineSearchModal = ({
   const addedMedicines = selectedPrescription?.details || [];
 
   const renderHeader = () => (
-    console.log(addedMedicines),
-    (
-      <View style={{ paddingHorizontal: 20 }}>
-        {addedMedicines.length > 0 && (
-          <View style={styles.addedMedContainer}>
-            <Text style={styles.addedMedTitle}>
-              Đã thêm ({addedMedicines.length})
-            </Text>
-            {addedMedicines.map((m, idx) => (
-              <View key={idx} style={styles.addedMedItem}>
-                <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={styles.addedMedName}>
-                    {m.medicine?.name || "Thuốc không rõ tên"}
-                  </Text>
-                  <Text style={styles.addedMedNote}>
-                    {getInstructionLabel(m.instruction)}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingVertical: 4,
-                    paddingLeft: 8,
-                  }}
-                  onPress={() => handleDeleteMedicine(m.id)}
-                >
-                  <MaterialIcons
-                    name="delete-outline"
-                    size={20}
-                    color="#d62424ff"
-                  />
-                </TouchableOpacity>
+    <View style={{ paddingHorizontal: 20 }}>
+      {addedMedicines.length > 0 && (
+        <View style={styles.addedMedContainer}>
+          <Text style={styles.addedMedTitle}>
+            Đã thêm ({addedMedicines.length})
+          </Text>
+          {addedMedicines.map((m, idx) => (
+            <View key={idx} style={styles.addedMedItem}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={styles.addedMedName}>
+                  {m.medicine?.name || "Thuốc không rõ tên"}
+                </Text>
+                <Text style={styles.addedMedNote}>
+                  {getInstructionLabel(m.instruction)}
+                </Text>
               </View>
-            ))}
-          </View>
-        )}
-
-        <View style={styles.searchBar}>
-          <Feather name="search" size={20} color="#9CA3AF" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Tìm tên thuốc, thành phần..."
-            placeholderTextColor="#9CA3AF"
-            value={searchKw}
-            onChangeText={setSearchKw}
-          />
-          {searchKw !== "" && (
-            <TouchableOpacity onPress={() => setSearchKw("")}>
-              <Feather name="x-circle" size={18} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginVertical: 16 }}
-        >
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.categoryChip,
-                activeCategory === cat.id && styles.categoryChipActive,
-              ]}
-              onPress={() => setActiveCategory(cat.id)}
-            >
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  activeCategory === cat.id && styles.categoryChipTextActive,
-                ]}
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 4,
+                  paddingLeft: 8,
+                }}
+                onPress={() => handleDeleteMedicine(m.id)}
               >
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
+                <MaterialIcons
+                  name="delete-outline"
+                  size={20}
+                  color="#d62424ff"
+                />
+              </TouchableOpacity>
+            </View>
           ))}
-        </ScrollView>
+        </View>
+      )}
+
+      <View style={styles.searchBar}>
+        <Feather name="search" size={20} color="#9CA3AF" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Tìm tên thuốc, thành phần..."
+          placeholderTextColor="#9CA3AF"
+          value={searchKw}
+          onChangeText={setSearchKw}
+        />
+        {searchKw !== "" && (
+          <TouchableOpacity onPress={() => setSearchKw("")}>
+            <Feather name="x-circle" size={18} color="#9CA3AF" />
+          </TouchableOpacity>
+        )}
       </View>
-    )
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ marginVertical: 16 }}
+      >
+        {categories.map((cat) => (
+          <TouchableOpacity
+            key={cat.id}
+            style={[
+              styles.categoryChip,
+              activeCategory === cat.id && styles.categoryChipActive,
+            ]}
+            onPress={() => setActiveCategory(cat.id)}
+          >
+            <Text
+              style={[
+                styles.categoryChipText,
+                activeCategory === cat.id && styles.categoryChipTextActive,
+              ]}
+            >
+              {cat.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
   );
 
   return (
@@ -262,6 +270,7 @@ const MedicineSearchModal = ({
             keyExtractor={(item) => item.id.toString()}
             ListHeaderComponent={renderHeader()}
             contentContainerStyle={{ paddingBottom: 40 }}
+            onEndReached={handleLoadMore}
             ListEmptyComponent={() => (
               <View style={{ alignItems: "center", marginTop: 40 }}>
                 {loading ? (
