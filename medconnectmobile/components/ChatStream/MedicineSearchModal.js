@@ -33,6 +33,8 @@ const MedicineSearchModal = ({
   const [categories, setCategories] = useState([]);
   const [searchKw, setSearchKw] = useState("");
   const [activeCategory, setActiveCategory] = useState("ALL");
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     if (visible && user) {
@@ -65,10 +67,18 @@ const MedicineSearchModal = ({
     }
   };
 
+  const handleLoadMore = () => {
+    if (!loading && hasMore && doctors.length > 0) {
+      setOffset((prev) => prev + 8);
+    }
+  };
+
   const fetchMedicines = async (categoryId, kw = "") => {
+    if (loading) return;
+    if (offset > 0 && !hasMore) return;
     try {
       setLoading(true);
-      let url = endpoint.medicines + "?";
+      let url = `${endpoint.medicines}?offset=${offset}`;
       if (categoryId !== "ALL") {
         url += `category_id=${categoryId}&`;
       }
@@ -77,6 +87,7 @@ const MedicineSearchModal = ({
       }
       const resMeds = await authApis(user.access_token).get(url);
       setMedicines(resMeds.data || []);
+      setHasMore(result.data.next !== null);
     } catch (error) {
       const errData = error?.response?.data?.err;
       const errorMessage = Array.isArray(errData)
@@ -262,6 +273,16 @@ const MedicineSearchModal = ({
             keyExtractor={(item) => item.id.toString()}
             ListHeaderComponent={renderHeader()}
             contentContainerStyle={{ paddingBottom: 40 }}
+            onEndReached={handleLoadMore}
+            ListFooterComponent={
+              loading ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#0066FF"
+                  style={{ marginVertical: 10 }}
+                />
+              ) : null
+            }
             ListEmptyComponent={() => (
               <View style={{ alignItems: "center", marginTop: 40 }}>
                 {loading ? (
