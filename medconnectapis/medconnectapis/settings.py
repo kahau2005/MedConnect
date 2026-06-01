@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "ckeditor_uploader",
     "rest_framework",
     "drf_yasg",
+    "django_filters",
     "oauth2_provider",
     "medconnectapp.apps.MedconnectappConfig",
     "corsheaders",

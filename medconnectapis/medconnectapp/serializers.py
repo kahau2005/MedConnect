@@ -65,8 +65,8 @@ class PrescriptionDetailSerializer(ModelSerializer):
         if "medicine" in data:
             try:
                 obj["medicine_id"] = int(data["medicine"])
-            except ValueError, TypeError:
-                raise serializers.ValidationError({"medicine": "Id thuốc không hợp lệ"})
+            except Exception:
+                raise serializers.ValidationError("Id thuốc không hợp lệ")
         return obj
 
     def to_representation(self, instance):
@@ -93,10 +93,8 @@ class PrescriptionDetailSerializer(ModelSerializer):
         if not medicine:
             raise serializers.ValidationError("Không tìm thấy thuốc cần tạo")
 
-        if medicine.stock < validated_data["quantity"]:
-            raise serializers.ValidationError(
-                f"Thuốc {medicine.name} không đủ số lượng"
-            )
+        if validated_data["quantity"] > medicine.stock:
+            raise serializers.ValidationError("Không đủ số lượng tồn kho")
 
         medicine.stock -= validated_data["quantity"]
         medicine.save()
