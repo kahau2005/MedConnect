@@ -42,7 +42,6 @@ const Login = () => {
         password: password,
         grant_type: "password",
       });
-
       const currentUser = await getCurrentUserInfo(res.data.access_token);
       const userData = {
         ...currentUser,
