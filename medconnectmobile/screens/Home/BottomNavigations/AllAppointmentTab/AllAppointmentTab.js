@@ -425,7 +425,7 @@ const AllAppointmentTab = () => {
         )}
 
         <View style={Style.receiptCard}>
-          <Text style={Style.receiptTitle}>Tổng quan thanh toán</Text>
+          <Text style={Style.receiptTitle}>Thanh toán</Text>
           <View style={Style.receiptRowTotal}>
             <Text style={Style.receiptTotalLabel}>Tổng cộng</Text>
             <Text style={Style.receiptTotalAmount}>{fmt(totalAmount)}</Text>
@@ -689,7 +689,7 @@ const AllAppointmentTab = () => {
               <View>
                 <Text style={Style.modalTitle}>Chi tiết hồ sơ</Text>
                 <Text style={Style.modalSubTitle}>
-                  Mã lịch khám: #{selectedAppointment?.id}
+                  Lịch khám: #{selectedAppointment?.id}
                 </Text>
               </View>
               <TouchableOpacity

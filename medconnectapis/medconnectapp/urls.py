@@ -1,14 +1,15 @@
 from django.urls import include, path
 from rest_framework import routers
 
-from medconnectapp.views import PrescriptionDetailViewSet
 
 from . import views
 
 router = routers.DefaultRouter()
 router.register("prescriptions", views.PrescriptionViewSet, "prescription")
 router.register(
-    "prescription-details", PrescriptionDetailViewSet, basename="prescription-detail"
+    "prescription-details",
+    views.PrescriptionDetailViewSet,
+    basename="prescription-detail",
 )
 router.register("appointments", views.AppointmentViewSet, "appointment")
 router.register(

@@ -10,10 +10,8 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
-  Alert,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { modalStyles, medicineStyles as styles } from "./Style";
 import { UserContext } from "../../contexts/UserContext";
 import { authApis, endpoint } from "../../configs/Apis";
@@ -21,7 +19,6 @@ import { authApis, endpoint } from "../../configs/Apis";
 const MedicineSearchModal = ({
   visible,
   selectedPrescription,
-  setSelectedPrescription,
   onClose,
   onBack,
   onOpenInputForm,
@@ -77,39 +74,6 @@ const MedicineSearchModal = ({
     }
   };
 
-  const handleDeleteMedicine = (detailId) => {
-    Alert.alert(
-      "Xác nhận xóa",
-      "Bạn có chắc chắn muốn xóa thuốc này khỏi đơn không?",
-      [
-        { text: "Hủy", style: "cancel" },
-        {
-          text: "Xóa",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setLoading(true);
-              console.log(detailId);
-              await authApis(user.access_token).delete(
-                endpoint.delete_medicine(detailId),
-              );
-
-              const res = await authApis(user.access_token).get(
-                endpoint.medicines_in_prescription(selectedPrescription.id),
-              );
-              setSelectedPrescription(res.data);
-            } catch (error) {
-              Alert.alert("Lỗi", "Không thể xóa thuốc khỏi đơn.");
-              console.log(error);
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ],
-    );
-  };
-
   const getInstructionLabel = (enumValue) => {
     switch (enumValue) {
       case "AFTER_MEAL":
@@ -124,87 +88,87 @@ const MedicineSearchModal = ({
   const addedMedicines = selectedPrescription?.details || [];
 
   const renderHeader = () => (
-    console.log(addedMedicines),
-    (
-      <View style={{ paddingHorizontal: 20 }}>
-        {addedMedicines.length > 0 && (
-          <View style={styles.addedMedContainer}>
-            <Text style={styles.addedMedTitle}>
-              Đã thêm ({addedMedicines.length})
-            </Text>
-            {addedMedicines.map((m, idx) => (
-              <View key={idx} style={styles.addedMedItem}>
-                <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={styles.addedMedName}>
-                    {m.medicine?.name || "Thuốc không rõ tên"}
-                  </Text>
-                  <Text style={styles.addedMedNote}>
-                    {getInstructionLabel(m.instruction)}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingVertical: 4,
-                    paddingLeft: 8,
-                  }}
-                  onPress={() => handleDeleteMedicine(m.id)}
-                >
-                  <MaterialIcons
-                    name="delete-outline"
-                    size={20}
-                    color="#d62424ff"
-                  />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        )}
-
-        <View style={styles.searchBar}>
-          <Feather name="search" size={20} color="#9CA3AF" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Tìm tên thuốc, thành phần..."
-            placeholderTextColor="#9CA3AF"
-            value={searchKw}
-            onChangeText={setSearchKw}
-          />
-          {searchKw !== "" && (
-            <TouchableOpacity onPress={() => setSearchKw("")}>
-              <Feather name="x-circle" size={18} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginVertical: 16 }}
-        >
-          {categories.map((cat) => (
+    <View style={{ paddingHorizontal: 20 }}>
+      {addedMedicines.length > 0 && (
+        <View style={styles.addedMedContainer}>
+          <Text style={styles.addedMedTitle}>
+            Đã thêm ({addedMedicines.length})
+          </Text>
+          {addedMedicines.map((m, idx) => (
             <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.categoryChip,
-                activeCategory === cat.id && styles.categoryChipActive,
-              ]}
-              onPress={() => setActiveCategory(cat.id)}
+              key={idx}
+              style={styles.addedMedItem}
+              activeOpacity={0.7}
+              onPress={() =>
+                onOpenInputForm({ ...m, detailId: m.id, id: m.medicine?.id })
+              }
             >
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  activeCategory === cat.id && styles.categoryChipTextActive,
-                ]}
-              >
-                {cat.name}
-              </Text>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={styles.addedMedName}>
+                  {m.medicine?.name || "Thuốc không rõ tên"}
+                </Text>
+                <Text style={styles.addedMedNote}>
+                  {getInstructionLabel(m.instruction)}
+                </Text>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={styles.addedMedQtyBox}>
+                  <Text style={styles.addedMedQtyText}>SL: {m.quantity}</Text>
+                </View>
+                <Feather
+                  name="edit-2"
+                  size={16}
+                  color="#9CA3AF"
+                  style={{ marginLeft: 8 }}
+                />
+              </View>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </View>
+      )}
+
+      <View style={styles.searchBar}>
+        <Feather name="search" size={20} color="#9CA3AF" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Tìm tên thuốc, thành phần..."
+          placeholderTextColor="#9CA3AF"
+          value={searchKw}
+          onChangeText={setSearchKw}
+        />
+        {searchKw !== "" && (
+          <TouchableOpacity onPress={() => setSearchKw("")}>
+            <Feather name="x-circle" size={18} color="#9CA3AF" />
+          </TouchableOpacity>
+        )}
       </View>
-    )
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ marginVertical: 16 }}
+      >
+        {categories.map((cat) => (
+          <TouchableOpacity
+            key={cat.id}
+            style={[
+              styles.categoryChip,
+              activeCategory === cat.id && styles.categoryChipActive,
+            ]}
+            onPress={() => setActiveCategory(cat.id)}
+          >
+            <Text
+              style={[
+                styles.categoryChipText,
+                activeCategory === cat.id && styles.categoryChipTextActive,
+              ]}
+            >
+              {cat.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
   );
 
   return (
@@ -239,6 +203,9 @@ const MedicineSearchModal = ({
               </TouchableOpacity>
               <View style={{ flex: 1 }}>
                 <Text style={modalStyles.formTitle}>Thêm thuốc vào đơn</Text>
+                <Text style={modalStyles.headerSubtitle} numberOfLines={1}>
+                  CĐ: {selectedPrescription?.diagnosis}
+                </Text>
               </View>
             </View>
           </View>
@@ -272,7 +239,7 @@ const MedicineSearchModal = ({
               </View>
             )}
             renderItem={({ item }) => {
-              const addedMed = addedMedicines.find(
+              const isAdded = addedMedicines.some(
                 (m) => Number(m.medicine?.id) === Number(item.id),
               );
               return (
@@ -284,28 +251,22 @@ const MedicineSearchModal = ({
                       {parseInt(item.unit_price || 0).toLocaleString("vi-VN")}đ
                     </Text>
                   </View>
-                  {addedMed ? (
-                    <TouchableOpacity
+                  <TouchableOpacity
+                    style={[
+                      styles.addMedBtn,
+                      isAdded && { backgroundColor: "#F3F4F6" },
+                    ]}
+                    onPress={() => onOpenInputForm(item)}
+                  >
+                    <Text
                       style={[
-                        styles.addMedBtn,
-                        { backgroundColor: "#FEE2E2", borderColor: "#FEE2E2" },
+                        styles.addMedBtnText,
+                        isAdded && { color: "#6B7280" },
                       ]}
-                      onPress={() => handleDeleteMedicine(addedMed.id)}
                     >
-                      <Text
-                        style={[styles.addMedBtnText, { color: "#DC2626" }]}
-                      >
-                        Xóa
-                      </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.addMedBtn}
-                      onPress={() => onOpenInputForm(item)}
-                    >
-                      <Text style={styles.addMedBtnText}>Chọn</Text>
-                    </TouchableOpacity>
-                  )}
+                      {isAdded ? "Chỉnh sửa" : "+ Chọn"}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               );
             }}

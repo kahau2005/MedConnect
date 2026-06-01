@@ -6,10 +6,7 @@ from django.db.models import (
 )
 from django.db.models.functions import Round
 from django.utils import timezone
-from django.utils.decorators import method_decorator
 from django_filters.rest_framework.backends import DjangoFilterBackend
-from django_ratelimit.decorators import ratelimit
-from oauth2_provider.views.base import TokenView
 from rest_framework import filters, generics, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -312,10 +309,7 @@ class AppointmentServiceViewSet(viewsets.ViewSet, generics.UpdateAPIView):
     )
     serializer_class = serializers.AppointmentServiceSerializer
     permission_classes = [perms.AppointmentDoctor]
-
-    def get_throttles(self):
-        self.throttle_scope = "appointment_service"
-        return [ScopedRateThrottle()]
+    throttle_scope = "appointment_service"
 
     @action(methods=["get", "post"], url_path="results", detail=True)
     def test_results(self, request, pk=None):
@@ -451,11 +445,6 @@ class MedicineCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
     throttle_scope = "medicine_category"
 
 
-@method_decorator(ratelimit(key="ip", rate="5/m"), name="dispatch")
-class RateLimitLoginView(TokenView):
-    pass
-
-
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
@@ -587,7 +576,7 @@ class DoctorScheduleViewSet(viewsets.ViewSet):
 
 
 class PaymentViewSet(viewsets.GenericViewSet):
-    queryset = Payment.objects.filter(active=True).select_related("appoinment")
+    queryset = Payment.objects.filter(active=True).select_related("appointment")
     permission_classes = [perms.AppointmentOwner]
     throttle_scope = "payment"
 
