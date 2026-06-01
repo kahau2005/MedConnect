@@ -77,6 +77,42 @@ const MedicineSearchModal = ({
     }
   };
 
+  const handleDeleteMedicine = (detailId) => {
+    Alert.alert(
+      "Xác nhận xóa",
+      "Bạn có chắc chắn muốn xóa thuốc này khỏi đơn không?",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              console.log(detailId);
+              await authApis(user.access_token).delete(
+                endpoint.delete_medicine(detailId),
+              );
+
+              const res = await authApis(user.access_token).get(
+                endpoint.prescription(selectedPrescription.appointment),
+              );
+              const updatedPrescription = res.data.find(
+                (p) => p.id === selectedPrescription.id,
+              );
+              setSelectedPrescription(updatedPrescription);
+            } catch (error) {
+              Alert.alert("Lỗi", "Không thể xóa thuốc khỏi đơn.");
+              console.log(error);
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const getInstructionLabel = (enumValue) => {
     switch (enumValue) {
       case "AFTER_MEAL":
@@ -98,31 +134,37 @@ const MedicineSearchModal = ({
             Đã thêm ({addedMedicines.length})
           </Text>
           {addedMedicines.map((m, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={styles.addedMedItem}
-              activeOpacity={0.7}
-              onPress={() =>
-                onOpenInputForm({ ...m, detailId: m.id, id: m.medicine?.id })
-              }
-            >
-              <View style={{ flex: 1, paddingRight: 8 }}>
+            <View key={idx} style={styles.addedMedItem}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingRight: 8 }}
+                activeOpacity={0.7}
+                onPress={() =>
+                  onOpenInputForm({ ...m, detailId: m.id, id: m.medicine?.id })
+                }
+              >
                 <Text style={styles.addedMedName}>
                   {m.medicine?.name || "Thuốc không rõ tên"}
                 </Text>
                 <Text style={styles.addedMedNote}>
                   {getInstructionLabel(m.instruction)}
                 </Text>
-              </View>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 4,
+                  paddingLeft: 8,
+                }}
+                onPress={() => handleDeleteMedicine(m.id)}
+              >
                 <MaterialIcons
                   name="delete-outline"
-                  size={16}
+                  size={20}
                   color="#d62424ff"
-                  style={{ marginLeft: 8 }}
                 />
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
           ))}
         </View>
       )}
