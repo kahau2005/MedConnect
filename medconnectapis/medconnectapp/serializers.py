@@ -61,22 +61,10 @@ class PrescriptionDetailSerializer(ModelSerializer):
         }
 
     def to_internal_value(self, data):
-        obj = super().to_internal_value(data)
+        detail = super().to_internal_value(data)
         if "medicine" in data:
-            try:
-                obj["medicine_id"] = int(data["medicine"])
-            except Exception:
-                raise serializers.ValidationError("Id thuốc không hợp lệ")
-        return obj
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data["medicine"] = (
-            {"id": instance.medicine_id, "name": instance.medicine.name}
-            if instance.medicine_id and instance.medicine
-            else None
-        )
-        return data
+            detail["medicine_id"] = int(data["medicine"])
+        return detail
 
     @transaction.atomic
     def create(self, validated_data):

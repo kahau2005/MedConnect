@@ -41,7 +41,6 @@ class AppointmentViewSet(
     generics.ListAPIView,
     generics.RetrieveAPIView,
     generics.UpdateAPIView,
-    generics.CreateAPIView,
 ):
     pagination_class = paginators.AppointmentPaginator
     filter_backends = [
@@ -127,14 +126,14 @@ class AppointmentViewSet(
     def get_serializer_class(self):
         if self.action == "retrieve":
             return serializers.DetailAppointmentSerializer
-        if self.action == "prescriptions":
+        elif self.action == "prescriptions":
             if self.request.method == "POST":
                 return serializers.SimplePrescriptionSerializer
             elif self.request.method == "GET":
                 return serializers.PrescriptionSerializer
-        if self.action == "partial_update":
+        elif self.action == "partial_update":
             return serializers.AppointmentUpdateSerializer
-        if self.action == "checkout":
+        elif self.action == "checkout":
             return serializers.PaymentCheckoutSerializer
         return serializers.AppointmentSerializer
 
@@ -181,8 +180,11 @@ class AppointmentViewSet(
 
         return [ScopedRateThrottle()]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(
         methods=["get"],
@@ -333,8 +335,21 @@ class AppointmentServiceViewSet(viewsets.ViewSet, generics.UpdateAPIView):
 
 
 class PrescriptionViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
-    queryset = Prescription.objects.filter(active=True)
     permission_classes = [perms.AppointmentDoctor]
+
+    def get_queryset(self):
+        queryset = Prescription.objects.filter(active=True)
+
+        if self.action == "retrieve":
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "details",
+                    queryset=PrescriptionDetail.objects.filter(
+                        active=True
+                    ).select_related("medicine"),
+                )
+            )
+        return queryset
 
     def get_serializer_class(self):
         if self.action in ["details"]:
