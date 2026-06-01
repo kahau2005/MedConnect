@@ -236,7 +236,9 @@ class AppointmentViewSet(
             ).prefetch_related(
                 Prefetch(
                     "details",
-                    queryset=PrescriptionDetail.objects.select_related("medicine"),
+                    queryset=PrescriptionDetail.objects.filter(
+                        active=True
+                    ).select_related("medicine"),
                 )
             )
             return Response(

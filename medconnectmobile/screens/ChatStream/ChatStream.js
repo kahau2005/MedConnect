@@ -189,6 +189,7 @@ const ChatStream = () => {
           <MedicineSearchModal
             visible={activeModal === "MEDICINE_SEARCH"}
             selectedPrescription={selectedPrescription}
+            setSelectedPrescription={setSelectedPrescription}
             onClose={() => setActiveModal(null)}
             onBack={() => setActiveModal("PRESCRIPTION_LIST")}
             onOpenInputForm={(medicineItem) => {

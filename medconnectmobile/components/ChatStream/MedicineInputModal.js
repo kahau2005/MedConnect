@@ -17,7 +17,6 @@ import { authApis, endpoint } from "../../configs/Apis";
 
 const EMPTY_FORM = {
   medicine: null,
-  detailId: null,
   quantity: "1",
   dose: "1",
   frequency: "2",
@@ -44,19 +43,7 @@ const MedicineInputModal = ({
 
   useEffect(() => {
     if (visible && selectedMed) {
-      if (selectedMed.detailId) {
-        setForm({
-          medicine: selectedMed.medicine?.id || selectedMed.id,
-          detailId: selectedMed.detailId,
-          quantity: String(selectedMed.quantity || 1),
-          dose: String(selectedMed.dose || 1),
-          frequency: String(selectedMed.frequency || 2),
-          duration_day: String(selectedMed.duration_day || 7),
-          instruction: selectedMed.instruction || "AFTER_MEAL",
-        });
-      } else {
-        setForm({ ...EMPTY_FORM, medicine: selectedMed.id });
-      }
+      setForm({ ...EMPTY_FORM, medicine: selectedMed.id });
     }
   }, [visible, selectedMed]);
 
@@ -88,26 +75,15 @@ const MedicineInputModal = ({
         medicine: Number(form.medicine),
       };
 
-      if (form.detailId) {
-        await authApis(user.access_token).delete(
-          endpoint.delete_medicine(form.detailId),
-          payload,
-        );
-      } else {
-        await authApis(user.access_token).post(
-          endpoint.add_medicine(selectedPrescription.id),
-          payload,
-        );
-      }
+      await authApis(user.access_token).post(
+        endpoint.add_medicine(selectedPrescription.id),
+        payload,
+      );
 
       const res = await authApis(user.access_token).get(
-        endpoint.prescription(selectedPrescription.appointment),
+        endpoint.medicines_in_prescription(selectedPrescription.id),
       );
-      const updatedPrescription = res.data.find(
-        (p) => p.id === selectedPrescription.id,
-      );
-
-      setSelectedPrescription(updatedPrescription);
+      setSelectedPrescription(res.data);
       onBack();
     } catch (error) {
       Alert.alert("Lỗi", "Không thể thêm thuốc vào đơn.");
