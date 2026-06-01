@@ -145,6 +145,8 @@ class AppointmentViewSet(
             return [perms.AppointmentOwnerOrDoctor()]
         elif self.action in ["review", "checkout"]:
             return [perms.AppointmentOwner()]
+        elif self.action == "today":
+            return [perms.IsDoctor()]
         return [perms.AppointmentOwnerOrDoctor()]
 
     def get_throttles(self):
@@ -202,7 +204,6 @@ class AppointmentViewSet(
         methods=["get"],
         url_path="today",
         detail=False,
-        permission_classes=[perms.IsDoctor],
     )
     def today(self, request):
         queryset = self.get_queryset().filter(
@@ -423,6 +424,7 @@ class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
 class MedicineViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
     queryset = Medicine.objects.filter(active=True)
     permission_classes = [perms.IsDoctorOrAdmin]
+    pagination_class = paginators.MedicinePaginator
     throttle_scope = "medicine"
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = {

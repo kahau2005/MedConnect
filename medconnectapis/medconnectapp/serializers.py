@@ -9,6 +9,8 @@ from rest_framework import serializers
 from rest_framework.fields import CurrentUserDefault, HiddenField
 from rest_framework.serializers import ModelSerializer
 
+from medconnectapp import utils
+
 from .models import (
     Appointment,
     AppointmentService,
@@ -27,7 +29,6 @@ from .models import (
     TestResult,
     User,
 )
-from medconnectapp import utils
 
 
 class PrescriptionDetailSerializer(ModelSerializer):
@@ -185,7 +186,6 @@ class DoctorSerializer(ModelSerializer):
 
 class AppointmentSerializer(ModelSerializer):
     doctor_info = DoctorSerializer(source="doctor", read_only=True)
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         extra_kwargs = {
