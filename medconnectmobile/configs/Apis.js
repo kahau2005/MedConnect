@@ -27,6 +27,8 @@ export const endpoint = {
   appointmentDetails: (appointmentId) => `/appointments/${appointmentId}/`,
   zalopay: (paymentId) => `/payments/${paymentId}/zalopay/`,
   registerDevice: "/users/register-device/",
+  medicines_in_prescription: (prescriptionId) =>
+    `/prescriptions/${prescriptionId}/`,
 };
 
 export const STREAM_API = process.env.EXPO_PUBLIC_STREAM_API_KEY;

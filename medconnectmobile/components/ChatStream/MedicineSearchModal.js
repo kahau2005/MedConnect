@@ -95,12 +95,9 @@ const MedicineSearchModal = ({
               );
 
               const res = await authApis(user.access_token).get(
-                endpoint.prescription(selectedPrescription.appointment),
+                endpoint.medicines_in_prescription(selectedPrescription.id),
               );
-              const updatedPrescription = res.data.find(
-                (p) => p.id === selectedPrescription.id,
-              );
-              setSelectedPrescription(updatedPrescription);
+              setSelectedPrescription(res.data);
             } catch (error) {
               Alert.alert("Lỗi", "Không thể xóa thuốc khỏi đơn.");
               console.log(error);
@@ -127,90 +124,87 @@ const MedicineSearchModal = ({
   const addedMedicines = selectedPrescription?.details || [];
 
   const renderHeader = () => (
-    <View style={{ paddingHorizontal: 20 }}>
-      {addedMedicines.length > 0 && (
-        <View style={styles.addedMedContainer}>
-          <Text style={styles.addedMedTitle}>
-            Đã thêm ({addedMedicines.length})
-          </Text>
-          {addedMedicines.map((m, idx) => (
-            <View key={idx} style={styles.addedMedItem}>
-              <TouchableOpacity
-                style={{ flex: 1, paddingRight: 8 }}
-                activeOpacity={0.7}
-                onPress={() =>
-                  onOpenInputForm({ ...m, detailId: m.id, id: m.medicine?.id })
-                }
-              >
-                <Text style={styles.addedMedName}>
-                  {m.medicine?.name || "Thuốc không rõ tên"}
-                </Text>
-                <Text style={styles.addedMedNote}>
-                  {getInstructionLabel(m.instruction)}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingVertical: 4,
-                  paddingLeft: 8,
-                }}
-                onPress={() => handleDeleteMedicine(m.id)}
-              >
-                <MaterialIcons
-                  name="delete-outline"
-                  size={20}
-                  color="#d62424ff"
-                />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-      )}
-
-      <View style={styles.searchBar}>
-        <Feather name="search" size={20} color="#9CA3AF" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Tìm tên thuốc, thành phần..."
-          placeholderTextColor="#9CA3AF"
-          value={searchKw}
-          onChangeText={setSearchKw}
-        />
-        {searchKw !== "" && (
-          <TouchableOpacity onPress={() => setSearchKw("")}>
-            <Feather name="x-circle" size={18} color="#9CA3AF" />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ marginVertical: 16 }}
-      >
-        {categories.map((cat) => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[
-              styles.categoryChip,
-              activeCategory === cat.id && styles.categoryChipActive,
-            ]}
-            onPress={() => setActiveCategory(cat.id)}
-          >
-            <Text
-              style={[
-                styles.categoryChipText,
-                activeCategory === cat.id && styles.categoryChipTextActive,
-              ]}
-            >
-              {cat.name}
+    console.log(addedMedicines),
+    (
+      <View style={{ paddingHorizontal: 20 }}>
+        {addedMedicines.length > 0 && (
+          <View style={styles.addedMedContainer}>
+            <Text style={styles.addedMedTitle}>
+              Đã thêm ({addedMedicines.length})
             </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
+            {addedMedicines.map((m, idx) => (
+              <View key={idx} style={styles.addedMedItem}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={styles.addedMedName}>
+                    {m.medicine?.name || "Thuốc không rõ tên"}
+                  </Text>
+                  <Text style={styles.addedMedNote}>
+                    {getInstructionLabel(m.instruction)}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 4,
+                    paddingLeft: 8,
+                  }}
+                  onPress={() => handleDeleteMedicine(m.id)}
+                >
+                  <MaterialIcons
+                    name="delete-outline"
+                    size={20}
+                    color="#d62424ff"
+                  />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.searchBar}>
+          <Feather name="search" size={20} color="#9CA3AF" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm tên thuốc, thành phần..."
+            placeholderTextColor="#9CA3AF"
+            value={searchKw}
+            onChangeText={setSearchKw}
+          />
+          {searchKw !== "" && (
+            <TouchableOpacity onPress={() => setSearchKw("")}>
+              <Feather name="x-circle" size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginVertical: 16 }}
+        >
+          {categories.map((cat) => (
+            <TouchableOpacity
+              key={cat.id}
+              style={[
+                styles.categoryChip,
+                activeCategory === cat.id && styles.categoryChipActive,
+              ]}
+              onPress={() => setActiveCategory(cat.id)}
+            >
+              <Text
+                style={[
+                  styles.categoryChipText,
+                  activeCategory === cat.id && styles.categoryChipTextActive,
+                ]}
+              >
+                {cat.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    )
   );
 
   return (
@@ -278,7 +272,7 @@ const MedicineSearchModal = ({
               </View>
             )}
             renderItem={({ item }) => {
-              const isAdded = addedMedicines.some(
+              const addedMed = addedMedicines.find(
                 (m) => Number(m.medicine?.id) === Number(item.id),
               );
               return (
@@ -290,22 +284,28 @@ const MedicineSearchModal = ({
                       {parseInt(item.unit_price || 0).toLocaleString("vi-VN")}đ
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    style={[
-                      styles.addMedBtn,
-                      isAdded && { backgroundColor: "#F3F4F6" },
-                    ]}
-                    onPress={() => onOpenInputForm(item)}
-                  >
-                    <Text
+                  {addedMed ? (
+                    <TouchableOpacity
                       style={[
-                        styles.addMedBtnText,
-                        isAdded && { color: "#6B7280" },
+                        styles.addMedBtn,
+                        { backgroundColor: "#FEE2E2", borderColor: "#FEE2E2" },
                       ]}
+                      onPress={() => handleDeleteMedicine(addedMed.id)}
                     >
-                      {isAdded ? "Chỉnh sửa" : "+ Chọn"}
-                    </Text>
-                  </TouchableOpacity>
+                      <Text
+                        style={[styles.addMedBtnText, { color: "#DC2626" }]}
+                      >
+                        Xóa
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.addMedBtn}
+                      onPress={() => onOpenInputForm(item)}
+                    >
+                      <Text style={styles.addMedBtnText}>Chọn</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               );
             }}
