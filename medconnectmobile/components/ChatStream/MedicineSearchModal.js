@@ -64,7 +64,7 @@ const MedicineSearchModal = ({
         url += `category_id=${categoryId}&`;
       }
       if (kw.trim() !== "") {
-        url += `kw=${encodeURIComponent(kw.trim())}&`;
+        url += `search=${encodeURIComponent(kw.trim())}&`;
       }
       const resMeds = await authApis(user.access_token).get(url);
       setMedicines(resMeds.data || []);

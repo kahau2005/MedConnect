@@ -655,7 +655,7 @@ class PaymentSerializer(ModelSerializer):
 
     def get_items(self, payment):
         items = []
-        for appointment_service in payment.appointment.services.all():
+        for appointment_service in payment.appointment.services.filter(active=True):
             items.append(
                 {
                     "name": appointment_service.service.name,
@@ -665,7 +665,7 @@ class PaymentSerializer(ModelSerializer):
                 }
             )
 
-        for prescription in payment.appointment.prescription_set.all():
+        for prescription in payment.appointment.prescription_set.filter(active=True):
             for detail in prescription.details.all():
                 items.append(
                     {
