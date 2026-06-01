@@ -37,6 +37,10 @@ const MedicineSearchModal = ({
   const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
+    setOffset(0);
+  }, [activeCategory, searchKw]);
+
+  useEffect(() => {
     if (visible && user) {
       fetchCategories();
     }
@@ -45,12 +49,12 @@ const MedicineSearchModal = ({
   useEffect(() => {
     if (visible && user) {
       const delayDebounceFn = setTimeout(() => {
-        fetchMedicines(activeCategory, searchKw);
+        fetchMedicines(activeCategory, searchKw, offset);
       }, 500);
 
       return () => clearTimeout(delayDebounceFn);
     }
-  }, [visible, activeCategory, searchKw]);
+  }, [visible, activeCategory, searchKw, offset]);
 
   const fetchCategories = async () => {
     try {
@@ -74,20 +78,30 @@ const MedicineSearchModal = ({
     }
   };
 
-  const fetchMedicines = async (categoryId, kw = "") => {
+  const fetchMedicines = async (categoryId, kw = "", currentOffset = 0) => {
     if (loading) return;
-    if (offset > 0 && !hasMore) return;
+    if (currentOffset > 0 && !hasMore) return;
+
     try {
       setLoading(true);
-      let url = `${endpoint.medicines}?offset=${offset}`;
+
+      let url = `${endpoint.medicines}?offset=${currentOffset}`;
       if (categoryId !== "ALL") {
-        url += `category_id=${categoryId}&`;
+        url += `&category_id=${categoryId}`;
       }
       if (kw.trim() !== "") {
-        url += `search=${encodeURIComponent(kw.trim())}&`;
+        url += `&search=${encodeURIComponent(kw.trim())}`;
       }
+
       const resMeds = await authApis(user.access_token).get(url);
-      setMedicines(resMeds.data.results || []);
+      const newData = resMeds.data.results || [];
+
+      if (currentOffset === 0) {
+        setMedicines(newData);
+      } else {
+        setMedicines((prev) => [...prev, ...newData]);
+      }
+
       setHasMore(resMeds.data.next !== null);
     } catch (error) {
       const errData = error?.response?.data?.err;
@@ -99,7 +113,6 @@ const MedicineSearchModal = ({
       setLoading(false);
     }
   };
-
   const handleDeleteMedicine = (detailId) => {
     Alert.alert(
       "Xác nhận xóa",
@@ -271,6 +284,7 @@ const MedicineSearchModal = ({
             ListHeaderComponent={renderHeader()}
             contentContainerStyle={{ paddingBottom: 40 }}
             onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.2}
             ListEmptyComponent={() => (
               <View style={{ alignItems: "center", marginTop: 40 }}>
                 {loading ? (
