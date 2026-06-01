@@ -19,7 +19,6 @@ from .models import (
     AppointmentService,
     Disease,
     Doctor,
-    DoctorSchedule,
     FCMDevice,
     Medicine,
     MedicineCategory,
@@ -556,22 +555,6 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPI
         ).order_by("-avg_rating", "-appointment_count")[:5]
         serializer = self.get_serializer(doctors, many=True)
         return Response(serializer.data)
-
-
-class DoctorScheduleViewSet(viewsets.ViewSet):
-    queryset = DoctorSchedule.objects.filter(active=True)
-    serializer_class = serializers.DoctorScheduleSerializer
-    permission_classes = [perms.IsDoctor]
-    throttle_scope = "doctor_schedule"
-
-    def list(self, request):
-        doctor = request.user.doctor_profile
-        schedules = self.queryset.filter(
-            doctor=doctor,
-            start_time__date=timezone.localdate(),
-        ).order_by("start_time")
-        serializer = self.serializer_class(schedules, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class PaymentViewSet(viewsets.GenericViewSet):

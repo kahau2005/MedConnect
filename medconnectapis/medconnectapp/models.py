@@ -27,7 +27,7 @@ class User(AbstractUser, BaseModel):
         max_length=20, choices=UserRole.choices, default=UserRole.PATIENT
     )
     phone = models.CharField(max_length=10, null=False)
-    avatar = CloudinaryField(null=True, default="d4outkeghzi4x3tsuclc.jpg")
+    avatar = CloudinaryField(default="d4outkeghzi4x3tsuclc.jpg")
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
