@@ -13,18 +13,26 @@ const ServicesTab = () => {
     try {
       let res = await Apis.get(endpoint.services);
       setServices(res.data.results);
+<<<<<<< HEAD
     } catch (error) {
       console.error("Lỗi dịch vụ: ", error);
     }
+=======
+    } catch (error) {}
+>>>>>>> 7e990d68f4b0562b8843f39066b1aca59e651b55
   };
 
   const fetchPopularServices = async () => {
     try {
       let res = await Apis.get(`${endpoint.services}popular`);
       setPopularServices(PopularServiceItemMapper(res.data));
+<<<<<<< HEAD
     } catch (error) {
       console.error("Lỗi dịch vụ phổ biến!");
     }
+=======
+    } catch (error) {}
+>>>>>>> 7e990d68f4b0562b8843f39066b1aca59e651b55
   };
 
   useEffect(() => {

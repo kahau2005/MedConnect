@@ -51,7 +51,6 @@ const DiagnosisModal = ({ visible, onClose, appointmentId }) => {
       setDiseaseId(diseaseObj ? diseaseObj.id : null);
       setDiseaseName(diseaseObj ? diseaseObj.name : "");
     } catch (error) {
-      console.error("Lỗi tải thông tin chẩn đoán:", error);
     } finally {
       setLoading(false);
     }

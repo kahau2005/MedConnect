@@ -34,7 +34,6 @@ const PrescriptionListModal = ({
       );
       setPrescriptions(res.data);
     } catch (error) {
-      console.error("Lỗi tải đơn thuốc:", error);
     } finally {
       setLoading(false);
     }
@@ -49,7 +48,6 @@ const PrescriptionListModal = ({
       setPrescriptions((prev) => [res.data, ...prev]);
       onSelectPrescription(res.data);
     } catch (error) {
-      console.error("Lỗi tạo đơn thuốc:", error);
     } finally {
       setLoading(false);
     }

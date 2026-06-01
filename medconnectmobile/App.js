@@ -67,9 +67,7 @@ export default function App() {
             payload: parsedUser,
           });
         }
-      } catch (error) {
-        console.error("Error loading user:", error);
-      }
+      } catch (err) {}
     };
     checkPersistedUser();
   }, []);
@@ -80,8 +78,6 @@ export default function App() {
     const unsubscribeTokenRefresh = onTokenRefresh(
       messagingInstance,
       async (newToken) => {
-        console.log(newToken);
-
         if (user && user.access_token) {
           await registerDevice(newToken, user.access_token);
         }

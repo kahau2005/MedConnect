@@ -142,9 +142,7 @@ const AllAppointmentTab = () => {
         `${endpoint.appointment}/doctors/`,
       );
       setDoctorsList(res.data);
-    } catch (error) {
-      console.log("Lỗi tải danh sách bác sĩ:", error);
-    }
+    } catch (error) {}
   };
 
   useEffect(() => {
@@ -180,7 +178,6 @@ const AllAppointmentTab = () => {
       }
       setHasMore(!(!res.data.next || newData.length === 0));
     } catch (error) {
-      console.error("Lỗi load appointment:", error);
       setHasMore(false);
     } finally {
       isLoadingRef.current = false;
@@ -236,7 +233,6 @@ const AllAppointmentTab = () => {
       );
       setDetailData(res.data);
     } catch (err) {
-      console.error("Lỗi tải chi tiết: ", err.status);
       Alert.alert("Lỗi", "Không thể tải chi tiết lịch khám.");
     } finally {
       setLoadingDetail(false);

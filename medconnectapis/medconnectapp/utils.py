@@ -2,16 +2,14 @@ import hashlib
 import hmac
 import json
 import os
-from datetime import datetime
 
 import firebase_admin
 import requests
 from django.conf import settings
+from django.utils import timezone
 from firebase_admin import credentials, messaging
 from getstream.models import ChannelInput, ChannelMemberRequest, UserRequest
 from getstream.stream import Stream
-
-from medconnectapp.models import ChatRoom
 
 ZALOPAY_CONFIG = {
     "APP_ID": settings.ZALOPAY_APP_ID,
@@ -30,8 +28,8 @@ def create_order(
     app_id = ZALOPAY_CONFIG["APP_ID"]
     key1 = ZALOPAY_CONFIG["KEY1"]
     endpoint = f"{ZALOPAY_CONFIG['ENDPOINT']}/create"
-    trans_id = f"{datetime.now().strftime('%y%m%d_%H%M%S')}_{order_id}"
-    now = datetime.now()
+    trans_id = f"{timezone.now().strftime('%y%m%d_%H%M%S')}_{order_id}"
+    now = timezone.now()
     app_time = int(now.timestamp() * 1000)
 
     embed_data = json.dumps({})
@@ -111,23 +109,19 @@ def send_push_notification(tokens, title, body, data=None):
 
 
 def get_or_create_chatroom(appointment):
-    chat_room, created = ChatRoom.objects.get_or_create(appointment=appointment)
     channel_id = f"appointment_{appointment.id}"
-
     doctor_id = str(appointment.doctor_id)
     patient_id = str(appointment.user_id)
-
     doctor_fullname = (
         f"{appointment.doctor.user.first_name} {appointment.doctor.user.last_name}"
     )
     patient_fullname = f"{appointment.user.first_name} {appointment.user.last_name}"
+
     chat_client.upsert_users(
         UserRequest(id=doctor_id, name=doctor_fullname, role="user"),
         UserRequest(id=patient_id, name=patient_fullname, role="user"),
     )
-
     channel = chat_client.chat.channel("messaging", channel_id)
-
     channel.get_or_create(
         data=ChannelInput(
             created_by_id=doctor_id,
@@ -136,13 +130,12 @@ def get_or_create_chatroom(appointment):
                 ChannelMemberRequest(user_id=patient_id),
             ],
             custom={
-                "name": f"Lịch khám với BS. {doctor_fullname} của BN. {patient_fullname}",
+                "name": f"Appointment {channel_id}",
                 "appointment_id": appointment.id,
             },
         )
     )
-
-    return chat_room, channel_id, created
+    return channel_id
 
 
 def verify_stream_webhook(request):

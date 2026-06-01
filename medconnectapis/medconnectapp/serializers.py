@@ -39,13 +39,12 @@ class PrescriptionDetailListSerializer(ListSerializer):
             "unit_price": {"read_only": True},
         }
 
+    @transaction.atomic
     def create(self, validated_data):
         prescription = self.context["prescription"]
         appointment = prescription.appointment
         if appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError(
-                "Thuốc chỉ có thể được kê vào đơn thuốc khi lịch khám ở trạng thái ĐANG KHÁM "
-            )
+            raise serializers.ValidationError("Trạng thái lịch khám không hợp lệ")
 
         medicine_ids = [
             item["medicine_id"] for item in validated_data if "medicine_id" in item
@@ -53,43 +52,37 @@ class PrescriptionDetailListSerializer(ListSerializer):
 
         details = []
 
-        with transaction.atomic():
-            medicines = Medicine.objects.filter(id__in=medicine_ids).select_for_update()
-            medicine_map = {medicine.id: medicine for medicine in medicines}
+        medicines = Medicine.objects.filter(id__in=medicine_ids).select_for_update()
+        medicine_map = {medicine.id: medicine for medicine in medicines}
 
-            if len(medicine_map) != len(medicine_ids):
-                raise serializers.ValidationError("Có id thuốc không tồn tại")
+        for item in validated_data:
+            medicine_id = item["medicine_id"]
+            quantity = item["quantity"]
+            medicine = medicine_map.get(medicine_id)
 
-            for item in validated_data:
-                medicine_id = item["medicine_id"]
-                quantity = item["quantity"]
-                medicine = medicine_map.get(medicine_id)
+            if not medicine:
+                raise serializers.ValidationError(f"Thuốc #{medicine_id} không tồn tại")
 
-                if not medicine:
-                    raise serializers.ValidationError(
-                        f"Thuốc #{medicine_id} không tồn tại"
-                    )
-
-                if medicine.stock < quantity:
-                    raise serializers.ValidationError(
-                        f"Thuốc {medicine.name} không đủ số lượng. Chỉ còn {medicine.stock} {medicine.unit} trong kho"
-                    )
-
-                medicine.stock -= quantity
-
-                detail = PrescriptionDetail.objects.create(
-                    prescription=prescription,
-                    medicine_id=medicine_id,
-                    unit_price=medicine.unit_price,
-                    quantity=quantity,
-                    dose=item["dose"],
-                    frequency=item["frequency"],
-                    duration_day=item["duration_day"],
-                    instruction=item["instruction"],
+            if medicine.stock < quantity:
+                raise serializers.ValidationError(
+                    f"Thuốc {medicine.name} không đủ số lượng"
                 )
-                details.append(detail)
 
-            Medicine.objects.bulk_update(medicine_map.values(), ["stock"])
+            medicine.stock -= quantity
+
+            detail = PrescriptionDetail.objects.create(
+                prescription=prescription,
+                medicine_id=medicine_id,
+                unit_price=medicine.unit_price,
+                quantity=quantity,
+                dose=item["dose"],
+                frequency=item["frequency"],
+                duration_day=item["duration_day"],
+                instruction=item["instruction"],
+            )
+            details.append(detail)
+
+        Medicine.objects.bulk_update(medicine_map.values(), ["stock"])
         return details
 
 
@@ -288,9 +281,9 @@ class AppointmentSerializer(ModelSerializer):
         request = self.context.get("request")
         if request and request.user:
             user = request.user
-
-            if not hasattr(user, "patient_profile"):
-                raise serializers.ValidationError("Thiếu hồ sơ bệnh nhân")
+            if user.role == User.UserRole.PATIENT:
+                if not hasattr(user, "patient_profile"):
+                    raise serializers.ValidationError("Thiếu hồ sơ bệnh nhân")
 
         doctor = attrs.get("doctor")
         start = attrs.get("start")
@@ -306,30 +299,31 @@ class AppointmentSerializer(ModelSerializer):
             if not schedule:
                 raise serializers.ValidationError("Bác sĩ không làm việc vào ngày này")
 
-            shift_end_time = schedule.start_time + timedelta(hours=schedule.hours)
-            appointment_end_time = start + timedelta(minutes=schedule.duration)
-            if start < schedule.start_time or appointment_end_time > shift_end_time:
-                raise serializers.ValidationError("Đặt quá giờ làm việc của bác sĩ")
-
-            is_overlapping = Appointment.objects.filter(
-                doctor=doctor,
-                active=True,
-                status=Appointment.AppointmentStatus.SCHEDULED,
-                start__lt=appointment_end_time,
-                start__gt=start - timedelta(minutes=schedule.duration),
-            )
-            if is_overlapping.exists():
-                raise serializers.ValidationError(
-                    "Thời gian đặt trùng với lịch khám khác"
-                )
+            self.duration = schedule.duration
 
         input_fields = ["reason", "symptoms"]
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
                 if nh3.is_html(attrs[field]):
-                    raise serializers.ValidationError(f"Dữ liệu {field} không hợp lệ")
-
+                    raise serializers.ValidationError("Dữ liệu không hợp lệ")
         return attrs
+
+    @transaction.atomic
+    def create(self, validated_data):
+        start = validated_data.get("start")
+        duration = getattr(self, "duration", 15)
+
+        overlapped_appointment = Appointment.objects.select_for_update().filter(
+            active=True,
+            doctor=validated_data.get("doctor"),
+            status=Appointment.AppointmentStatus.SCHEDULED,
+            start__lt=start + timedelta(minutes=duration),
+            start__gt=start - timedelta(minutes=duration),
+        )
+
+        if overlapped_appointment.exists():
+            raise serializers.ValidationError("Thời gian đặt trùng với lịch khám khác")
+        return super().create(validated_data)
 
 
 class AppointmentUpdateSerializer(AppointmentSerializer):

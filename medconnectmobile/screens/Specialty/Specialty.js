@@ -14,9 +14,7 @@ const Specialty = () => {
       .then((response) => {
         setSpecialties(response.data);
       })
-      .catch((error) => {
-        console.error("Error fetching specialties:", error);
-      });
+      .catch((err) => {});
   }, []);
 
   const handleSpecialtyClick = (specialtyId) => {

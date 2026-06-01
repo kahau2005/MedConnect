@@ -111,7 +111,6 @@ const MedicineInputModal = ({
       setSelectedPrescription(updatedPrescription);
       onBack();
     } catch (error) {
-      console.error("Lỗi lưu chi tiết thuốc:", error);
       Alert.alert("Lỗi", "Không thể thêm thuốc vào đơn.");
     } finally {
       setLoading(false);

@@ -99,7 +99,6 @@ const Register = () => {
         ]);
       }
     } catch (error) {
-      console.error("Lỗi đăng ký:", error.response?.data || error.message);
       Alert.alert(
         "Lỗi đăng ký",
         "Kiểm tra lại thông tin hoặc tên đăng nhập đã tồn tại.",

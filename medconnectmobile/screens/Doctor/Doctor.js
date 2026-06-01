@@ -50,10 +50,6 @@ const Doctor = () => {
       );
       setHasMore(result.data.next !== null);
     } catch (error) {
-      console.error(
-        "Lỗi khi tải danh sách bác sĩ:",
-        error.response?.data || error.message,
-      );
     } finally {
       setLoading(false);
     }

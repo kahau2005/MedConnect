@@ -136,10 +136,6 @@ const PatientProfileTab = () => {
       setHasProfile(true);
       setIsEditing(false);
     } catch (error) {
-      console.error(
-        "Lỗi khi lưu hồ sơ:",
-        error.response?.data || error.message,
-      );
       alert("Có lỗi xảy ra khi lưu hồ sơ. Vui lòng kiểm tra lại thông tin!");
     } finally {
       setLoading(false);
@@ -512,9 +508,7 @@ const PatientProfileTab = () => {
           ) : (
             <View style={Style.profileDataCard}>
               <View style={Style.profileDataHeader}>
-                <Text style={Style.profileDataTitle}>
-                  Hồ sơ bệnh nhân
-                </Text>
+                <Text style={Style.profileDataTitle}>Hồ sơ bệnh nhân</Text>
                 <TouchableOpacity
                   onPress={() => setIsEditing(true)}
                   style={Style.editBtn}
@@ -548,7 +542,7 @@ const PatientProfileTab = () => {
                 <View style={Style.dataItem}>
                   <Text style={Style.dataLabel}>Thể trạng</Text>
                   <Text style={Style.dataValue}>
-                    {formData.height}cm / {formData.weight}kg
+                    {formData.height}cm {formData.weight}kg
                   </Text>
                 </View>
               </View>
@@ -566,7 +560,7 @@ const PatientProfileTab = () => {
                 </Text>
               </View>
               <View style={Style.dataRowFull}>
-                <Text style={Style.dataLabel}>Bệnh lý nền (Mạn tính)</Text>
+                <Text style={Style.dataLabel}>Bệnh nền</Text>
                 <Text style={Style.dataValueFull}>
                   {formData.chronic_diseases || "Không có"}
                 </Text>

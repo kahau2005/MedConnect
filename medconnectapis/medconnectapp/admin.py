@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 
 from django.contrib import admin
 from django.db.models import Case, CharField, Count, Sum, Value, When
@@ -180,7 +180,6 @@ admin_site.register(models.Prescription, admin.ModelAdmin)
 admin_site.register(models.PrescriptionDetail, admin.ModelAdmin)
 admin_site.register(models.AppointmentService, admin.ModelAdmin)
 admin_site.register(models.Payment, admin.ModelAdmin)
-admin_site.register(models.ChatRoom, admin.ModelAdmin)
 admin_site.register(PeriodicTask, PeriodicTaskAdmin)
 admin_site.register(IntervalSchedule)
 admin_site.register(CrontabSchedule, CrontabScheduleAdmin)

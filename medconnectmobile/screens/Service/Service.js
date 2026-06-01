@@ -12,18 +12,14 @@ const Service = () => {
     try {
       let res = await Apis.get(endpoint.services);
       setServices(res.data);
-    } catch (error) {
-      console.error("Error fetching services:", error);
-    }
+    } catch (error) {}
   };
 
   const fetchPopularServices = async () => {
     try {
       let res = await Apis.get(`${endpoint.services}popular`);
       setPopularServices(PopularServiceItemMapper(res.data));
-    } catch (error) {
-      console.error("Error fetching popular services:", error);
-    }
+    } catch (error) {}
   };
 
   useEffect(() => {
