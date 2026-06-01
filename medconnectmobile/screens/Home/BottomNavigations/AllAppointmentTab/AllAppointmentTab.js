@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -20,13 +14,13 @@ import {
 
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 dayjs.extend(utc);
 import Style from "./Style";
-import Apis, { authApis, endpoint } from "../../../../configs/Apis";
+import { authApis, endpoint } from "../../../../configs/Apis";
 import { UserContext } from "../../../../contexts/UserContext";
 import LoginPanel from "../../../../components/LoginPanel/LoginPanel";
 
@@ -38,8 +32,6 @@ const getInstructionLabel = (val) => {
       return "Sau ăn";
     case "BEFORE_MEAL":
       return "Trước ăn";
-    case "WHEN_PAIN":
-      return "Khi đau";
     default:
       return val || "";
   }
@@ -54,7 +46,6 @@ const AllAppointmentTab = () => {
   const [offset, setOffset] = useState(0);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [doctorModalVisible, setDoctorModalVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [doctorsList, setDoctorsList] = useState([]);
@@ -197,7 +188,7 @@ const AllAppointmentTab = () => {
     setHasMore(true);
     if (offset === 0) loadAppointment(false);
     else setOffset(0);
-  }, [user, kw, activeFilter, selectedDate, selectedDoctor]);
+  }, [user, kw, activeFilter, selectedDate]);
 
   useEffect(() => {
     if (!user) return;

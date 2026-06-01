@@ -14,7 +14,6 @@ from .models import (
     AppointmentService,
     Disease,
     Doctor,
-    DoctorSchedule,
     FCMDevice,
     Medicine,
     MedicineCategory,
@@ -68,11 +67,7 @@ class PrescriptionDetailSerializer(ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data["medicine"] = (
-            {"id": instance.medicine_id, "name": instance.medicine.name}
-            if instance.medicine_id and instance.medicine
-            else None
-        )
+        data["medicine"] = {"id": instance.medicine_id, "name": instance.medicine.name}
         return data
 
     @transaction.atomic
@@ -178,7 +173,7 @@ class DoctorSerializer(ModelSerializer):
         data["first_name"] = user.first_name
         data["last_name"] = user.last_name
         data["email"] = user.email
-        data["avatar"] = user.avatar.url if user and user.avatar else None
+        data["avatar"] = user.avatar.url
         return data
 
 
@@ -381,14 +376,10 @@ class AppointmentServiceSerializer(ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if instance.service_id and instance.service:
-            data["service"] = {
-                "id": instance.service_id,
-                "name": instance.service.name,
-            }
-        else:
-            data["service"] = None
-
+        data["service"] = {
+            "id": instance.service_id,
+            "name": instance.service.name,
+        }
         return data
 
     def create(self, validated_data):
@@ -569,8 +560,7 @@ class ServiceSerializer(ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if instance.image:
-            data["image"] = instance.image.url
+        data["image"] = instance.image.url
         return data
 
 
@@ -596,12 +586,6 @@ class MedicineSerializer(ModelSerializer):
 class DetailMedicineSerializer(ModelSerializer):
     class Meta:
         model = Medicine
-        fields = "__all__"
-
-
-class DoctorScheduleSerializer(ModelSerializer):
-    class Meta:
-        model = DoctorSchedule
         fields = "__all__"
 
 
@@ -655,7 +639,7 @@ class PaymentSerializer(ModelSerializer):
 
     def get_items(self, payment):
         items = []
-        for appointment_service in payment.appointment.services.all():
+        for appointment_service in payment.appointment.services.filter(active=True):
             items.append(
                 {
                     "name": appointment_service.service.name,
@@ -665,7 +649,7 @@ class PaymentSerializer(ModelSerializer):
                 }
             )
 
-        for prescription in payment.appointment.prescription_set.all():
+        for prescription in payment.appointment.prescription_set.filter(active=True):
             for detail in prescription.details.all():
                 items.append(
                     {

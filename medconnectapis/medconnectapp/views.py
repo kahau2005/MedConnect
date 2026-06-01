@@ -6,10 +6,7 @@ from django.db.models import (
 )
 from django.db.models.functions import Round
 from django.utils import timezone
-from django.utils.decorators import method_decorator
 from django_filters.rest_framework.backends import DjangoFilterBackend
-from django_ratelimit.decorators import ratelimit
-from oauth2_provider.views.base import TokenView
 from rest_framework import filters, generics, parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -22,7 +19,6 @@ from .models import (
     AppointmentService,
     Disease,
     Doctor,
-    DoctorSchedule,
     FCMDevice,
     Medicine,
     MedicineCategory,
@@ -209,10 +205,9 @@ class AppointmentViewSet(
         permission_classes=[perms.IsDoctor],
     )
     def today(self, request):
-        today = timezone.localdate()
         queryset = self.get_queryset().filter(
             doctor_id=request.user.id,
-            start__date=today,
+            start__date=timezone.localdate(),
             status__in=[
                 Appointment.AppointmentStatus.SCHEDULED,
                 Appointment.AppointmentStatus.PENDING,
@@ -312,10 +307,7 @@ class AppointmentServiceViewSet(viewsets.ViewSet, generics.UpdateAPIView):
     )
     serializer_class = serializers.AppointmentServiceSerializer
     permission_classes = [perms.AppointmentDoctor]
-
-    def get_throttles(self):
-        self.throttle_scope = "appointment_service"
-        return [ScopedRateThrottle()]
+    throttle_scope = "appointment_service"
 
     @action(methods=["get", "post"], url_path="results", detail=True)
     def test_results(self, request, pk=None):
@@ -412,7 +404,7 @@ class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
     def get_serializer_class(self):
         if self.action == "retrieve":
             return serializers.DetailServiceSerializer
-        if self.action == "popular_services":
+        elif self.action == "popular_services":
             return serializers.ServicePopularSerializer
         return serializers.ServiceSerializer
 
@@ -429,21 +421,14 @@ class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
 
 
 class MedicineViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
+    queryset = Medicine.objects.filter(active=True)
     permission_classes = [perms.IsDoctorOrAdmin]
     throttle_scope = "medicine"
-
-    def get_queryset(self):
-        queryset = Medicine.objects.filter(active=True)
-
-        category_id = self.request.query_params.get("category_id")
-        if category_id:
-            queryset = queryset.filter(category_id=category_id)
-
-        kw = self.request.query_params.get("kw")
-        if kw:
-            queryset = queryset.filter(name__icontains=kw)
-
-        return queryset
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = {
+        "category_id": ["exact"],
+    }
+    search_fields = ["name"]
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -456,11 +441,6 @@ class MedicineCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
     serializer_class = serializers.MedicineCategorySerializer
     permission_classes = [perms.IsDoctorOrAdmin]
     throttle_scope = "medicine_category"
-
-
-@method_decorator(ratelimit(key="ip", rate="5/m"), name="dispatch")
-class RateLimitLoginView(TokenView):
-    pass
 
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
@@ -544,18 +524,19 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
 
 class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
+    queryset = Doctor.objects.filter(user__is_active=True).select_related(
+        "user", "specialty"
+    )
     serializer_class = serializers.DoctorSerializer
     pagination_class = paginators.DoctorPaginator
-    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    filter_backends = [
+        filters.OrderingFilter,
+        filters.SearchFilter,
+        DjangoFilterBackend,
+    ]
+    filterset_fields = {"specialty_id": ["exact"]}
     search_fields = ["user__first_name", "user__last_name"]
     throttle_scope = "doctor"
-
-    def get_queryset(self):
-        queryset = Doctor.objects.filter(user__is_active=True)
-        specialty_id = self.request.query_params.get("specialty_id")
-        if specialty_id:
-            queryset = queryset.filter(specialty_id=specialty_id)
-        return queryset.select_related("user", "specialty")
 
     @action(
         methods=["get"], url_path="popular", detail=False, permission_classes=[AllowAny]
@@ -576,49 +557,10 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPI
         return Response(serializer.data)
 
 
-class DoctorScheduleViewSet(viewsets.ViewSet):
-    queryset = DoctorSchedule.objects.filter(active=True)
-    serializer_class = serializers.DoctorScheduleSerializer
-    permission_classes = [perms.IsDoctor]
-    throttle_scope = "doctor_schedule"
-
-    def list(self, request):
-        doctor = request.user.doctor_profile
-        schedules = self.queryset.filter(
-            doctor=doctor,
-            start_time__date=timezone.localdate(),
-        ).order_by("start_time")
-        serializer = self.serializer_class(schedules, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
 class PaymentViewSet(viewsets.GenericViewSet):
+    queryset = Payment.objects.filter(active=True).select_related("appointment")
     permission_classes = [perms.AppointmentOwner]
     throttle_scope = "payment"
-
-    def get_queryset(self):
-        queryset = Payment.objects.filter(active=True).select_related("appointment")
-        if self.action == "pay":
-            queryset = queryset.prefetch_related(
-                Prefetch(
-                    "appointment__services",
-                    queryset=AppointmentService.objects.filter(
-                        active=True
-                    ).select_related("service"),
-                ),
-                Prefetch(
-                    "appointment__prescription_set",
-                    queryset=Prescription.objects.filter(active=True).prefetch_related(
-                        Prefetch(
-                            "details",
-                            queryset=PrescriptionDetail.objects.filter(
-                                active=True
-                            ).select_related("medicine"),
-                        )
-                    ),
-                ),
-            )
-        return queryset
 
     def get_serializer_class(self):
         if self.action == "pay":

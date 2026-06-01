@@ -144,8 +144,16 @@ export default function App() {
                     name="Payment"
                     component={Payment}
                   />
-                  <Stack.Screen name="ChatStream" component={ChatStream} />
-                  <Stack.Screen name="CallStream" component={CallStream} />
+                  <Stack.Screen
+                    name="ChatStream"
+                    options={{ title: "Phòng khám" }}
+                    component={ChatStream}
+                  />
+                  <Stack.Screen
+                    name="CallStream"
+                    options={{ title: "Phòng khám" }}
+                    component={CallStream}
+                  />
                   <Stack.Screen
                     options={{ title: "Đăng nhập" }}
                     name="Login"

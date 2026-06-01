@@ -4,7 +4,6 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
 from medconnectapp.admin import admin_site
-from medconnectapp.views import RateLimitLoginView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -32,7 +31,6 @@ urlpatterns = [
         name="schema-swagger-ui",
     ),
     path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
-    path("o/token/", RateLimitLoginView.as_view(), name="token"),
     path(
         "o/",
         include("oauth2_provider.urls", namespace="oauth2_provider"),
