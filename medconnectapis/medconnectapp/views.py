@@ -487,7 +487,9 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
         if request.method == "POST":
             if PatientProfile.objects.filter(user=request.user).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"err": "Đã có hồ sơ rồi"}, status=status.HTTP_400_BAD_REQUEST
+                )
             serializer = serializers.PatientProfileSerializer(
                 data=request.data, context={"request": self.request}
             )
