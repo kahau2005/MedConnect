@@ -9,6 +9,8 @@ from rest_framework import serializers
 from rest_framework.fields import CurrentUserDefault, HiddenField
 from rest_framework.serializers import ModelSerializer
 
+from medconnectapp import utils
+
 from .models import (
     Appointment,
     AppointmentService,
@@ -27,7 +29,6 @@ from .models import (
     TestResult,
     User,
 )
-from medconnectapp import utils
 
 
 class PrescriptionDetailSerializer(ModelSerializer):
@@ -74,7 +75,9 @@ class PrescriptionDetailSerializer(ModelSerializer):
     def create(self, validated_data):
         prescription = self.context["prescription"]
         if prescription.appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError({"err":"Trạng thái lịch khám không hợp lệ"})
+            raise serializers.ValidationError(
+                {"err": "Trạng thái lịch khám không hợp lệ"}
+            )
 
         medicine = (
             Medicine.objects.select_for_update()
@@ -83,10 +86,10 @@ class PrescriptionDetailSerializer(ModelSerializer):
         )
 
         if not medicine:
-            raise serializers.ValidationError({"err":"Không tìm thấy thuốc cần tạo"})
+            raise serializers.ValidationError({"err": "Không tìm thấy thuốc cần tạo"})
 
         if validated_data["quantity"] > medicine.stock:
-            raise serializers.ValidationError({"err":"Không đủ số lượng tồn kho"})
+            raise serializers.ValidationError({"err": "Không đủ số lượng tồn kho"})
 
         medicine.stock -= validated_data["quantity"]
         medicine.save()
@@ -106,7 +109,9 @@ class PrescriptionDetailSerializer(ModelSerializer):
     def delete(self, instance):
         appointment = instance.prescription.appointment
         if appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError({"err":"Trạng thái lịch khám không hợp lệ"})
+            raise serializers.ValidationError(
+                {"err": "Trạng thái lịch khám không hợp lệ"}
+            )
         medicine = (
             Medicine.objects.select_for_update().filter(id=instance.medicine_id).first()
         )
@@ -148,7 +153,9 @@ class SimplePrescriptionSerializer(ModelSerializer):
     def validate(self, attrs):
         appointment = self.context.get("appointment")
         if appointment and appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError({"err":"Thêm đơn thuốc trạng thái không hợp lệ"})
+            raise serializers.ValidationError(
+                {"err": "Thêm đơn thuốc trạng thái không hợp lệ"}
+            )
         return attrs
 
 
@@ -179,7 +186,6 @@ class DoctorSerializer(ModelSerializer):
 
 class AppointmentSerializer(ModelSerializer):
     doctor_info = DoctorSerializer(source="doctor", read_only=True)
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         extra_kwargs = {
@@ -210,21 +216,25 @@ class AppointmentSerializer(ModelSerializer):
             user = request.user
             if user.role == User.UserRole.PATIENT:
                 if not hasattr(user, "patient_profile"):
-                    raise serializers.ValidationError({"err":"Thiếu hồ sơ bệnh nhân"})
+                    raise serializers.ValidationError({"err": "Thiếu hồ sơ bệnh nhân"})
 
         doctor = attrs.get("doctor")
         start = attrs.get("start")
         if start:
             now = timezone.now()
             if start <= now:
-                raise serializers.ValidationError({"err":"Đặt lịch khám trong quá khứ"})
+                raise serializers.ValidationError(
+                    {"err": "Đặt lịch khám trong quá khứ"}
+                )
 
         if doctor:
             schedule = doctor.doctorschedule_set.filter(
                 start_time__date=start.date()
             ).first()
             if not schedule:
-                raise serializers.ValidationError({"err":"Bác sĩ không làm việc vào ngày này"})
+                raise serializers.ValidationError(
+                    {"err": "Bác sĩ không làm việc vào ngày này"}
+                )
 
             self.duration = schedule.duration
 
@@ -232,7 +242,7 @@ class AppointmentSerializer(ModelSerializer):
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
                 if nh3.is_html(attrs[field]):
-                    raise serializers.ValidationError({"err":"Dữ liệu không hợp lệ"})
+                    raise serializers.ValidationError({"err": "Dữ liệu không hợp lệ"})
         return attrs
 
     @transaction.atomic
@@ -249,7 +259,9 @@ class AppointmentSerializer(ModelSerializer):
         )
 
         if overlapped_appointment.exists():
-            raise serializers.ValidationError({"err":"Thời gian đặt trùng với lịch khám khác"})
+            raise serializers.ValidationError(
+                {"err": "Thời gian đặt trùng với lịch khám khác"}
+            )
         return super().create(validated_data)
 
 
@@ -274,7 +286,9 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
 
             if user.role == User.UserRole.PATIENT:
                 if "symptoms" in attrs or "diagnosis" in attrs:
-                    raise serializers.ValidationError({"err":"Bệnh nhân không có quyền cập nhật"})
+                    raise serializers.ValidationError(
+                        {"err": "Bệnh nhân không có quyền cập nhật"}
+                    )
 
         return super().validate(attrs)
 
@@ -286,15 +300,21 @@ class AppointmentUpdateSerializer(AppointmentSerializer):
         current_status = self.instance.status
 
         if value == Appointment.AppointmentStatus.COMPLETED:
-            raise serializers.ValidationError({"err":"Không được tự ý hoàn thành lịch khám"})
+            raise serializers.ValidationError(
+                {"err": "Không được tự ý hoàn thành lịch khám"}
+            )
 
         if user.role == User.UserRole.PATIENT:
             if value != Appointment.AppointmentStatus.CANCELED:
-                raise serializers.ValidationError({"err":"Bệnh nhân chỉ có quyền hủy lịch khám"})
+                raise serializers.ValidationError(
+                    {"err": "Bệnh nhân chỉ có quyền hủy lịch khám"}
+                )
 
         elif user.role == User.UserRole.DOCTOR:
             if current_status != Appointment.AppointmentStatus.SCHEDULED:
-                raise serializers.ValidationError({"err":"Trạng thái lịch khám không hợp lệ"})
+                raise serializers.ValidationError(
+                    {"err": "Trạng thái lịch khám không hợp lệ"}
+                )
 
         return value
 
@@ -312,16 +332,18 @@ class ReviewSerializer(ModelSerializer):
     def validate(self, attrs):
         appointment = self.context.get("appointment")
         if not appointment:
-            raise serializers.ValidationError({"err":"Thiếu thông tin lịch khám"})
+            raise serializers.ValidationError({"err": "Thiếu thông tin lịch khám"})
 
         if appointment.status != Appointment.AppointmentStatus.COMPLETED:
-            raise serializers.ValidationError({"err":"Trạng thái lịch khám không hợp lệ"})
+            raise serializers.ValidationError(
+                {"err": "Trạng thái lịch khám không hợp lệ"}
+            )
         return super().validate(attrs)
 
     def validate_comment(self, value):
         if value:
             if nh3.is_html(value):
-                raise serializers.ValidationError({"err":"Comment không hợp lệ"})
+                raise serializers.ValidationError({"err": "Comment không hợp lệ"})
         return value
 
 
@@ -341,7 +363,7 @@ class TestResultSerializer(ModelSerializer):
     def validate(self, attrs):
         if "conclusion" in attrs and isinstance(attrs["conclusion"], str):
             if nh3.is_html(attrs["conclusion"]):
-                raise serializers.ValidationError({"err":"Dữ liệu không hợp lệ"})
+                raise serializers.ValidationError({"err": "Dữ liệu không hợp lệ"})
         return attrs
 
     def create(self, validated_data):
@@ -349,7 +371,9 @@ class TestResultSerializer(ModelSerializer):
         appointment_service = self.context["appointment_service"]
         appointment = appointment_service.appointment
         if appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError({"err":"Trạng thái lịch khám không hợp lệ"})
+            raise serializers.ValidationError(
+                {"err": "Trạng thái lịch khám không hợp lệ"}
+            )
         validated_data["tested_by"] = request.user.doctor_profile
         return super().create(
             {**validated_data, "appointment_service": appointment_service}
@@ -384,7 +408,9 @@ class AppointmentServiceSerializer(ModelSerializer):
         quantity = validated_data["quantity"]
 
         if appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError({"err":"Trạng thái lịch khám không hợp lệ"})
+            raise serializers.ValidationError(
+                {"err": "Trạng thái lịch khám không hợp lệ"}
+            )
         return AppointmentService.objects.create(
             appointment=appointment,
             service=service,
@@ -399,7 +425,9 @@ class AppointmentServiceSerializer(ModelSerializer):
         active = validated_data.get("active", instance.active)
 
         if appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError({"err":"Trạng thái lịch khám không hợp lệ"})
+            raise serializers.ValidationError(
+                {"err": "Trạng thái lịch khám không hợp lệ"}
+            )
 
         instance.service = service
         instance.quantity = quantity
@@ -465,7 +493,7 @@ class PatientProfileSerializer(ModelSerializer):
 
     def validate_dob(self, value):
         if value >= timezone.localdate():
-            raise serializers.ValidationError({"err":"Ngày sinh phải trong quá khứ."})
+            raise serializers.ValidationError({"err": "Ngày sinh phải trong quá khứ."})
         return value
 
     def validate(self, attrs):
@@ -473,7 +501,7 @@ class PatientProfileSerializer(ModelSerializer):
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
                 if nh3.is_html(attrs[field]):
-                    raise serializers.ValidationError({"err":f"Dữ liệu không hợp lệ"})
+                    raise serializers.ValidationError({"err": f"Dữ liệu không hợp lệ"})
         return attrs
 
 
@@ -490,21 +518,25 @@ class SimpleUserSerializer(ModelSerializer):
 
     def validate_phone(self, value):
         if not re.match(r"^\d{10}$", value):
-            raise serializers.ValidationError({"err":"Số điện thoại không hợp lệ"})
+            raise serializers.ValidationError({"err": "Số điện thoại không hợp lệ"})
         return value
 
     def validate_avatar(self, value):
         if value:
             if not value.content_type.startswith("image/"):
-                raise serializers.ValidationError({"err":"Định dạng file avatar không hợp lệ"})
+                raise serializers.ValidationError(
+                    {"err": "Định dạng file avatar không hợp lệ"}
+                )
             if value.size > 10 * 1024 * 1024:
-                raise serializers.ValidationError({"err":"Ảnh có kích thước quá lớn"})
+                raise serializers.ValidationError({"err": "Ảnh có kích thước quá lớn"})
             try:
                 img = Image.open(value)
                 img.verify()
                 value.seek(0)
             except UnidentifiedImageError, AttributeError, Exception:
-                raise serializers.ValidationError({"err":"File tải lên không phải là ảnh"})
+                raise serializers.ValidationError(
+                    {"err": "File tải lên không phải là ảnh"}
+                )
         return value
 
     def validate(self, attrs):
@@ -512,7 +544,7 @@ class SimpleUserSerializer(ModelSerializer):
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
                 if nh3.is_html(attrs[field]):
-                    raise serializers.ValidationError({"err":f"Dữ liệu không hợp lệ"})
+                    raise serializers.ValidationError({"err": f"Dữ liệu không hợp lệ"})
         return attrs
 
 
@@ -533,7 +565,7 @@ class UserSerializer(SimpleUserSerializer):
 
         if "username" in attrs and isinstance(attrs["username"], str):
             if nh3.is_html(attrs["username"]):
-                raise serializers.ValidationError({"err":"Dữ liệu không hợp lệ"})
+                raise serializers.ValidationError({"err": "Dữ liệu không hợp lệ"})
         return attrs
 
     def to_representation(self, instance):
@@ -597,7 +629,9 @@ class PaymentCheckoutSerializer(serializers.Serializer):
     def validate(self, attrs):
         appointment = self.context["appointment"]
         if appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError({"err":"Trạng thái lịch khám không hợp lệ"})
+            raise serializers.ValidationError(
+                {"err": "Trạng thái lịch khám không hợp lệ"}
+            )
         return attrs
 
     def save(self):
@@ -664,7 +698,7 @@ class ZaloPaySerializer(serializers.Serializer):
     def validate(self, attrs):
         payment = self.context["payment"]
         if payment.status == Payment.PaymentStatus.PAID:
-            raise serializers.ValidationError({"err":"Hóa đơn đã được thanh toán"})
+            raise serializers.ValidationError({"err": "Hóa đơn đã được thanh toán"})
         return attrs
 
     def save(self):
@@ -697,7 +731,7 @@ class ZaloPayCallbackSerializer(serializers.Serializer):
     def validate(self, attrs):
         valid, data = utils.verify_callback(self.initial_data)
         if not valid:
-            raise serializers.ValidationError({"err":"Xác thực callback thất bại"})
+            raise serializers.ValidationError({"err": "Xác thực callback thất bại"})
         self._callback_data = data
         return attrs
 
