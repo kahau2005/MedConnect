@@ -22,7 +22,9 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 import Style from "./Style";
 import Apis, { authApis, endpoint } from "../../../../configs/Apis";
 import { UserContext } from "../../../../contexts/UserContext";
@@ -89,14 +91,11 @@ const AllAppointmentTab = () => {
 
   const formatDateTime = (isoString) => {
     if (!isoString) return { date: "--/--/----", time: "--:--" };
-    const d = new Date(isoString);
-    const date = `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
-    let hours = d.getUTCHours();
-    const minutes = String(d.getUTCMinutes()).padStart(2, "0");
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12 || 12;
-    const time = `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
-    return { date, time };
+    const d = dayjs.utc(isoString);
+    return {
+      date: d.format("DD/MM/YYYY"),
+      time: d.format("hh:mm A"),
+    };
   };
 
   const displaySelectedDate = (dateStr) => {
