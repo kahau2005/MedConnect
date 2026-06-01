@@ -7,6 +7,7 @@ from django.db.models import (
 from django.db.models.functions import Round
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django_filters.rest_framework.backends import DjangoFilterBackend
 from django_ratelimit.decorators import ratelimit
 from oauth2_provider.views.base import TokenView
 from rest_framework import filters, generics, parsers, permissions, status, viewsets
@@ -43,9 +44,18 @@ class AppointmentViewSet(
     generics.CreateAPIView,
 ):
     pagination_class = paginators.AppointmentPaginator
-    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    filter_backends = [
+        filters.OrderingFilter,
+        filters.SearchFilter,
+        DjangoFilterBackend,
+    ]
+    filterset_fields = {
+        "status": ["exact"],
+        "doctor_id": ["exact"],
+        "start": ["date"],
+    }
     search_fields = ["diagnosis__name", "symptoms"]
-    ordering_fields = ["status", "-start", "created_at"]
+    ordering_fields = ["status", "-start", "-created_at"]
 
     def get_queryset(self):
         user = self.request.user
@@ -55,23 +65,6 @@ class AppointmentViewSet(
             queryset = queryset.filter(Q(user=user) | Q(doctor__user=user))
         else:
             queryset = queryset.filter(user=user)
-
-        params = self.request.query_params
-        status = params.get("status")
-        if status:
-            queryset = queryset.filter(status=status)
-
-        doctor_id = params.get("doctor_id")
-        if doctor_id:
-            queryset = queryset.filter(doctor_id=doctor_id)
-
-        from_date = params.get("from_date")
-        if from_date:
-            queryset = queryset.filter(start__date__gte=from_date)
-
-        to_date = params.get("to_date")
-        if to_date:
-            queryset = queryset.filter(start__date__lte=to_date)
 
         if self.action == "retrieve":
             queryset = queryset.select_related("diagnosis").prefetch_related(
@@ -299,9 +292,6 @@ class AppointmentViewSet(
     @action(methods=["post"], url_path="review", detail=True)
     def review(self, request, pk=None):
         appointment = self.get_object()
-        if appointment.status != Appointment.AppointmentStatus.COMPLETED:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
         serializer = serializers.ReviewSerializer(
             data=request.data, context={"appointment": appointment}
         )

@@ -156,7 +156,7 @@ const AllAppointmentTab = () => {
     if (!refreshing) setLoading(true);
     try {
       const statusParam = activeFilter === "ALL" ? "" : activeFilter;
-      const dateParam = selectedDate ? `&from_date=${selectedDate}` : "";
+      const dateParam = selectedDate ? `&start__date=${selectedDate}` : "";
       const doctorParam = selectedDoctor
         ? `&doctor_id=${selectedDoctor.id}`
         : "";
