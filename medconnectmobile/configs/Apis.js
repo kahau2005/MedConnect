@@ -5,7 +5,6 @@ export const endpoint = {
   doctors: "/doctors/",
   popular_dotor: "/doctors/popular/",
   services: "/services/",
-  test: "/tests/payment/?amount=1000",
   login: "/o/token/",
   register: "/users/",
   currentUser: "/users/current-user/",
