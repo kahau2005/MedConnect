@@ -402,7 +402,7 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                         minHeight: 100,
                         textAlignVertical: "top",
                       }}
-                      placeholder="Nhập kết luận chuyên môn..."
+                      placeholder="Nhập chuẩn đoán"
                       placeholderTextColor={"#6B7280"}
                       multiline
                       value={conclusion}

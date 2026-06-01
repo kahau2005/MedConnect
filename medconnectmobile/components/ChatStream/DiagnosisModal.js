@@ -124,7 +124,8 @@ const DiagnosisModal = ({ visible, onClose, appointmentId }) => {
                           marginBottom: 20,
                         },
                       ]}
-                      placeholder="Nhập biểu hiện, triệu chứng..."
+                      placeholder="Nhập chuẩn đoán"
+                      placeholderTextColor="#6B7280"
                       multiline
                       value={symptoms}
                       onChangeText={setSymptoms}

@@ -159,7 +159,7 @@ const Appointment = () => {
       const hours = String(inputTime.hours).padStart(2, "0");
       const minutes = String(inputTime.minutes).padStart(2, "0");
 
-      const startDateTime = `${year}-${month}-${day} ${hours}:${minutes}:00`;
+      const startDateTime = `${year}-${month}-${day} ${hours}:${minutes}:00+07:00`;
 
       const payload = {
         doctor: selectedDoctor.user_id || selectedDoctor.id,
