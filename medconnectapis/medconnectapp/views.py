@@ -45,17 +45,20 @@ class AppointmentViewSet(
 ):
     pagination_class = paginators.AppointmentPaginator
     filter_backends = [
-        filters.OrderingFilter,
         filters.SearchFilter,
         DjangoFilterBackend,
     ]
     filterset_fields = {
         "status": ["exact"],
-        "doctor_id": ["exact"],
         "start": ["date"],
     }
-    search_fields = ["diagnosis__name", "symptoms"]
-    ordering_fields = ["status", "-start", "-created_at"]
+    search_fields = [
+        "doctor__user__first_name",
+        "doctor__user__last_name",
+        "diagnosis__name",
+        "symptoms",
+        "reason",
+    ]
 
     def get_queryset(self):
         user = self.request.user
@@ -194,7 +197,6 @@ class AppointmentViewSet(
         ).distinct()
 
         doctors = Doctor.objects.filter(user_id__in=doctor_ids).select_related("user")
-
         serializer = serializers.DoctorSerializer(doctors, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -358,7 +360,7 @@ class PrescriptionViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class PrescriptionDetailViewSet(viewsets.ViewSet, generics.DestroyAPIView):
+class PrescriptionDetailViewSet(viewsets.GenericViewSet):
     queryset = PrescriptionDetail.objects.filter(active=True).select_related(
         "prescription__appointment", "medicine"
     )
@@ -366,9 +368,11 @@ class PrescriptionDetailViewSet(viewsets.ViewSet, generics.DestroyAPIView):
     permission_classes = [perms.AppointmentDoctor]
     throttle_scope = "prescription_details"
 
-    def perform_destroy(self, instance):
-        serializer = self.get_serializer(instance)
-        serializer.delete(instance)
+    def destroy(self, request, pk=None):
+        detail = self.get_object()
+        serializer = self.get_serializer(detail)
+        serializer.delete(detail)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class DiseaseViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
