@@ -375,6 +375,7 @@ const ServiceModal = ({ visible, onClose, appointmentId }) => {
                     color: "#111827",
                   }}
                   placeholder="Tìm tên dịch vụ..."
+                  placeholderTextColor="#9CA3AF"
                   value={searchKw}
                   onChangeText={setSearchKw}
                 />

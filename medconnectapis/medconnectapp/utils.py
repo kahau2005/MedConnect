@@ -114,14 +114,13 @@ chat_client = Stream(
 
 
 def get_or_create_chatroom(appointment):
-    channel_id = f"appointment_{appointment.id + 500}"
+    channel_id = f"appointment_{appointment.id + 700}"
     doctor_id = str(appointment.doctor_id)
     patient_id = str(appointment.user_id)
     doctor_fullname = (
         f"{appointment.doctor.user.first_name} {appointment.doctor.user.last_name}"
     )
     patient_fullname = f"{appointment.user.first_name} {appointment.user.last_name}"
-
     chat_client.upsert_users(
         UserRequest(id=doctor_id, name=doctor_fullname, role="user"),
         UserRequest(id=patient_id, name=patient_fullname, role="user"),

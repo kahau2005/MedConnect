@@ -73,7 +73,7 @@ class PrescriptionDetailSerializer(ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        prescription = self.context["prescription"]
+        prescription = self.context.get("prescription")
         if prescription.appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError(
                 {"err": "Trạng thái lịch khám không hợp lệ"}
@@ -153,9 +153,7 @@ class SimplePrescriptionSerializer(ModelSerializer):
     def validate(self, attrs):
         appointment = self.context.get("appointment")
         if appointment and appointment.status != Appointment.AppointmentStatus.PENDING:
-            raise serializers.ValidationError(
-                {"err": "Thêm đơn thuốc trạng thái không hợp lệ"}
-            )
+            raise serializers.ValidationError({"err": "Trạng thái không hợp lệ"})
         return attrs
 
 
@@ -367,8 +365,8 @@ class TestResultSerializer(ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        request = self.context["request"]
-        appointment_service = self.context["appointment_service"]
+        request = self.context.get("request")
+        appointment_service = self.context.get("appointment_service")
         appointment = appointment_service.appointment
         if appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError(
@@ -403,7 +401,7 @@ class AppointmentServiceSerializer(ModelSerializer):
         return data
 
     def create(self, validated_data):
-        appointment = self.context["appointment"]
+        appointment = self.context.get("appointment")
         service = validated_data["service"]
         quantity = validated_data["quantity"]
 
@@ -627,7 +625,7 @@ class FCMDeviceSerializer(ModelSerializer):
 
 class PaymentCheckoutSerializer(serializers.Serializer):
     def validate(self, attrs):
-        appointment = self.context["appointment"]
+        appointment = self.context.get("appointment")
         if appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError(
                 {"err": "Trạng thái lịch khám không hợp lệ"}
@@ -635,7 +633,7 @@ class PaymentCheckoutSerializer(serializers.Serializer):
         return attrs
 
     def save(self):
-        appointment = self.context["appointment"]
+        appointment = self.context.get("appointment")
 
         service_total = 0
         for s in appointment.services.filter(active=True):
@@ -696,13 +694,13 @@ class PaymentSerializer(ModelSerializer):
 
 class ZaloPaySerializer(serializers.Serializer):
     def validate(self, attrs):
-        payment = self.context["payment"]
+        payment = self.context.get("payment")
         if payment.status == Payment.PaymentStatus.PAID:
             raise serializers.ValidationError({"err": "Hóa đơn đã được thanh toán"})
         return attrs
 
     def save(self):
-        payment = self.context["payment"]
+        payment = self.context.get("payment")
 
         if payment.total_amount == 0:
             payment.status = Payment.PaymentStatus.PAID

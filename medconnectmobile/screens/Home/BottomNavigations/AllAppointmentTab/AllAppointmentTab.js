@@ -449,7 +449,7 @@ const AllAppointmentTab = () => {
           <Feather name="search" size={20} color="#9CA3AF" />
           <TextInput
             style={Style.searchInput}
-            placeholder="Tên bác sĩ, triệu chứng, tên bệnh..."
+            placeholder="Tên bác sĩ, triệu chứng, tên bệnh"
             placeholderTextColor="#9CA3AF"
             value={searchTxt}
             onChangeText={setSearchTxt}

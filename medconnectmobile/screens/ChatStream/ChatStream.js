@@ -90,7 +90,7 @@ const ChatStream = () => {
           stream_token,
         );
 
-        const channelId = `appointment_${appointmentId}`;
+        const channelId = `appointment_${Number(appointmentId) + 700}`;
         const currentChannel = chatClient.channel("messaging", channelId);
         await currentChannel.watch();
 

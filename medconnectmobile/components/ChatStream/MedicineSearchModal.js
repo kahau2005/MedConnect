@@ -208,7 +208,7 @@ const MedicineSearchModal = ({
         <Feather name="search" size={20} color="#9CA3AF" />
         <TextInput
           style={styles.searchInput}
-          placeholder="Tìm tên thuốc, thành phần..."
+          placeholder="Tìm tên thuốc"
           placeholderTextColor="#9CA3AF"
           value={searchKw}
           onChangeText={setSearchKw}
