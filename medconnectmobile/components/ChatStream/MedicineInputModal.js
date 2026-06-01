@@ -86,7 +86,7 @@ const MedicineInputModal = ({
       setSelectedPrescription(res.data);
       onBack();
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể thêm thuốc vào đơn.");
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }

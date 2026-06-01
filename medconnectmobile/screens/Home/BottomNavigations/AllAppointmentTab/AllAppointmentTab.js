@@ -120,8 +120,8 @@ const AllAppointmentTab = () => {
       );
       Alert.alert("Thành công!", "Hủy lịch khám thành công!");
       handleRefresh();
-    } catch (err) {
-      Alert.alert("Lỗi hủy lịch!", err.message);
+    } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     }
   };
 
@@ -132,7 +132,9 @@ const AllAppointmentTab = () => {
         `${endpoint.appointment}/doctors/`,
       );
       setDoctorsList(res.data);
-    } catch (error) {}
+    } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+    }
   };
 
   useEffect(() => {
@@ -204,10 +206,7 @@ const AllAppointmentTab = () => {
         nav.navigate("ChatStream", { appointmentId, status });
       }
     } catch (error) {
-      const errorMsg = error.response
-        ? `Status: ${error.response.status}`
-        : error.message;
-      Alert.alert("Lỗi phòng chat", `Không thể kết nối: ${errorMsg}`);
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     }
   };
 
@@ -222,8 +221,8 @@ const AllAppointmentTab = () => {
         endpoint.appointmentDetails(item.id),
       );
       setDetailData(res.data);
-    } catch (err) {
-      Alert.alert("Lỗi", "Không thể tải chi tiết lịch khám.");
+    } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoadingDetail(false);
     }
@@ -264,8 +263,6 @@ const AllAppointmentTab = () => {
     }
 
     if (!detailData) return null;
-
-    // Mapping new data structure
     const services = detailData.services || [];
     const medicines = (detailData.prescriptions || []).flatMap(
       (p) => p.details || [],

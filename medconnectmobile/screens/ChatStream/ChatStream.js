@@ -52,7 +52,9 @@ const ChatStream = () => {
             `${endpoint.appointment}${appointmentId}/`,
             { status: "PENDING" },
           );
-        } catch (err) {}
+        } catch (error) {
+          Alert.alert("Lỗi", error.response.data.err);
+        }
       };
       handleUpdateAppointmentStatus();
     }
@@ -92,7 +94,9 @@ const ChatStream = () => {
           setChannel(currentChannel);
           setClientReady(true);
         }
-      } catch (error) {}
+      } catch (error) {
+        Alert.alert("Lỗi", error.response.data.err);
+      }
     };
 
     if (user) setupStream();

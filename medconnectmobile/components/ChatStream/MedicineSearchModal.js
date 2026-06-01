@@ -56,7 +56,9 @@ const MedicineSearchModal = ({
         endpoint.medicine_categories,
       );
       setCategories([{ id: "ALL", name: "Tất cả" }, ...(resCats.data || [])]);
-    } catch (error) {}
+    } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+    }
   };
 
   const fetchMedicines = async (categoryId, kw = "") => {
@@ -72,6 +74,7 @@ const MedicineSearchModal = ({
       const resMeds = await authApis(user.access_token).get(url);
       setMedicines(resMeds.data || []);
     } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }
@@ -99,8 +102,10 @@ const MedicineSearchModal = ({
               );
               setSelectedPrescription(res.data);
             } catch (error) {
-              Alert.alert("Lỗi", "Không thể xóa thuốc khỏi đơn.");
-              console.log(error);
+              Alert.alert(
+                "Lỗi",
+                error?.response?.data?.err || "Không xác định!",
+              );
             } finally {
               setLoading(false);
             }

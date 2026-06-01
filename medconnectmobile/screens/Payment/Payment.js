@@ -98,8 +98,8 @@ const Payment = () => {
         endpoint.checkout(appointmentId),
       );
       setPaymentData(res.data);
-    } catch (err) {
-      Alert.alert("Lỗi", "Không thể tải thông tin thanh toán.");
+    } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoadingData(false);
     }
@@ -132,7 +132,7 @@ const Payment = () => {
       if (error.code === "CANCELED") {
         Alert.alert("Thông báo", "Bạn đã huỷ quá trình thanh toán.");
       } else {
-        Alert.alert("Lỗi", error.message || "Không thể hoàn tất thanh toán.");
+        Alert.alert("Lỗi", error?.response?.data?.err || "Lỗi không xác định");
       }
     } finally {
       setLoadingPay(false);

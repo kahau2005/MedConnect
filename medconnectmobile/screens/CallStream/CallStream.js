@@ -55,7 +55,7 @@ export default function CallStream() {
           setCall(currentCall);
         }
       } catch (error) {
-        Alert.alert("Lỗi", "Không thể kết nối cuộc gọi lúc này.");
+        Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
         nav.goBack();
       }
     };

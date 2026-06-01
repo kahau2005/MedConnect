@@ -56,7 +56,8 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
       setRows([{ id: Date.now().toString(), key: "", value: "" }]);
       setConclusion("");
       setIsReadOnly(false);
-    } catch (err) {
+    } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }
@@ -133,9 +134,8 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
 
       Alert.alert("Thành công", "Đã lưu kết quả xét nghiệm.");
       onClose();
-    } catch (err) {
-      const msg = err.response?.data?.error || "Không thể lưu kết quả.";
-      Alert.alert("Lỗi", msg);
+    } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }
