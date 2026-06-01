@@ -38,6 +38,8 @@ const MedicineSearchModal = ({
 
   useEffect(() => {
     setOffset(0);
+    setMedicines([]);
+    setLoading(true);
   }, [activeCategory, searchKw]);
 
   useEffect(() => {
@@ -74,12 +76,12 @@ const MedicineSearchModal = ({
 
   const handleLoadMore = () => {
     if (!loading && hasMore && medicines.length > 0) {
-      setOffset((prev) => prev + 8);
+      setOffset(medicines.length);
     }
   };
 
   const fetchMedicines = async (categoryId, kw = "", currentOffset = 0) => {
-    if (loading) return;
+    if (loading && currentOffset > 0) return;
     if (currentOffset > 0 && !hasMore) return;
 
     try {
@@ -99,7 +101,11 @@ const MedicineSearchModal = ({
       if (currentOffset === 0) {
         setMedicines(newData);
       } else {
-        setMedicines((prev) => [...prev, ...newData]);
+        setMedicines((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const filteredNewData = newData.filter((m) => !existingIds.has(m.id));
+          return [...prev, ...filteredNewData];
+        });
       }
 
       setHasMore(resMeds.data.next !== null);
@@ -279,12 +285,19 @@ const MedicineSearchModal = ({
           </View>
 
           <FlatList
-            data={loading ? [] : medicines}
+            data={medicines}
             keyExtractor={(item) => item.id.toString()}
             ListHeaderComponent={renderHeader()}
             contentContainerStyle={{ paddingBottom: 40 }}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.2}
+            ListFooterComponent={
+              loading && medicines.length > 0 ? (
+                <View style={{ paddingVertical: 20 }}>
+                  <ActivityIndicator size="small" color="#0066FF" />
+                </View>
+              ) : null
+            }
             ListEmptyComponent={() => (
               <View style={{ alignItems: "center", marginTop: 40 }}>
                 {loading ? (
