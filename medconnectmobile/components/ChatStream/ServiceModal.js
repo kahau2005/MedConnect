@@ -48,7 +48,11 @@ const ServiceModal = ({ visible, onClose, appointmentId }) => {
       setAssignedServices(resAssigned.data);
       setShowList(resAssigned.data.length === 0);
     } catch (error) {
-      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -81,7 +85,11 @@ const ServiceModal = ({ visible, onClose, appointmentId }) => {
       fetchData();
       setShowList(false);
     } catch (error) {
-      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
