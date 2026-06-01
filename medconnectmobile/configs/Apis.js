@@ -35,12 +35,7 @@ export const STREAM_API = process.env.EXPO_PUBLIC_STREAM_API_KEY;
 export const authApis = (token) => {
   //https://medconnect-aca.icydesert-d50d1a9e.southeastasia.azurecontainerapps.io/
   return axios.create({
-<<<<<<< HEAD
     baseURL: "http://192.168.1.239:8000/",
-=======
-    baseURL:
-      "http://192.168.100.26:8000/",
->>>>>>> 40b8d5930e98a7b192bc7fc9025895197b1a1a76
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -48,10 +43,5 @@ export const authApis = (token) => {
 };
 
 export default axios.create({
-<<<<<<< HEAD
   baseURL: "http://192.168.1.239:8000/",
-=======
-  baseURL:
-    "http://192.168.100.26:8000/",
->>>>>>> 40b8d5930e98a7b192bc7fc9025895197b1a1a76
 });
