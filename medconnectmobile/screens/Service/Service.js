@@ -13,7 +13,11 @@ const Service = () => {
       let res = await Apis.get(endpoint.services);
       setServices(res.data);
     } catch (error) {
-      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     }
   };
 
@@ -22,7 +26,11 @@ const Service = () => {
       let res = await Apis.get(`${endpoint.services}popular`);
       setPopularServices(PopularServiceItemMapper(res.data));
     } catch (error) {
-      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     }
   };
 

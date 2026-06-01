@@ -1,4 +1,4 @@
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Text, View } from "react-native";
 import QueryArea from "../../components/QueryArea/QueryArea";
 import { useEffect, useState } from "react";
 import Apis, { endpoint } from "../../configs/Apis";
@@ -50,7 +50,11 @@ const Doctor = () => {
       );
       setHasMore(result.data.next !== null);
     } catch (error) {
-      Alert.alert("Lỗi", error.response.data.err);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
