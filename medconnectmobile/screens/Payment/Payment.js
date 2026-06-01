@@ -99,7 +99,11 @@ const Payment = () => {
       );
       setPaymentData(res.data);
     } catch (error) {
-      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoadingData(false);
     }
@@ -132,7 +136,11 @@ const Payment = () => {
       if (error.code === "CANCELED") {
         Alert.alert("Thông báo", "Bạn đã huỷ quá trình thanh toán.");
       } else {
-        Alert.alert("Lỗi", error?.response?.data?.err || "Lỗi không xác định");
+        const errData = error?.response?.data?.err;
+        const errorMessage = Array.isArray(errData)
+          ? errData[0]
+          : errData || "Không xác định!";
+        Alert.alert("Lỗi", errorMessage);
       }
     } finally {
       setLoadingPay(false);

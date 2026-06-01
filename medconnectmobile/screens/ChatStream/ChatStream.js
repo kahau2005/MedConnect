@@ -53,7 +53,11 @@ const ChatStream = () => {
             { status: "PENDING" },
           );
         } catch (error) {
-          Alert.alert("Lỗi", error.response.data.err);
+          const errData = error?.response?.data?.err;
+          const errorMessage = Array.isArray(errData)
+            ? errData[0]
+            : errData || "Không xác định!";
+          Alert.alert("Lỗi", errorMessage);
         }
       };
       handleUpdateAppointmentStatus();
@@ -95,7 +99,11 @@ const ChatStream = () => {
           setClientReady(true);
         }
       } catch (error) {
-        Alert.alert("Lỗi", error.response.data.err);
+        const errData = error?.response?.data?.err;
+        const errorMessage = Array.isArray(errData)
+          ? errData[0]
+          : errData || "Không xác định!";
+        Alert.alert("Lỗi", errorMessage);
       }
     };
 

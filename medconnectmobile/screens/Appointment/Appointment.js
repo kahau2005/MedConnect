@@ -82,7 +82,9 @@ const Appointment = () => {
 
       setSpecHasMore(!!res.data.next);
     } catch (error) {
-      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData) ? errData[0] : (errData || "Không xác định!");
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       isSpecLoadingRef.current = false;
       setSpecLoading(false);
@@ -130,7 +132,9 @@ const Appointment = () => {
 
       setDocHasMore(!!res.data.next);
     } catch (error) {
-      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData) ? errData[0] : (errData || "Không xác định!");
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       isDocLoadingRef.current = false;
       setDocLoading(false);
@@ -176,7 +180,9 @@ const Appointment = () => {
 
       Alert.alert("Thành công", "Đặt lịch khám thành công!");
     } catch (error) {
-      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData) ? errData[0] : (errData || "Không xác định!");
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
