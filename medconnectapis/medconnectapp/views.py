@@ -1,4 +1,3 @@
-from django.db import transaction
 from django.db.models import (
     Avg,
     Count,
@@ -139,6 +138,8 @@ class AppointmentViewSet(
                 return serializers.PrescriptionSerializer
         if self.action == "partial_update":
             return serializers.AppointmentUpdateSerializer
+        if self.action == "checkout":
+            return serializers.PaymentCheckoutSerializer
         return serializers.AppointmentSerializer
 
     def get_permissions(self):
@@ -275,37 +276,12 @@ class AppointmentViewSet(
     @action(methods=["post"], url_path="checkout", detail=True)
     def checkout(self, request, pk=None):
         appointment = self.get_object()
-
-        if appointment.status != Appointment.AppointmentStatus.PENDING:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        service_total = 0
-        for service in appointment.services.all():
-            service_total += service.quantity * service.unit_price
-
-        prescription_total = 0
-        for prescription in appointment.prescription_set.all():
-            for detail in prescription.details.all():
-                prescription_total += detail.quantity * detail.unit_price
-
-        total_amount = service_total + prescription_total
-
-        payment, created = Payment.objects.get_or_create(
-            appointment=appointment, defaults={"total_amount": total_amount}
+        serializer = self.get_serializer(data={}, context={"appointment": appointment})
+        serializer.is_valid(raise_exception=True)
+        payment = serializer.save()
+        return Response(
+            serializers.PaymentSerializer(payment).data, status=status.HTTP_201_CREATED
         )
-
-        if (
-            not created
-            and payment.status == Payment.PaymentStatus.PENDING
-            and payment.total_amount != total_amount
-        ):
-            payment.total_amount = total_amount
-            payment.save()
-
-        payment.appointment = appointment
-
-        serializer = serializers.PaymentSerializer(payment)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(methods=["post"], url_path="chat-rooms", detail=True)
     def chat_rooms(self, request, pk=None):
@@ -364,17 +340,13 @@ class AppointmentServiceViewSet(viewsets.ViewSet, generics.UpdateAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class PrescriptionViewSet(
-    viewsets.ViewSet, generics.RetrieveAPIView, generics.UpdateAPIView
-):
+class PrescriptionViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = Prescription.objects.filter(active=True)
     permission_classes = [perms.AppointmentDoctor]
 
     def get_serializer_class(self):
         if self.action in ["details"]:
             return serializers.PrescriptionDetailSerializer
-        elif self.action in ["partial_update"]:
-            return serializers.SimplePrescriptionSerializer
         return serializers.PrescriptionSerializer
 
     def get_throttles(self):
@@ -384,17 +356,11 @@ class PrescriptionViewSet(
             self.throttle_scope = "prescription"
         return [ScopedRateThrottle()]
 
-    @action(
-        detail=True,
-        methods=["post"],
-        url_path="details",
-    )
     @action(detail=True, methods=["post"], url_path="details")
     def details(self, request, pk=None):
         prescription = self.get_object()
         serializer = self.get_serializer(
             data=request.data,
-            many=True,
             context={"prescription": prescription},
         )
         serializer.is_valid(raise_exception=True)
@@ -402,11 +368,17 @@ class PrescriptionViewSet(
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class PrescriptionDetailViewSet(viewsets.ViewSet, generics.UpdateAPIView):
-    queryset = PrescriptionDetail.objects.filter(active=True)
+class PrescriptionDetailViewSet(viewsets.ViewSet, generics.DestroyAPIView):
+    queryset = PrescriptionDetail.objects.filter(active=True).select_related(
+        "prescription__appointment", "medicine"
+    )
     serializer_class = serializers.PrescriptionDetailSerializer
     permission_classes = [perms.AppointmentDoctor]
     throttle_scope = "prescription_details"
+
+    def perform_destroy(self, instance):
+        serializer = self.get_serializer(instance)
+        serializer.delete(instance)
 
 
 class DiseaseViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView):
@@ -610,60 +582,38 @@ class DoctorScheduleViewSet(viewsets.ViewSet):
 
 
 class PaymentViewSet(viewsets.GenericViewSet):
-    permission_classes = [perms.AppointmentOwner]
     queryset = Payment.objects.filter(active=True).select_related("appointment")
-    serializer_class = serializers.PaymentSerializer
+    permission_classes = [perms.AppointmentOwner]
     throttle_scope = "payment"
+
+    def get_serializer_class(self):
+        if self.action == "pay":
+            return serializers.ZaloPaySerializer
+        if self.action == "callback":
+            return serializers.ZaloPayCallbackSerializer
+        return serializers.PaymentSerializer
 
     @action(methods=["post"], url_path="zalopay", detail=True)
     def pay(self, request, pk=None):
         payment = self.get_object()
+        serializer = self.get_serializer(data={}, context={"payment": payment})
+        serializer.is_valid(raise_exception=True)
+        res = serializer.save()
 
-        if payment.status == Payment.PaymentStatus.PAID:
+        if res is None:
             return Response(
-                "Hóa đơn đã được thanh toán",
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if payment.total_amount == 0:
-            payment.status = Payment.PaymentStatus.PAID
-            payment.save()
-
-            payment.appointment.prescription_set.filter(active=True).update(
-                status=Prescription.PrescriptionStatus.PAID
-            )
-            return Response(
-                {
-                    "message": "Thanh toán thành công! Không có khoản phí nào cần thanh toán."
-                },
+                "Không cần thanh toán",
                 status=status.HTTP_200_OK,
             )
 
-        callback_url = request.build_absolute_uri("/payments/zalopay-callback/")
-        description = f"Thanh toán hóa đơn cho lịch khám #{payment.appointment.id}"
-        zalopay_res = utils.create_order(
-            order_id=payment.id,
-            amount=int(payment.total_amount),
-            description=description,
-            callback_url=callback_url,
+        return Response(
+            {
+                "order_url": res["order_url"],
+                "zp_trans_token": res["zp_trans_token"],
+                "app_trans_id": res["app_trans_id"],
+            },
+            status=status.HTTP_200_OK,
         )
-
-        if zalopay_res.get("return_code") == 1:
-            payment.app_trans_id = zalopay_res["app_trans_id"]
-            payment.save()
-
-            return Response(
-                {
-                    "order_url": zalopay_res["order_url"],
-                    "zp_trans_token": zalopay_res["zp_trans_token"],
-                    "app_trans_id": zalopay_res["app_trans_id"],
-                },
-                status=status.HTTP_200_OK,
-            )
-        else:
-            return Response(
-                {"error": "Tạo đơn hàng thất bại", "detail": zalopay_res},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
 
     @action(
         methods=["post"],
@@ -673,51 +623,19 @@ class PaymentViewSet(viewsets.GenericViewSet):
     )
     def callback(self, request):
         res = {}
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            res["return_code"] = -1
+            res["return_message"] = "Xác thực callback thất bại"
+            return Response(res, status=status.HTTP_200_OK)
+
         try:
-            is_valid, data = utils.verify_callback(request.data)
-            if not is_valid:
-                res["return_code"] = -1
-                res["return_message"] = f"Xác thực callback thất bại"
-                return Response(res)
-
-            app_trans_id = data["app_trans_id"]
-            zp_trans_id = data["zp_trans_id"]
-            payment_id = app_trans_id.split("_")[-1]
-
-            with transaction.atomic():
-                payment = Payment.objects.select_related("appointment").get(
-                    id=payment_id
-                )
-
-                payment.status = Payment.PaymentStatus.PAID
-                payment.zp_trans_id = zp_trans_id
-                payment.app_trans_id = app_trans_id
-                payment.save(
-                    update_fields=[
-                        "status",
-                        "app_trans_id",
-                        "zp_trans_id",
-                        "updated_at",
-                    ]
-                )
-
-                appointment = payment.appointment
-                appointment.status = Appointment.AppointmentStatus.COMPLETED
-                appointment.save(update_fields=["status", "updated_at"])
-                appointment.prescription_set.filter(active=True).update(
-                    status=Prescription.PrescriptionStatus.PAID
-                )
-
+            serializer.save()
             res["return_code"] = 1
             res["return_message"] = "Thanh toán thành công"
-
-        except Payment.DoesNotExist:
+        except Exception:
             res["return_code"] = 0
-            res["return_message"] = "Không tìm thấy đơn thanh toán"
-        except Exception as e:
-            res["return_code"] = 0
-            res["return_message"] = str(e)
-
+            res["return_message"] = "Có lỗi khi thanh toán"
         return Response(res, status=status.HTTP_200_OK)
 
 

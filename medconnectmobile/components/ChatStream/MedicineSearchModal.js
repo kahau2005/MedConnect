@@ -10,8 +10,10 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  Alert,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { modalStyles, medicineStyles as styles } from "./Style";
 import { UserContext } from "../../contexts/UserContext";
 import { authApis, endpoint } from "../../configs/Apis";
@@ -19,6 +21,7 @@ import { authApis, endpoint } from "../../configs/Apis";
 const MedicineSearchModal = ({
   visible,
   selectedPrescription,
+  setSelectedPrescription,
   onClose,
   onBack,
   onOpenInputForm,
@@ -112,13 +115,10 @@ const MedicineSearchModal = ({
                 </Text>
               </View>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={styles.addedMedQtyBox}>
-                  <Text style={styles.addedMedQtyText}>SL: {m.quantity}</Text>
-                </View>
-                <Feather
-                  name="edit-2"
+                <MaterialIcons
+                  name="delete-outline"
                   size={16}
-                  color="#9CA3AF"
+                  color="#d62424ff"
                   style={{ marginLeft: 8 }}
                 />
               </View>
@@ -203,9 +203,6 @@ const MedicineSearchModal = ({
               </TouchableOpacity>
               <View style={{ flex: 1 }}>
                 <Text style={modalStyles.formTitle}>Thêm thuốc vào đơn</Text>
-                <Text style={modalStyles.headerSubtitle} numberOfLines={1}>
-                  CĐ: {selectedPrescription?.diagnosis}
-                </Text>
               </View>
             </View>
           </View>

@@ -8,7 +8,7 @@ export const endpoint = {
   test: "/tests/payment/?amount=1000",
   login: "/o/token/",
   register: "/users/",
-  current_user: "/users/current-user/",
+  currentUser: "/users/current-user/",
   patient_profile: "/users/current-user/patient-profile/",
   appointment: "/appointments/",
   update_appointment: (appointmentId) => `/appointments/${appointmentId}/`,
@@ -17,7 +17,7 @@ export const endpoint = {
   medicines: "/medicines/",
   medicine_categories: "/medicine-categories/",
   add_medicine: (prescriptionId) => `/prescriptions/${prescriptionId}/details/`,
-  update_medicine: (prescriptionId) =>
+  delete_medicine: (prescriptionId) =>
     `/prescription-details/${prescriptionId}/`,
   prescription: (appointmentId) =>
     `/appointments/${appointmentId}/prescriptions/`,
