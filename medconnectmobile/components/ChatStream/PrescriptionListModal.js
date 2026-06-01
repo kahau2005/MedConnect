@@ -6,6 +6,7 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { modalStyles, medicineStyles } from "./Style";
@@ -34,6 +35,7 @@ const PrescriptionListModal = ({
       );
       setPrescriptions(res.data);
     } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }
@@ -48,6 +50,7 @@ const PrescriptionListModal = ({
       setPrescriptions((prev) => [res.data, ...prev]);
       onSelectPrescription(res.data);
     } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }

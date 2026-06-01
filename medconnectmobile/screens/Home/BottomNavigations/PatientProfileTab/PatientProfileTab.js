@@ -9,6 +9,7 @@ import {
   Platform,
   Modal,
   Image,
+  Alert,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -136,7 +137,7 @@ const PatientProfileTab = () => {
       setHasProfile(true);
       setIsEditing(false);
     } catch (error) {
-      alert("Có lỗi xảy ra khi lưu hồ sơ. Vui lòng kiểm tra lại thông tin!");
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }

@@ -51,6 +51,7 @@ const DiagnosisModal = ({ visible, onClose, appointmentId }) => {
       setDiseaseId(diseaseObj ? diseaseObj.id : null);
       setDiseaseName(diseaseObj ? diseaseObj.name : "");
     } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }
@@ -65,8 +66,8 @@ const DiagnosisModal = ({ visible, onClose, appointmentId }) => {
       );
       Alert.alert("Thành công", "Đã cập nhật chẩn đoán bệnh nhân.");
       onClose();
-    } catch (err) {
-      Alert.alert("Lỗi", "Không thể lưu chẩn đoán.");
+    } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }

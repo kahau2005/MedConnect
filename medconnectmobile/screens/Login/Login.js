@@ -54,12 +54,8 @@ const Login = () => {
       });
       nav.navigate("HomeScreen");
       requestUserPermission(res.data.access_token);
-    } catch (err) {
-      Alert.alert(
-        "Đăng nhập thất bại",
-        "Tên đăng nhập hoặc mật khẩu không chính xác!",
-      );
-      console.log(err);
+    } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }

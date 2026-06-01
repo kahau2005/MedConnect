@@ -99,10 +99,7 @@ const Register = () => {
         ]);
       }
     } catch (error) {
-      Alert.alert(
-        "Lỗi đăng ký",
-        "Kiểm tra lại thông tin hoặc tên đăng nhập đã tồn tại.",
-      );
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }

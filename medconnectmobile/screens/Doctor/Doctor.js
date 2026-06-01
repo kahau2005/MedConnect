@@ -50,6 +50,7 @@ const Doctor = () => {
       );
       setHasMore(result.data.next !== null);
     } catch (error) {
+      Alert.alert("Lỗi", error.response.data.err);
     } finally {
       setLoading(false);
     }

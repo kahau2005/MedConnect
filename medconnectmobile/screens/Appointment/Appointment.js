@@ -82,6 +82,7 @@ const Appointment = () => {
 
       setSpecHasMore(!!res.data.next);
     } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       isSpecLoadingRef.current = false;
       setSpecLoading(false);
@@ -97,7 +98,7 @@ const Appointment = () => {
         setHasProfile(true);
         setShowProfileModal(false);
       }
-    } catch (err) {
+    } catch (error) {
       setHasProfile(false);
       setShowProfileModal(true);
     }
@@ -129,6 +130,7 @@ const Appointment = () => {
 
       setDocHasMore(!!res.data.next);
     } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       isDocLoadingRef.current = false;
       setDocLoading(false);
@@ -174,11 +176,7 @@ const Appointment = () => {
 
       Alert.alert("Thành công", "Đặt lịch khám thành công!");
     } catch (error) {
-      const errorMsg = error.response?.data?.start?.[0]
-        ? JSON.stringify(error.response.data.start[0])
-        : "Không thể kết nối máy chủ";
-
-      Alert.alert("Đặt lịch thất bại", errorMsg);
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }

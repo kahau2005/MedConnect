@@ -48,6 +48,7 @@ const ServiceModal = ({ visible, onClose, appointmentId }) => {
       setAssignedServices(resAssigned.data);
       setShowList(resAssigned.data.length === 0);
     } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }
@@ -80,7 +81,7 @@ const ServiceModal = ({ visible, onClose, appointmentId }) => {
       fetchData();
       setShowList(false);
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể thêm dịch vụ.");
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Alert } from "react-native";
 import HorizontalItemsView from "../../components/HorizontalItemsView/HorizontalItemsView";
 import ListItemView from "../../components/ListItemView/ListItemView";
 import { useEffect, useState } from "react";
@@ -12,14 +12,18 @@ const Service = () => {
     try {
       let res = await Apis.get(endpoint.services);
       setServices(res.data);
-    } catch (error) {}
+    } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+    }
   };
 
   const fetchPopularServices = async () => {
     try {
       let res = await Apis.get(`${endpoint.services}popular`);
       setPopularServices(PopularServiceItemMapper(res.data));
-    } catch (error) {}
+    } catch (error) {
+      Alert.alert("Lỗi", error?.response?.data?.err || "Không xác định!");
+    }
   };
 
   useEffect(() => {
