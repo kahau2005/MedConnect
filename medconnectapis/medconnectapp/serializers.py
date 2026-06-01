@@ -66,6 +66,15 @@ class PrescriptionDetailSerializer(ModelSerializer):
             detail["medicine_id"] = int(data["medicine"])
         return detail
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["medicine"] = (
+            {"id": instance.medicine_id, "name": instance.medicine.name}
+            if instance.medicine_id and instance.medicine
+            else None
+        )
+        return data
+
     @transaction.atomic
     def create(self, validated_data):
         prescription = self.context["prescription"]
