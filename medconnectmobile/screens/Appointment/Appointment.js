@@ -236,26 +236,26 @@ const Appointment = () => {
             </TouchableOpacity>
           </View>
 
-        {/*   <View style={styles.inputGroup}> */}
-        {/*     <Text style={styles.label}>Bác sĩ điều trị</Text> */}
-        {/*     <TouchableOpacity */}
-        {/*       style={styles.dropdownSelector} */}
-        {/*       onPress={() => setDoctorModalVisible(true)} */}
-        {/*       disabled={!selectedSpecialty} */}
-        {/*     > */}
-        {/*       <Text */}
-        {/*         style={ */}
-        {/*           selectedDoctor ? styles.valueText : styles.placeholderText */}
-        {/*         } */}
-        {/*       > */}
-        {/*         {selectedDoctor */}
-        {/*           ? `${selectedDoctor.first_name} ${selectedDoctor.last_name}` */}
-        {/*           : "Chọn bác sĩ"} */}
-        {/*       </Text> */}
-        {/*       <Feather name="chevron-down" size={20} color="#666" /> */}
-        {/*     </TouchableOpacity> */}
-        {/*   </View> */}
-        {/* </View> */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Bác sĩ điều trị</Text>
+            <TouchableOpacity
+              style={styles.dropdownSelector}
+              onPress={() => setDoctorModalVisible(true)}
+              disabled={!selectedSpecialty}
+            >
+              <Text
+                style={
+                  selectedDoctor ? styles.valueText : styles.placeholderText
+                }
+              >
+                {selectedDoctor
+                  ? `${selectedDoctor.first_name} ${selectedDoctor.last_name}`
+                  : "Chọn bác sĩ"}
+              </Text>
+              <Feather name="chevron-down" size={20} color="#666" />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
