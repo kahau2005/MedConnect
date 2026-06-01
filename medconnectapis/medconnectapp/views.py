@@ -206,10 +206,9 @@ class AppointmentViewSet(
         permission_classes=[perms.IsDoctor],
     )
     def today(self, request):
-        today = timezone.localdate()
         queryset = self.get_queryset().filter(
             doctor_id=request.user.id,
-            start__date=today,
+            start__date=timezone.localdate(),
             status__in=[
                 Appointment.AppointmentStatus.SCHEDULED,
                 Appointment.AppointmentStatus.PENDING,
