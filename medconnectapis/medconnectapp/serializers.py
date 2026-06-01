@@ -6,7 +6,6 @@ from django.db import transaction
 from django.utils import timezone
 from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers
-from rest_framework.fields import CurrentUserDefault, HiddenField
 from rest_framework.serializers import ModelSerializer
 
 from medconnectapp import utils
@@ -473,21 +472,12 @@ class SpecialtySerializer(ModelSerializer):
 
 
 class PatientProfileSerializer(ModelSerializer):
-    user = HiddenField(default=CurrentUserDefault())
-
     class Meta:
         model = PatientProfile
-        fields = [
-            "user",
-            "gender",
-            "dob",
-            "weight",
-            "height",
-            "allergies",
-            "chronic_diseases",
-            "blood_type",
-            "address",
-        ]
+        fields = "__all__"
+        extra_kwargs = {
+            "user": {"read_only": True},
+        }
 
     def validate_dob(self, value):
         if value >= timezone.localdate():
@@ -501,12 +491,6 @@ class PatientProfileSerializer(ModelSerializer):
                 if nh3.is_html(attrs[field]):
                     raise serializers.ValidationError({"err": f"Dữ liệu không hợp lệ"})
         return attrs
-
-
-class DetailPatientProfileSerializer(ModelSerializer):
-    class Meta:
-        model = PatientProfile
-        fields = "__all__"
 
 
 class SimpleUserSerializer(ModelSerializer):

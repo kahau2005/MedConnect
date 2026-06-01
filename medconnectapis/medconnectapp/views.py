@@ -461,8 +461,6 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 return serializers.SimpleUserSerializer
             return serializers.UserSerializer
         elif self.action == "patient_profile":
-            if self.request.method == "GET":
-                return serializers.DetailPatientProfileSerializer
             return serializers.PatientProfileSerializer
         elif self.action == "register_device":
             return serializers.FCMDeviceSerializer
@@ -499,7 +497,9 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     )
     def patient_profile(self, request):
         if request.method == "GET":
-            profile = PatientProfile.objects.get(user=request.user)
+            profile = PatientProfile.objects.select_related("user").get(
+                user=request.user
+            )
             return Response(
                 self.get_serializer(profile).data,
                 status=status.HTTP_200_OK,
@@ -518,7 +518,9 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         elif request.method == "PATCH":
-            profile = PatientProfile.objects.get(user=request.user)
+            profile = PatientProfile.objects.select_related("user").get(
+                user=request.user
+            )
             serializer = self.get_serializer(profile, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
