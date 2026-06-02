@@ -57,7 +57,9 @@ class AppointmentViewSet(
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Appointment.objects.filter(active=True)
+        queryset = Appointment.objects.filter(active=True).select_related(
+            "user", "doctor__user"
+        )
 
         if user.role == User.UserRole.DOCTOR:
             queryset = queryset.filter(Q(user=user) | Q(doctor__user=user))
@@ -85,7 +87,7 @@ class AppointmentViewSet(
                 ),
             )
         elif self.action == "checkout":
-            queryset = queryset.select_related("user", "doctor__user").prefetch_related(
+            queryset = queryset.prefetch_related(
                 Prefetch(
                     "services",
                     queryset=AppointmentService.objects.filter(
@@ -105,11 +107,7 @@ class AppointmentViewSet(
                 ),
             )
         elif self.action in ["list", "today"]:
-            queryset = queryset.select_related("user", "doctor__user").order_by(
-                "-start", "-id"
-            )
-        elif self.action == "chat_rooms":
-            queryset = queryset.select_related("user", "doctor__user")
+            queryset = queryset.order_by("-start", "-id")
         elif self.action == "doctors":
             queryset = queryset.filter(status=Appointment.AppointmentStatus.COMPLETED)
         return queryset

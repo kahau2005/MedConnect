@@ -4,7 +4,7 @@ from datetime import timedelta
 import nh3
 from django.db import transaction
 from django.utils import timezone
-from PIL import Image, UnidentifiedImageError
+from PIL import Image
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 
@@ -488,7 +488,7 @@ class PatientProfileSerializer(ModelSerializer):
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
                 if nh3.is_html(attrs[field]):
-                    raise serializers.ValidationError({"err": f"Dữ liệu không hợp lệ"})
+                    raise serializers.ValidationError({"err": "Dữ liệu không hợp lệ"})
         return attrs
 
 
@@ -525,7 +525,7 @@ class SimpleUserSerializer(ModelSerializer):
         for field in input_fields:
             if field in attrs and isinstance(attrs[field], str):
                 if nh3.is_html(attrs[field]):
-                    raise serializers.ValidationError({"err": f"Dữ liệu không hợp lệ"})
+                    raise serializers.ValidationError({"err": "Dữ liệu không hợp lệ"})
         return attrs
 
 
