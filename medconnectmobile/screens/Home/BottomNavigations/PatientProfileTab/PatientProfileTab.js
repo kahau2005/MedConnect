@@ -54,7 +54,7 @@ const PatientProfileTab = () => {
   ];
 
   const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(Platform.OS === "ios");
+    setShowDatePicker(false);
     if (selectedDate) {
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
@@ -94,10 +94,8 @@ const PatientProfileTab = () => {
         });
       }
     } catch (err) {
-      if (err.response?.status === 404 || err.status === 404) {
-        setHasProfile(false);
-        setFormData(initialFormData);
-      }
+      setHasProfile(false);
+      setFormData(initialFormData);
     } finally {
       setLoading(false);
     }
@@ -459,9 +457,7 @@ const PatientProfileTab = () => {
             <Image
               source={{
                 uri: user.avatar
-                  ? user.avatar.includes("http")
-                    ? user.avatar
-                    : `https://res.cloudinary.com/dsc8rzpbg/${user.avatar}`
+                  ? user.avatar
                   : `https://ui-avatars.com/api/?name=${user.first_name || "User"}&background=0066FF&color=fff`,
               }}
               style={Style.avatar}
@@ -473,11 +469,7 @@ const PatientProfileTab = () => {
               : user.username || "Người dùng mới"}
           </Text>
           <Text style={Style.userEmail}>
-            {user.phone
-              ? `SĐT: ${user.phone}`
-              : user.email
-                ? `Email: ${user.email}`
-                : "Chưa có số điện thoại"}
+            {user.phone ? `SĐT: ${user.phone}` : "Chưa có số điện thoại"}
           </Text>
         </View>
 

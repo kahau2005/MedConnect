@@ -12,6 +12,7 @@ import {
 
 import { UserContext } from "../../contexts/UserContext";
 import Apis, { authApis, endpoint, STREAM_API } from "../../configs/Apis";
+import Style from "./Style";
 
 export default function CallStream() {
   const nav = useNavigation();
@@ -75,18 +76,18 @@ export default function CallStream() {
 
   if (!videoClient || !call) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={Style.loadingContainer}>
         <ActivityIndicator size="large" color="#0066FF" />
-        <Text style={styles.loadingText}>Đang thiết lập kết nối...</Text>
+        <Text style={Style.loadingText}>Đang thiết lập kết nối...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={Style.container}>
       <StreamVideo client={videoClient}>
         <StreamCall call={call}>
-          <View style={styles.callWrapper}>
+          <View style={Style.callWrapper}>
             <CallContent
               onHangupCallHandler={() => {
                 call.leave();
@@ -99,15 +100,3 @@ export default function CallStream() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#272A30" },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#272A30",
-  },
-  loadingText: { marginTop: 12, color: "#FFFFFF", fontSize: 16 },
-  callWrapper: { flex: 1 },
-});

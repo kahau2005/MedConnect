@@ -44,22 +44,23 @@ const ChatStream = () => {
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [selectedMedForInput, setSelectedMedForInput] = useState(null);
 
+  const handleUpdateAppointmentStatus = async () => {
+    try {
+      await authApis(user.access_token).patch(
+        `${endpoint.appointment}${appointmentId}/`,
+        { status: "PENDING" },
+      );
+    } catch (error) {
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
+    }
+  };
+
   useEffect(() => {
     if (user && user.role === "DOCTOR" && status !== "PENDING") {
-      const handleUpdateAppointmentStatus = async () => {
-        try {
-          await authApis(user.access_token).patch(
-            `${endpoint.appointment}${appointmentId}/`,
-            { status: "PENDING" },
-          );
-        } catch (error) {
-          const errData = error?.response?.data?.err;
-          const errorMessage = Array.isArray(errData)
-            ? errData[0]
-            : errData || "Không xác định!";
-          Alert.alert("Lỗi", errorMessage);
-        }
-      };
       handleUpdateAppointmentStatus();
     }
   }, [user]);
@@ -74,42 +75,38 @@ const ChatStream = () => {
     nav.navigate("Payment", { appointmentId: appointmentId });
   };
 
+  const setupStream = async () => {
+    try {
+      const roomRes = await authApis(user.access_token).post(
+        `${endpoint.appointment}${appointmentId}/chat-rooms/`,
+      );
+      const res = await authApis(user.access_token).get(endpoint.streamToken);
+      const { stream_token, user_id, full_name } = res.data;
+
+      if (chatClient.userID) await chatClient.disconnectUser();
+      await chatClient.connectUser(
+        { id: String(user_id), name: full_name || `User ${user_id}` },
+        stream_token,
+      );
+      const channelId = roomRes.data.stream_channel_id;
+      const currentChannel = chatClient.channel("messaging", channelId);
+      await currentChannel.watch();
+
+      setChannel(currentChannel);
+      setClientReady(true);
+    } catch (error) {
+      if (error.response) console.error("ERROR_DATA:", error.response.data);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
+    }
+  };
+
   useEffect(() => {
-    let isMounted = true;
-    const setupStream = async () => {
-      try {
-        await authApis(user.access_token).post(
-          `${endpoint.appointment}${appointmentId}/chat-rooms/`,
-        );
-        const res = await authApis(user.access_token).get(endpoint.streamToken);
-        const { stream_token, user_id, full_name } = res.data;
-
-        if (chatClient.userID) await chatClient.disconnectUser();
-        await chatClient.connectUser(
-          { id: String(user_id), name: full_name || `User ${user_id}` },
-          stream_token,
-        );
-
-        const channelId = `appointment_${Number(appointmentId) + 700}`;
-        const currentChannel = chatClient.channel("messaging", channelId);
-        await currentChannel.watch();
-
-        if (isMounted) {
-          setChannel(currentChannel);
-          setClientReady(true);
-        }
-      } catch (error) {
-        const errData = error?.response?.data?.err;
-        const errorMessage = Array.isArray(errData)
-          ? errData[0]
-          : errData || "Không xác định!";
-        Alert.alert("Lỗi", errorMessage);
-      }
-    };
-
     if (user) setupStream();
     return () => {
-      isMounted = false;
       if (chatClient?.userID) chatClient.disconnectUser().catch(console.error);
     };
   }, [user, appointmentId]);
