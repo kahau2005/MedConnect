@@ -88,9 +88,7 @@ const ChatStream = () => {
         { id: String(user_id), name: full_name || `User ${user_id}` },
         stream_token,
       );
-
-      const channelId =
-        roomRes.data.stream_channel_id || `appointment_${appointmentId}`;
+      const channelId = roomRes.data.stream_channel_id;
       const currentChannel = chatClient.channel("messaging", channelId);
       await currentChannel.watch();
 

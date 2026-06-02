@@ -15,9 +15,9 @@ class BaseModel(models.Model):
 
 class User(AbstractUser, BaseModel):
     class UserRole(models.TextChoices):
-        DOCTOR = "DOCTOR", "Bác sĩ"
-        PATIENT = "PATIENT", "Bệnh nhân"
-        ADMIN = "ADMIN", "Admin"
+        DOCTOR = "DOCTOR"
+        PATIENT = "PATIENT"
+        ADMIN = "ADMIN"
 
     active = None
     date_joined = None
@@ -35,14 +35,14 @@ class User(AbstractUser, BaseModel):
 
 class PatientProfile(BaseModel):
     class Gender(models.TextChoices):
-        MALE = "MALE", "Nam"
-        FEMALE = "FEMALE", "Nữ"
+        MALE = "MALE"
+        FEMALE = "FEMALE"
 
     class BloodType(models.TextChoices):
-        A = "A", "A"
-        B = "B", "B"
-        AB = "AB", "AB"
-        O = "O", "O"
+        A = "A"
+        B = "B"
+        AB = "AB"
+        O = "O"
 
     user = models.OneToOneField(
         User, on_delete=models.PROTECT, primary_key=True, related_name="patient_profile"
@@ -50,7 +50,7 @@ class PatientProfile(BaseModel):
     gender = models.CharField(max_length=10, choices=Gender.choices)
     dob = models.DateField(null=False)
     weight = models.FloatField(null=False)
-    height = models.PositiveSmallIntegerField(null=False)
+    height = models.IntegerField(null=False)
     allergies = models.TextField(null=True, blank=True)
     chronic_diseases = models.TextField(null=True, blank=True)
     blood_type = models.CharField(max_length=2, choices=BloodType.choices, null=True)
@@ -85,10 +85,8 @@ class Doctor(models.Model):
 class DoctorSchedule(BaseModel):
     doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT)
     start_time = models.DateTimeField(null=False)
-    hours = models.PositiveSmallIntegerField(
-        default=1, validators=[MaxValueValidator(23)]
-    )
-    duration = models.PositiveSmallIntegerField(default=15)
+    hours = models.IntegerField(default=1)
+    duration = models.IntegerField(default=15)
 
 
 class Disease(BaseModel):
@@ -100,10 +98,10 @@ class Disease(BaseModel):
 
 class Appointment(BaseModel):
     class AppointmentStatus(models.TextChoices):
-        SCHEDULED = "SCHEDULED", "Đã đặt lịch"
-        PENDING = "PENDING", "Đang khám"
-        COMPLETED = "COMPLETED", "Đã khám"
-        CANCELED = "CANCELED", "Đã hủy"
+        SCHEDULED = "SCHEDULED"
+        PENDING = "PENDING"
+        COMPLETED = "COMPLETED"
+        CANCELED = "CANCELED"
 
     user = models.ForeignKey(User, on_delete=models.PROTECT)
     doctor = models.ForeignKey(
@@ -124,17 +122,15 @@ class Review(BaseModel):
     appointment = models.OneToOneField(
         Appointment, on_delete=models.PROTECT, related_name="review"
     )
-    rating = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(5)]
-    )
+    rating = models.IntegerField(null=False)
     comment = models.TextField(null=True, blank=True)
 
 
 class Prescription(BaseModel):
     class PrescriptionStatus(models.TextChoices):
-        PENDING = "PENDING", "Chờ xử lý"
-        PAID = "PAID", "Đã thanh toán"
-        DISPENSED = "DISPENSED", "Đã phát thuốc"
+        PENDING = "PENDING"
+        PAID = "PAID"
+        DISPENSED = "DISPENSED"
 
     appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT)
     status = models.CharField(
@@ -146,17 +142,17 @@ class Prescription(BaseModel):
 
 class PrescriptionDetail(BaseModel):
     class Instruction(models.TextChoices):
-        BEFORE_MEAL = "BEFORE_MEAL", "Trước bữa ăn"
-        AFTER_MEAL = "AFTER_MEAL", "Sau bữa ăn"
+        BEFORE_MEAL = "BEFORE_MEAL"
+        AFTER_MEAL = "AFTER_MEAL"
 
     prescription = models.ForeignKey(
         Prescription, on_delete=models.PROTECT, related_name="details"
     )
     medicine = models.ForeignKey("Medicine", on_delete=models.PROTECT, default=1)
-    quantity = models.PositiveSmallIntegerField(null=False, default=1)
-    dose = models.PositiveSmallIntegerField(null=False, default=1)
-    frequency = models.PositiveSmallIntegerField(null=False, default=1)
-    duration_day = models.PositiveSmallIntegerField(null=False, default=1)
+    quantity = models.IntegerField(null=False, default=1)
+    dose = models.IntegerField(null=False, default=1)
+    frequency = models.IntegerField(null=False, default=1)
+    duration_day = models.IntegerField(null=False, default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     instruction = models.CharField(
         null=True, max_length=20, choices=Instruction.choices
@@ -175,7 +171,7 @@ class Medicine(BaseModel):
     category = models.ForeignKey(
         MedicineCategory, on_delete=models.PROTECT, related_name="medicines", default=1
     )
-    stock = models.PositiveIntegerField()
+    stock = models.IntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=50)
     expired = models.DateField()
@@ -199,17 +195,17 @@ class AppointmentService(BaseModel):
         Appointment, on_delete=models.PROTECT, related_name="services"
     )
     service = models.ForeignKey(Service, on_delete=models.PROTECT)
-    quantity = models.PositiveIntegerField()
+    quantity = models.IntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
 
 class TestResult(BaseModel):
     class ResultType(models.TextChoices):
-        BLOOD = "BLOOD", "Xét nghiệm máu"
-        URINE = "URINE", "Xét nghiệm nước tiểu"
-        XRAY = "XRAY", "X-quang"
-        ULTRASOUND = "ULTRASOUND", "Siêu âm"
-        OTHER = "OTHER", "Khác"
+        BLOOD = "BLOOD"
+        URINE = "URINE"
+        XRAY = "XRAY"
+        ULTRASOUND = "ULTRASOUND"
+        OTHER = "OTHER"
 
     appointment_service = models.OneToOneField(
         AppointmentService, on_delete=models.PROTECT, related_name="test_result"
@@ -226,9 +222,9 @@ class TestResult(BaseModel):
 
 class Payment(BaseModel):
     class PaymentStatus(models.TextChoices):
-        PENDING = "PENDING", "Đang đợi thanh toán"
-        PAID = "PAID", "Đã thanh toán"
-        FAILED = "FAILED", "Thất bại"
+        PENDING = "PENDING"
+        PAID = "PAID"
+        FAILED = "FAILED"
 
     appointment = models.OneToOneField(
         Appointment, on_delete=models.PROTECT, related_name="payment"
@@ -252,8 +248,8 @@ class FCMDevice(BaseModel):
 
 class MedicineAlert(BaseModel):
     class AlertType(models.TextChoices):
-        LOW_STOCK = "LOW_STOCK", "Sắp hết hàng"
-        EXPIRING = "EXPIRING", "Sắp hết hạn"
+        LOW_STOCK = "LOW_STOCK"
+        EXPIRING = "EXPIRING"
 
     medicine = models.ForeignKey(
         Medicine, on_delete=models.CASCADE, related_name="alerts"

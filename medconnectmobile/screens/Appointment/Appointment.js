@@ -324,8 +324,8 @@ const Appointment = () => {
             <Text style={styles.label}>Mô tả triệu chứng (Tùy chọn)</Text>
             <TextInput
               style={styles.textArea}
-              placeholder="Vui lòng mô tả chi tiết các triệu chứng bạn đang gặp phải..."
-              placeholderTextColor="#999"
+              placeholder="Mô tả chi tiết các triệu chứng bạn đang gặp phải..."
+              placeholderTextColor="#9CA3AF"
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -365,7 +365,8 @@ const Appointment = () => {
         visible={doctorModalVisible}
         onClose={() => setDoctorModalVisible(false)}
         title="Chọn Bác Sĩ Điều Trị"
-        placeholder="Tìm tên bác sĩ..."
+        placeholder="Tìm tên bác sĩ"
+        placeholderTextColor="#9CA3AF"
         data={doctors}
         isLoading={docLoading}
         hasMore={docHasMore}
