@@ -38,32 +38,15 @@ class PrescriptionDetailSerializer(ModelSerializer):
 
     class Meta:
         model = PrescriptionDetail
-        fields = [
-            "id",
-            "prescription",
-            "medicine",
-            "quantity",
-            "dose",
-            "frequency",
-            "duration_day",
-            "unit_price",
-            "instruction",
-            "created_at",
-            "updated_at",
-        ]
+        fields = "__all__"
         extra_kwargs = {
             "id": {"read_only": True},
             "prescription": {"read_only": True},
             "created_at": {"read_only": True},
             "updated_at": {"read_only": True},
             "unit_price": {"read_only": True},
+            "active": {"read_only": True},
         }
-
-    def to_internal_value(self, data):
-        detail = super().to_internal_value(data)
-        if "medicine" in data:
-            detail["medicine_id"] = int(data["medicine"])
-        return detail
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -80,28 +63,28 @@ class PrescriptionDetailSerializer(ModelSerializer):
 
         medicine = (
             Medicine.objects.select_for_update()
-            .filter(id=validated_data["medicine_id"])
+            .filter(id=validated_data.get("medicine").id)
             .first()
         )
 
         if not medicine:
-            raise serializers.ValidationError({"err": "Không tìm thấy thuốc cần tạo"})
+            raise serializers.ValidationError({"err": "Không tìm thấy thuốc"})
 
-        if validated_data["quantity"] > medicine.stock:
+        if validated_data.get("quantity") > medicine.stock:
             raise serializers.ValidationError({"err": "Không đủ số lượng tồn kho"})
 
-        medicine.stock -= validated_data["quantity"]
+        medicine.stock -= validated_data.get("quantity")
         medicine.save()
 
         return PrescriptionDetail.objects.create(
             prescription=prescription,
-            medicine_id=validated_data["medicine_id"],
+            medicine=medicine,
             unit_price=medicine.unit_price,
-            quantity=validated_data["quantity"],
-            dose=validated_data["dose"],
-            frequency=validated_data["frequency"],
-            duration_day=validated_data["duration_day"],
-            instruction=validated_data["instruction"],
+            quantity=validated_data.get("quantity"),
+            dose=validated_data.get("dose"),
+            frequency=validated_data.get("frequency"),
+            duration_day=validated_data.get("duration_day"),
+            instruction=validated_data.get("instruction"),
         )
 
     @transaction.atomic
@@ -236,8 +219,8 @@ class AppointmentSerializer(ModelSerializer):
 
         input_fields = ["reason", "symptoms"]
         for field in input_fields:
-            if field in attrs and isinstance(attrs[field], str):
-                if nh3.is_html(attrs[field]):
+            if field in attrs and isinstance(attrs.get(field), str):
+                if nh3.is_html(attrs.get(field)):
                     raise serializers.ValidationError({"err": "Dữ liệu không hợp lệ"})
         return attrs
 
@@ -357,8 +340,8 @@ class TestResultSerializer(ModelSerializer):
         }
 
     def validate(self, attrs):
-        if "conclusion" in attrs and isinstance(attrs["conclusion"], str):
-            if nh3.is_html(attrs["conclusion"]):
+        if "conclusion" in attrs and isinstance(attrs.get("conclusion"), str):
+            if nh3.is_html(attrs.get("conclusion")):
                 raise serializers.ValidationError({"err": "Dữ liệu không hợp lệ"})
         return attrs
 
@@ -400,8 +383,8 @@ class AppointmentServiceSerializer(ModelSerializer):
 
     def create(self, validated_data):
         appointment = self.context.get("appointment")
-        service = validated_data["service"]
-        quantity = validated_data["quantity"]
+        service = validated_data.get("service")
+        quantity = validated_data.get("quantity")
 
         if appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError(
@@ -486,8 +469,8 @@ class PatientProfileSerializer(ModelSerializer):
     def validate(self, attrs):
         input_fields = ["allergies", "chronic_diseases", "address"]
         for field in input_fields:
-            if field in attrs and isinstance(attrs[field], str):
-                if nh3.is_html(attrs[field]):
+            if field in attrs and isinstance(attrs.get(field), str):
+                if nh3.is_html(attrs.get(field)):
                     raise serializers.ValidationError({"err": "Dữ liệu không hợp lệ"})
         return attrs
 
@@ -544,8 +527,8 @@ class UserSerializer(SimpleUserSerializer):
     def validate(self, attrs):
         attrs = super().validate(attrs)
 
-        if "username" in attrs and isinstance(attrs["username"], str):
-            if nh3.is_html(attrs["username"]):
+        if "username" in attrs and isinstance(attrs.get("username"), str):
+            if nh3.is_html(attrs.get("username")):
                 raise serializers.ValidationError({"err": "Dữ liệu không hợp lệ"})
         return attrs
 
@@ -703,7 +686,7 @@ class ZaloPaySerializer(serializers.Serializer):
         if res.get("return_code") != 1:
             raise Exception("Có lỗi lúc tạo đơn")
 
-        payment.app_trans_id = res["app_trans_id"]
+        payment.app_trans_id = res.get("app_trans_id")
         payment.save()
         return res
 
@@ -719,8 +702,8 @@ class ZaloPayCallbackSerializer(serializers.Serializer):
     @transaction.atomic
     def save(self):
         data = self._callback_data
-        app_trans_id = data["app_trans_id"]
-        zp_trans_id = data["zp_trans_id"]
+        app_trans_id = data.get("app_trans_id")
+        zp_trans_id = data.get("zp_trans_id")
         payment_id = app_trans_id.split("_")[-1]
 
         payment = Payment.objects.select_related("appointment").get(id=payment_id)
