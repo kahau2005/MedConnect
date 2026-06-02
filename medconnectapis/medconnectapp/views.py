@@ -351,7 +351,7 @@ class PrescriptionViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             self.throttle_scope = "prescription"
         return [ScopedRateThrottle()]
 
-    @action(detail=True, methods=["post"], url_path="details")
+    @action(methods=["post"], url_path="details", detail=True)
     def details(self, request, pk=None):
         prescription = self.get_object()
         serializer = serializers.PrescriptionDetailSerializer(

@@ -151,7 +151,7 @@ class SimplePrescriptionSerializer(ModelSerializer):
 
     def validate(self, attrs):
         appointment = self.context.get("appointment")
-        if appointment and appointment.status != Appointment.AppointmentStatus.PENDING:
+        if appointment.status != Appointment.AppointmentStatus.PENDING:
             raise serializers.ValidationError({"err": "Trạng thái không hợp lệ"})
         return attrs
 
@@ -232,7 +232,6 @@ class AppointmentSerializer(ModelSerializer):
                 raise serializers.ValidationError(
                     {"err": "Bác sĩ không làm việc vào ngày này"}
                 )
-
             self.duration = schedule.duration
 
         input_fields = ["reason", "symptoms"]

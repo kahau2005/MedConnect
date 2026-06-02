@@ -23,7 +23,7 @@ def create_order(
     order_id,
     amount,
     description=None,
-    callback_url="https://https://medconnect-aca.icydesert-d50d1a9e.southeastasia.azurecontainerapps.io//payments/zalopay-callback/",
+    callback_url="https://medconnect-aca.icydesert-d50d1a9e.southeastasia.azurecontainerapps.io/payments/zalopay-callback/",
 ):
     app_id = ZALOPAY_CONFIG["APP_ID"]
     key1 = ZALOPAY_CONFIG["KEY1"]
