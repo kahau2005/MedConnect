@@ -144,13 +144,7 @@ const AllAppointmentTab = () => {
       );
       const newData = res.data.results || [];
       if (isLoadMore) {
-        setAppointment((prev) => {
-          const existingIds = new Set(prev.map((item) => item.id));
-          return [
-            ...prev,
-            ...newData.filter((item) => !existingIds.has(item.id)),
-          ];
-        });
+        setAppointment((prev) => [...prev, ...newData]);
       } else {
         setAppointment(newData);
       }
