@@ -38,16 +38,15 @@ class MyAdminSite(admin.AdminSite):
         ] + super().get_urls()
 
     def stats(self, request):
-        age_expression = ExtractYear(Now()) - ExtractYear("dob")
         age_groups = list(
             PatientProfile.objects.filter(active=True)
-            .annotate(age=age_expression)
+            .annotate(age=ExtractYear(Now()) - ExtractYear("dob"))
             .annotate(
                 age_group=Case(
-                    When(age__lt=18, then=Value("Trẻ em (dưới 18)")),
-                    When(age__gte=18, age__lte=30, then=Value("Thanh niên (18 - 30)")),
-                    When(age__gt=30, age__lte=60, then=Value("Trung niên (30 - 60)")),
-                    When(age__gt=60, then=Value("Cao tuổi (trên 60)")),
+                    When(age__lt=18, then=Value("Trẻ em")),
+                    When(age__gte=18, age__lte=30, then=Value("Thanh niên")),
+                    When(age__gt=30, age__lte=60, then=Value("Trung niên")),
+                    When(age__gt=60, then=Value("Cao tuổi")),
                     output_field=CharField(),
                 )
             )
