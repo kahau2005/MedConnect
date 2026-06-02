@@ -56,19 +56,19 @@ const theme = {
 export default function App() {
   const [user, dispatch] = useReducer(UserReducer, null);
 
+  const checkPersistedUser = async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem("user");
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        dispatch({
+          type: "LOGIN",
+          payload: parsedUser,
+        });
+      }
+    } catch (err) {}
+  };
   useEffect(() => {
-    const checkPersistedUser = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem("user");
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          dispatch({
-            type: "LOGIN",
-            payload: parsedUser,
-          });
-        }
-      } catch (err) {}
-    };
     checkPersistedUser();
   }, []);
 
