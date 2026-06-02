@@ -96,9 +96,7 @@ const AllAppointmentTab = () => {
   };
 
   const onDateChange = (event, selected) => {
-    if (Platform.OS === "android") {
-      setShowDatePicker(false);
-    }
+    setShowDatePicker(false);
 
     if (event.type === "set" && selected) {
       const year = selected.getFullYear();
@@ -129,26 +127,6 @@ const AllAppointmentTab = () => {
     }
   };
 
-  const loadDoctorsList = async () => {
-    if (!user?.access_token || isDoctorMode) return;
-    try {
-      const res = await authApis(user.access_token).get(
-        `${endpoint.appointment}/doctors/`,
-      );
-      setDoctorsList(res.data);
-    } catch (error) {
-      const errData = error?.response?.data?.err;
-      const errorMessage = Array.isArray(errData)
-        ? errData[0]
-        : errData || "Không xác định!";
-      Alert.alert("Lỗi", errorMessage);
-    }
-  };
-
-  useEffect(() => {
-    loadDoctorsList();
-  }, [user]);
-
   const loadAppointment = async (isLoadMore = false) => {
     if (isLoadingRef.current || (!hasMore && isLoadMore) || !user?.access_token)
       return;
@@ -176,7 +154,7 @@ const AllAppointmentTab = () => {
       } else {
         setAppointment(newData);
       }
-      setHasMore(!(!res.data.next || newData.length === 0));
+      setHasMore(res.data.next !== null && newData.length > 0);
     } catch (error) {
       setHasMore(false);
     } finally {
@@ -676,7 +654,7 @@ const AllAppointmentTab = () => {
         <DateTimePicker
           value={selectedDate ? new Date(selectedDate) : new Date()}
           mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
+          display="default"
           onChange={onDateChange}
         />
       )}
