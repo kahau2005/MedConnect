@@ -7,7 +7,7 @@ from django.db.models import (
 from django.db.models.functions import Round
 from django.utils import timezone
 from django_filters.rest_framework.backends import DjangoFilterBackend
-from rest_framework import filters, generics, parsers, permissions, status, viewsets
+from rest_framework import filters, generics, parsers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -117,21 +117,8 @@ class AppointmentViewSet(
     def get_serializer_class(self):
         if self.action == "retrieve":
             return serializers.DetailAppointmentSerializer
-        elif self.action == "prescriptions":
-            if self.request.method == "POST":
-                return serializers.SimplePrescriptionSerializer
-            elif self.request.method == "GET":
-                return serializers.PrescriptionSerializer
         elif self.action == "partial_update":
             return serializers.AppointmentUpdateSerializer
-        elif self.action == "checkout":
-            return serializers.PaymentCheckoutSerializer
-        elif self.action == "doctors":
-            return serializers.DoctorSerializer
-        elif self.action == "services":
-            return serializers.AppointmentServiceSerializer
-        elif self.action == "review":
-            return serializers.ReviewSerializer
         return serializers.AppointmentSerializer
 
     def get_permissions(self):
@@ -180,7 +167,9 @@ class AppointmentViewSet(
         return [ScopedRateThrottle()]
 
     def create(self, request):
-        serializer = self.get_serializer(data=request.data)
+        serializer = serializers.AppointmentSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -196,7 +185,7 @@ class AppointmentViewSet(
             "doctor_id", flat=True
         ).distinct()
         doctors = Doctor.objects.filter(user_id__in=doctor_ids).select_related("user")
-        serializer = self.get_serializer(doctors, many=True)
+        serializer = serializers.DoctorSerializer(doctors, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
@@ -214,7 +203,7 @@ class AppointmentViewSet(
                 Appointment.AppointmentStatus.COMPLETED,
             ],
         )
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = serializers.AppointmentSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
@@ -237,11 +226,11 @@ class AppointmentViewSet(
                 )
             )
             return Response(
-                self.get_serializer(prescriptions, many=True).data,
+                serializers.PrescriptionSerializer(prescriptions, many=True).data,
                 status=status.HTTP_200_OK,
             )
 
-        serializer = self.get_serializer(
+        serializer = serializers.SimplePrescriptionSerializer(
             data=request.data, context={"appointment": appointment}
         )
         serializer.is_valid(raise_exception=True)
@@ -261,7 +250,7 @@ class AppointmentViewSet(
                 status=status.HTTP_200_OK,
             )
 
-        serializer = self.get_serializer(
+        serializer = serializers.AppointmentServiceSerializer(
             data=request.data, context={"appointment": appointment}
         )
         serializer.is_valid(raise_exception=True)
@@ -271,7 +260,7 @@ class AppointmentViewSet(
     @action(methods=["post"], url_path="checkout", detail=True)
     def checkout(self, request, pk=None):
         appointment = self.get_object()
-        serializer = self.get_serializer(
+        serializer = serializers.PaymentCheckoutSerializer(
             data=request.data, context={"appointment": appointment}
         )
         serializer.is_valid(raise_exception=True)
@@ -296,7 +285,7 @@ class AppointmentViewSet(
     @action(methods=["post"], url_path="review", detail=True)
     def review(self, request, pk=None):
         appointment = self.get_object()
-        serializer = self.get_serializer(
+        serializer = serializers.ReviewSerializer(
             data=request.data, context={"appointment": appointment}
         )
         serializer.is_valid(raise_exception=True)
@@ -306,15 +295,11 @@ class AppointmentViewSet(
 
 class AppointmentServiceViewSet(viewsets.ViewSet, generics.UpdateAPIView):
     queryset = AppointmentService.objects.filter(active=True).select_related(
-        "appointment"
+        "appointment__doctor__user"
     )
+    serializer_class = serializers.AppointmentServiceSerializer
     permission_classes = [perms.AppointmentDoctor]
     throttle_scope = "appointment_service"
-
-    def get_serializer_class(self):
-        if self.action == "test_results":
-            return serializers.TestResultSerializer
-        return serializers.AppointmentServiceSerializer
 
     @action(methods=["get", "post"], url_path="results", detail=True)
     def test_results(self, request, pk=None):
@@ -322,11 +307,11 @@ class AppointmentServiceViewSet(viewsets.ViewSet, generics.UpdateAPIView):
         if request.method == "GET":
             result = appointment_service.test_result
             return Response(
-                self.get_serializer(result).data,
+                serializers.TestResultSerializer(result).data,
                 status=status.HTTP_200_OK,
             )
 
-        serializer = self.get_serializer(
+        serializer = serializers.TestResultSerializer(
             data=request.data,
             context={"request": request, "appointment_service": appointment_service},
         )
@@ -337,10 +322,12 @@ class AppointmentServiceViewSet(viewsets.ViewSet, generics.UpdateAPIView):
 
 class PrescriptionViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     permission_classes = [perms.AppointmentDoctor]
+    serializer_class = serializers.PrescriptionSerializer
 
     def get_queryset(self):
-        queryset = Prescription.objects.filter(active=True)
-
+        queryset = Prescription.objects.filter(active=True).select_related(
+            "appointment__doctor__user"
+        )
         if self.action == "retrieve":
             queryset = queryset.prefetch_related(
                 Prefetch(
@@ -367,7 +354,7 @@ class PrescriptionViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     @action(detail=True, methods=["post"], url_path="details")
     def details(self, request, pk=None):
         prescription = self.get_object()
-        serializer = self.get_serializer(
+        serializer = serializers.PrescriptionDetailSerializer(
             data=request.data,
             context={"prescription": prescription},
         )
@@ -378,7 +365,7 @@ class PrescriptionViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
 class PrescriptionDetailViewSet(viewsets.GenericViewSet):
     queryset = PrescriptionDetail.objects.filter(active=True).select_related(
-        "prescription__appointment", "medicine"
+        "prescription__appointment__doctor__user", "medicine"
     )
     serializer_class = serializers.PrescriptionDetailSerializer
     permission_classes = [perms.AppointmentDoctor]
@@ -386,7 +373,7 @@ class PrescriptionDetailViewSet(viewsets.GenericViewSet):
 
     def destroy(self, request, pk=None):
         detail = self.get_object()
-        serializer = self.get_serializer(detail)
+        serializer = serializers.PrescriptionDetailSerializer(detail)
         serializer.delete(detail)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -411,8 +398,6 @@ class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
     def get_serializer_class(self):
         if self.action == "retrieve":
             return serializers.DetailServiceSerializer
-        elif self.action == "popular_services":
-            return serializers.ServicePopularSerializer
         return serializers.ServiceSerializer
 
     @action(methods=["get"], url_path="popular", detail=False)
@@ -423,7 +408,7 @@ class ServiceViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
             .filter(total__gt=0)
             .order_by("-total")[:5]
         )
-        serializer = self.get_serializer(popular, many=True)
+        serializer = serializers.ServicePopularSerializer(popular, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -454,17 +439,8 @@ class MedicineCategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     parser_classes = [parsers.MultiPartParser, parsers.JSONParser]
-
-    def get_serializer_class(self):
-        if self.action == "current_user":
-            if self.request.method == "PATCH":
-                return serializers.SimpleUserSerializer
-            return serializers.UserSerializer
-        elif self.action == "patient_profile":
-            return serializers.PatientProfileSerializer
-        elif self.action == "register_device":
-            return serializers.FCMDeviceSerializer
-        return serializers.UserSerializer
+    serializer_class = serializers.UserSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_throttles(self):
         if self.action == "create":
@@ -479,21 +455,20 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         methods=["get", "patch"],
         url_path="current-user",
         detail=False,
-        permission_classes=[permissions.IsAuthenticated],
     )
     def current_user(self, request):
         u = request.user
         if request.method == "PATCH":
-            s = self.get_serializer(u, data=request.data)
-            s.is_valid(raise_exception=True)
-            u = s.save()
-        return Response(self.get_serializer(u).data, status=status.HTTP_200_OK)
+            serializer = serializers.SimpleUserSerializer(u, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            u = serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializers.UserSerializer(u).data, status=status.HTTP_200_OK)
 
     @action(
         detail=False,
         methods=["get", "post", "patch"],
         url_path="current-user/patient-profile",
-        permission_classes=[IsAuthenticated],
     )
     def patient_profile(self, request):
         if request.method == "GET":
@@ -501,7 +476,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 user=request.user
             )
             return Response(
-                self.get_serializer(profile).data,
+                serializers.PatientProfileSerializer(profile).data,
                 status=status.HTTP_200_OK,
             )
 
@@ -510,7 +485,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 return Response(
                     {"err": "Đã có hồ sơ rồi"}, status=status.HTTP_400_BAD_REQUEST
                 )
-            serializer = self.get_serializer(
+            serializer = serializers.PatientProfileSerializer(
                 data=request.data, context={"request": self.request}
             )
             serializer.is_valid(raise_exception=True)
@@ -521,7 +496,9 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
             profile = PatientProfile.objects.select_related("user").get(
                 user=request.user
             )
-            serializer = self.get_serializer(profile, data=request.data, partial=True)
+            serializer = serializers.PatientProfileSerializer(
+                profile, data=request.data, partial=True
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -530,7 +507,6 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         methods=["post"],
         url_path="register-device",
         detail=False,
-        permission_classes=[permissions.IsAuthenticated],
     )
     def register_device(self, request):
         serializer = serializers.FCMDeviceSerializer(data=request.data)
@@ -567,13 +543,12 @@ class DoctorViewSet(viewsets.ViewSet, generics.ListAPIView):
             appointment_count=Count(
                 "doctor_appointments",
                 filter=Q(
-                    doctor_appointments__active=True,
                     doctor_appointments__status=Appointment.AppointmentStatus.COMPLETED,
                 ),
             ),
             avg_rating=Round(Avg("doctor_appointments__review__rating"), 2),
         ).order_by("-avg_rating", "-appointment_count")[:5]
-        serializer = self.get_serializer(doctors, many=True)
+        serializer = serializers.DoctorSerializer(doctors, many=True)
         return Response(serializer.data)
 
 
@@ -581,18 +556,12 @@ class PaymentViewSet(viewsets.GenericViewSet):
     queryset = Payment.objects.filter(active=True).select_related("appointment")
     permission_classes = [perms.AppointmentOwner]
     throttle_scope = "payment"
-
-    def get_serializer_class(self):
-        if self.action == "pay":
-            return serializers.ZaloPaySerializer
-        if self.action == "callback":
-            return serializers.ZaloPayCallbackSerializer
-        return serializers.PaymentSerializer
+    serializer_class = serializers.PaymentSerializer
 
     @action(methods=["post"], url_path="zalopay", detail=True)
     def pay(self, request, pk=None):
         payment = self.get_object()
-        serializer = self.get_serializer(
+        serializer = serializers.ZaloPaySerializer(
             data=request.data, context={"payment": payment}
         )
         serializer.is_valid(raise_exception=True)
@@ -621,7 +590,7 @@ class PaymentViewSet(viewsets.GenericViewSet):
     )
     def callback(self, request):
         res = {}
-        serializer = self.get_serializer(data=request.data)
+        serializer = serializers.ZaloPayCallbackSerializer(data=request.data)
         if not serializer.is_valid():
             res["return_code"] = -1
             res["return_message"] = "Xác thực callback thất bại"
