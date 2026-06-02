@@ -514,7 +514,7 @@ class SimpleUserSerializer(ModelSerializer):
                 img = Image.open(value)
                 img.verify()
                 value.seek(0)
-            except UnidentifiedImageError, AttributeError, Exception:
+            except Exception:
                 raise serializers.ValidationError(
                     {"err": "File tải lên không phải là ảnh"}
                 )
