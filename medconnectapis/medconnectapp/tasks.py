@@ -39,9 +39,9 @@ def check_medicine_stock_and_expired():
             },
         )
 
-    unresolved_alerts_count = MedicineAlert.objects.filter(active=True).count()
+    alert_count = MedicineAlert.objects.filter(active=True).count()
 
-    if unresolved_alerts_count > 0:
+    if alert_count > 0:
         admin_tokens = list(
             FCMDevice.objects.filter(
                 user__role=User.UserRole.ADMIN, active=True
@@ -50,7 +50,7 @@ def check_medicine_stock_and_expired():
 
         if admin_tokens:
             title = "Thông báo từ kho thuốc"
-            body = f"Hệ thống đang có {unresolved_alerts_count} cảnh báo về thuốc sắp hết kho/hết hạn chưa được xử lý."
+            body = "Cảnh báo về thuốc sắp hết kho/hết hạn chưa được xử lý."
 
             send_push_notification(
                 tokens=admin_tokens,
