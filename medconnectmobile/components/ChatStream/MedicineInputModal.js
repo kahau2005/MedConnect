@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TextInput,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Alert,
 } from "react-native";
@@ -18,7 +17,6 @@ import { authApis, endpoint } from "../../configs/Apis";
 
 const EMPTY_FORM = {
   medicine: null,
-  detailId: null,
   quantity: "1",
   dose: "1",
   frequency: "2",
@@ -29,7 +27,6 @@ const EMPTY_FORM = {
 const instructionOptions = [
   { label: "Sau ăn", value: "AFTER_MEAL" },
   { label: "Trước ăn", value: "BEFORE_MEAL" },
-  { label: "Khi đau", value: "WHEN_PAIN" },
 ];
 
 const MedicineInputModal = ({
@@ -46,19 +43,7 @@ const MedicineInputModal = ({
 
   useEffect(() => {
     if (visible && selectedMed) {
-      if (selectedMed.detailId) {
-        setForm({
-          medicine: selectedMed.medicine?.id || selectedMed.id,
-          detailId: selectedMed.detailId,
-          quantity: String(selectedMed.quantity || 1),
-          dose: String(selectedMed.dose || 1),
-          frequency: String(selectedMed.frequency || 2),
-          duration_day: String(selectedMed.duration_day || 7),
-          instruction: selectedMed.instruction || "AFTER_MEAL",
-        });
-      } else {
-        setForm({ ...EMPTY_FORM, medicine: selectedMed.id });
-      }
+      setForm({ ...EMPTY_FORM, medicine: selectedMed.id });
     }
   }, [visible, selectedMed]);
 
@@ -90,30 +75,22 @@ const MedicineInputModal = ({
         medicine: Number(form.medicine),
       };
 
-      if (form.detailId) {
-        await authApis(user.access_token).patch(
-          endpoint.update_medicine(form.detailId),
-          payload,
-        );
-      } else {
-        await authApis(user.access_token).post(
-          endpoint.add_medicine(selectedPrescription.id),
-          [payload],
-        );
-      }
+      await authApis(user.access_token).post(
+        endpoint.add_medicine(selectedPrescription.id),
+        payload,
+      );
 
       const res = await authApis(user.access_token).get(
-        endpoint.prescription(selectedPrescription.appointment),
+        endpoint.medicines_in_prescription(selectedPrescription.id),
       );
-      const updatedPrescription = res.data.find(
-        (p) => p.id === selectedPrescription.id,
-      );
-
-      setSelectedPrescription(updatedPrescription);
+      setSelectedPrescription(res.data);
       onBack();
     } catch (error) {
-      console.error("Lỗi lưu chi tiết thuốc:", error);
-      Alert.alert("Lỗi", "Không thể thêm thuốc vào đơn.");
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -129,7 +106,7 @@ const MedicineInputModal = ({
       <KeyboardAvoidingView
         style={styles.modalOverlay}
         behavior="padding"
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        keyboardVerticalOffset="0"
       >
         <View style={[styles.formModal, { maxHeight: "85%" }]}>
           <View style={styles.formHeader}>

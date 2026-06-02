@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Alert } from "react-native";
 import HorizontalItemsView from "../../components/HorizontalItemsView/HorizontalItemsView";
 import ListItemView from "../../components/ListItemView/ListItemView";
 import { useEffect, useState } from "react";
@@ -13,20 +13,24 @@ const Service = () => {
       let res = await Apis.get(endpoint.services);
       setServices(res.data);
     } catch (error) {
-      console.error("Error fetching services:", error);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     }
   };
 
   const fetchPopularServices = async () => {
     try {
       let res = await Apis.get(`${endpoint.services}popular`);
-      console.log(
-        "API response for popular services:",
-        PopularServiceItemMapper(res.data),
-      );
       setPopularServices(PopularServiceItemMapper(res.data));
     } catch (error) {
-      console.error("Error fetching popular services:", error);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     }
   };
 

@@ -19,9 +19,9 @@ def check_medicine_stock_and_expired():
         MedicineAlert.objects.get_or_create(
             medicine=med,
             alert_type=MedicineAlert.AlertType.LOW_STOCK,
-            is_resolved=False,
+            active=True,
             defaults={
-                "message": f"Thuốc {med.name} sắp hết hàng. Số lượng còn lại: {med.stock} {med.unit}"
+                "message": f"Thuốc {med.name} sắp hết hàng. Còn lại {med.stock} {med.unit}"
             },
         )
 
@@ -33,15 +33,15 @@ def check_medicine_stock_and_expired():
         MedicineAlert.objects.get_or_create(
             medicine=med,
             alert_type=MedicineAlert.AlertType.EXPIRING,
-            is_resolved=False,
+            active=True,
             defaults={
-                "message": f"Thuốc {med.name} sắp hết hạn. Hạn sử dụng đến {med.expired}"
+                "message": f"Thuốc {med.name} sắp hết hạn. Hạn đến {med.expired}"
             },
         )
 
-    unresolved_alerts_count = MedicineAlert.objects.filter(is_resolved=False).count()
+    alert_count = MedicineAlert.objects.filter(active=True).count()
 
-    if unresolved_alerts_count > 0:
+    if alert_count > 0:
         admin_tokens = list(
             FCMDevice.objects.filter(
                 user__role=User.UserRole.ADMIN, active=True
@@ -49,8 +49,8 @@ def check_medicine_stock_and_expired():
         )
 
         if admin_tokens:
-            title = "CẢNH BÁO KHO THUỐC"
-            body = f"Hệ thống đang có {unresolved_alerts_count} cảnh báo về thuốc sắp hết kho/hết hạn chưa được xử lý."
+            title = "Thông báo từ kho thuốc"
+            body = "Cảnh báo về thuốc sắp hết kho/hết hạn chưa được xử lý."
 
             send_push_notification(
                 tokens=admin_tokens,
@@ -58,8 +58,6 @@ def check_medicine_stock_and_expired():
                 body=body,
                 data={"type": "medicine_alert_summary"},
             )
-
-    return f"Đã quét xong danh mục thuốc. Hiện có {unresolved_alerts_count} cảnh báo chưa xử lý."
 
 
 @shared_task
@@ -86,10 +84,7 @@ def check_upcoming_appointment():
 
         if tokens:
             title = "Nhắc nhở lịch khám"
-            if days_left == 1:
-                body = f"Bạn có lịch khám vào ngày mai với {app.doctor}"
-            else:
-                body = f"Bạn có lịch khám vào {days_left} ngày tới với {app.doctor}"
+            body = f"Bạn có lịch khám vào {days_left} ngày tới với {app.doctor}"
 
             send_push_notification(
                 tokens=tokens,
@@ -97,4 +92,3 @@ def check_upcoming_appointment():
                 body=body,
                 data={"type": "appointment_remind", "appointment_id": str(app.id)},
             )
-    return f"Đã gửi thông báo nhắc lịch khám cho {appointments.count()} cuộc hẹn"

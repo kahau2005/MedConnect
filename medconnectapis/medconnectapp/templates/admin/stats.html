@@ -1,42 +1,39 @@
 {% extends 'admin/base_site.html' %}
-{% load humanize %}
 
 {% block content %}
     <h1>BÁO CÁO THỐNG KÊ</h1>
 
-    <form method="GET"
-          style="background: #121212; padding: 15px; margin-bottom: 20px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <label style="margin-right: 15px;">Từ ngày:
+    <form method="GET">
+        <label>Từ ngày:
             <input type="date" name="from_date" value="{{ from_date }}">
         </label>
-        <label style="margin-right: 15px;">Đến ngày:
+        <label>Đến ngày:
             <input type="date" name="to_date" value="{{ to_date }}">
         </label>
-        <button type="submit"
-                style="padding: 5px 15px; background: #79aec8; color: white; border: none; border-radius: 3px; cursor: pointer;">
+        <button type="submit">
             Lọc Dữ Liệu
         </button>
     </form>
 
 
     <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-        <div style="width: 70%; background: white; padding: 15px; border: 1px solid #ddd;">
+        <div style="width: 70%;">
             <canvas id="ageChart"></canvas>
         </div>
-        <div style="width: 70%; background: white; padding: 15px; border: 1px solid #ddd;">
+        <div style="width: 70%;">
             <canvas id="specialtyChart"></canvas>
         </div>
-        <div style="width: 70%; background: white; padding: 15px; border: 1px solid #ddd;">
+        <div style="width: 70%;">
             <canvas id="serviceChart"></canvas>
         </div>
-        <div style="width: 70%; background: white; padding: 15px; border: 1px solid #ddd;">
+        <div style="width: 70%;">
             <canvas id="diseaseChart"></canvas>
         </div>
-        <div style="width: 70%; background: white; padding: 15px; border: 1px solid #ddd;">
+        <div style="width: 70%;">
             <canvas id="revenueChart"></canvas>
         </div>
     </div>
-    <h2 style="font-size:30px;">Tổng doanh thu: {{ total_revenue|intcomma }} VNĐ</h2>
+    <h1>Tổng doanh thu: {{ total_revenue }} VNĐ</h1>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -56,7 +53,6 @@
                     datasets: [{
                         label: 'Số lượng',
                         data: ageData,
-                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
                     }]
                 },
                 options: {plugins: {title: {display: true, text: 'Phân bố độ tuổi'}}}
@@ -76,7 +72,6 @@
                     datasets: [{
                         label: 'Số lượng bệnh nhân',
                         data: specData,
-                        backgroundColor: '#36A2EB'
                     }]
                 },
                 options: {plugins: {title: {display: true, text: 'Bệnh nhân theo Chuyên khoa'}}}
@@ -96,19 +91,19 @@
                     datasets: [{
                         label: 'Lượt sử dụng',
                         data: servData,
-                        backgroundColor: '#4BC0C0'
+                        backgroundColor: '#ff9020'
                     }]
                 },
                 options: {
-                    indexAxis: 'y',
-                    plugins: {title: {display: true, text: 'Tất cả Dịch vụ'}}
+                    indexAxis: 'x',
+                    plugins: {title: {display: true, text: 'Dịch vụ'}}
                 }
             });
 
             let diseaseLabels = [];
             let diseaseData = [];
             {% for d in diseases %}
-                diseaseLabels.push('{{ d.diagnosis__disease_category__name }}');
+                diseaseLabels.push('{{ d.diagnosis__name }}');
                 diseaseData.push({{ d.total_appointments }});
             {% endfor %}
 
@@ -117,12 +112,12 @@
                 data: {
                     labels: diseaseLabels,
                     datasets: [{
-                        label: 'Số ca mắc',
+                        label: 'Số ca',
                         data: diseaseData,
-                        backgroundColor: '#FF9F40'
+                        backgroundColor: '#ff6384'
                     }]
                 },
-                options: {plugins: {title: {display: true, text: 'Nhóm bệnh lý'}}}
+                options: {plugins: {title: {display: true, text: 'Thống kê bệnh'}}}
             });
 
             let revenueLabels = [];
@@ -137,14 +132,11 @@
                 data: {
                     labels: revenueLabels,
                     datasets: [{
-                        label: 'Doanh thu (VNĐ)',
+                        label: 'Doanh thu',
                         data: revenueData,
-                        borderColor: '#0288d1',
-                        backgroundColor: 'rgba(2, 136, 209, 0.2)',
-                        tension: 0.3
                     }]
                 },
-                options: {plugins: {title: {display: true, text: 'Doanh thu theo thời gian'}}}
+                options: {plugins: {title: {display: true, text: 'Thống kê doanh thu'}}}
             });
         };
     </script>

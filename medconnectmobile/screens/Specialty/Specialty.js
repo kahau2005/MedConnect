@@ -1,4 +1,4 @@
-import { View, Text, FlatList } from "react-native";
+import { View, Text, FlatList, Alert } from "react-native";
 import QueryArea from "../../components/QueryArea/QueryArea";
 import { useEffect, useState } from "react";
 import Apis, { endpoint } from "../../configs/Apis";
@@ -15,7 +15,11 @@ const Specialty = () => {
         setSpecialties(response.data);
       })
       .catch((error) => {
-        console.error("Error fetching specialties:", error);
+        const errData = error?.response?.data?.err;
+        const errorMessage = Array.isArray(errData)
+          ? errData[0]
+          : errData || "Không xác định!";
+        Alert.alert("Lỗi", errorMessage);
       });
   }, []);
 

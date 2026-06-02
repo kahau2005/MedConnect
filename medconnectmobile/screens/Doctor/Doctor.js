@@ -1,4 +1,4 @@
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Text, View } from "react-native";
 import QueryArea from "../../components/QueryArea/QueryArea";
 import { useEffect, useState } from "react";
 import Apis, { endpoint } from "../../configs/Apis";
@@ -40,7 +40,7 @@ const Doctor = () => {
         url += `&specialty_id=${specialtyId}`;
       }
       if (kw) {
-        url += `&kw=${kw}`;
+        url += `&search=${kw}`;
       }
 
       let result = await Apis.get(url);
@@ -49,13 +49,12 @@ const Doctor = () => {
         offset === 0 ? newDoctors : [...prev, ...newDoctors],
       );
       setHasMore(result.data.next !== null);
-
-      console.log("Dữ liệu API trả về:", result.data);
     } catch (error) {
-      console.error(
-        "Lỗi khi tải danh sách bác sĩ:",
-        error.response?.data || error.message,
-      );
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -71,12 +70,7 @@ const Doctor = () => {
     loadDoctor();
   }, [offset, kw, specialtyId]);
 
-  const renderItem = ({ item }) => (
-    <ListCardItem
-      item={item}
-      onPress={() => console.log("Pressed doctor:", item.id)}
-    />
-  );
+  const renderItem = ({ item }) => <ListCardItem item={item} />;
 
   return (
     <View style={Style.container}>

@@ -56,21 +56,19 @@ const theme = {
 export default function App() {
   const [user, dispatch] = useReducer(UserReducer, null);
 
-  useEffect(() => {
-    const checkPersistedUser = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem("user");
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          dispatch({
-            type: "LOGIN",
-            payload: parsedUser,
-          });
-        }
-      } catch (error) {
-        console.error("Error loading user:", error);
+  const checkPersistedUser = async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem("user");
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        dispatch({
+          type: "LOGIN",
+          payload: parsedUser,
+        });
       }
-    };
+    } catch (err) {}
+  };
+  useEffect(() => {
     checkPersistedUser();
   }, []);
 
@@ -80,8 +78,6 @@ export default function App() {
     const unsubscribeTokenRefresh = onTokenRefresh(
       messagingInstance,
       async (newToken) => {
-        console.log(newToken);
-
         if (user && user.access_token) {
           await registerDevice(newToken, user.access_token);
         }
@@ -123,15 +119,51 @@ export default function App() {
                     component={Home}
                     options={{ headerShown: false }}
                   />
-                  <Stack.Screen name="Appointment" component={Appointment} />
-                  <Stack.Screen name="Specialty" component={Specialty} />
-                  <Stack.Screen name="Doctor" component={Doctor} />
-                  <Stack.Screen name="Service" component={Service} />
-                  <Stack.Screen name="Payment" component={Payment} />
-                  <Stack.Screen name="ChatStream" component={ChatStream} />
-                  <Stack.Screen name="CallStream" component={CallStream} />
-                  <Stack.Screen name="Login" component={Login} />
-                  <Stack.Screen name="Register" component={Register} />
+                  <Stack.Screen
+                    options={{ title: "Đặt lịch khám" }}
+                    name="Appointment"
+                    component={Appointment}
+                  />
+                  <Stack.Screen
+                    options={{ title: "Chuyên khoa" }}
+                    name="Specialty"
+                    component={Specialty}
+                  />
+                  <Stack.Screen
+                    name="Doctor"
+                    options={{ title: "Bác sĩ" }}
+                    component={Doctor}
+                  />
+                  <Stack.Screen
+                    options={{ title: "Dịch vụ" }}
+                    name="Service"
+                    component={Service}
+                  />
+                  <Stack.Screen
+                    options={{ title: "Thanh toán" }}
+                    name="Payment"
+                    component={Payment}
+                  />
+                  <Stack.Screen
+                    name="ChatStream"
+                    options={{ title: "Phòng khám" }}
+                    component={ChatStream}
+                  />
+                  <Stack.Screen
+                    name="CallStream"
+                    options={{ title: "Phòng khám" }}
+                    component={CallStream}
+                  />
+                  <Stack.Screen
+                    options={{ title: "Đăng nhập" }}
+                    name="Login"
+                    component={Login}
+                  />
+                  <Stack.Screen
+                    options={{ title: "Đăng ký" }}
+                    name="Register"
+                    component={Register}
+                  />
                 </Stack.Navigator>
               </NavigationContainer>
             </PaperProvider>

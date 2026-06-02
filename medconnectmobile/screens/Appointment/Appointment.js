@@ -82,7 +82,9 @@ const Appointment = () => {
 
       setSpecHasMore(!!res.data.next);
     } catch (error) {
-      console.error("Lỗi tải chuyên khoa:", error);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData) ? errData[0] : (errData || "Không xác định!");
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       isSpecLoadingRef.current = false;
       setSpecLoading(false);
@@ -98,7 +100,7 @@ const Appointment = () => {
         setHasProfile(true);
         setShowProfileModal(false);
       }
-    } catch (err) {
+    } catch (error) {
       setHasProfile(false);
       setShowProfileModal(true);
     }
@@ -130,7 +132,9 @@ const Appointment = () => {
 
       setDocHasMore(!!res.data.next);
     } catch (error) {
-      console.error("Lỗi tải danh sách bác sĩ:", error);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData) ? errData[0] : (errData || "Không xác định!");
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       isDocLoadingRef.current = false;
       setDocLoading(false);
@@ -174,14 +178,11 @@ const Appointment = () => {
         payload,
       );
 
-      console.log("Thành công!", res.data);
       Alert.alert("Thành công", "Đặt lịch khám thành công!");
     } catch (error) {
-      const errorMsg = error.response?.data?.start?.[0]
-        ? JSON.stringify(error.response.data.start[0])
-        : "Không thể kết nối máy chủ";
-
-      Alert.alert("Đặt lịch thất bại", errorMsg);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData) ? errData[0] : (errData || "Không xác định!");
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -323,8 +324,8 @@ const Appointment = () => {
             <Text style={styles.label}>Mô tả triệu chứng (Tùy chọn)</Text>
             <TextInput
               style={styles.textArea}
-              placeholder="Vui lòng mô tả chi tiết các triệu chứng bạn đang gặp phải..."
-              placeholderTextColor="#999"
+              placeholder="Mô tả chi tiết các triệu chứng bạn đang gặp phải..."
+              placeholderTextColor="#9CA3AF"
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -364,7 +365,8 @@ const Appointment = () => {
         visible={doctorModalVisible}
         onClose={() => setDoctorModalVisible(false)}
         title="Chọn Bác Sĩ Điều Trị"
-        placeholder="Tìm tên bác sĩ..."
+        placeholder="Tìm tên bác sĩ"
+        placeholderTextColor="#9CA3AF"
         data={doctors}
         isLoading={docLoading}
         hasMore={docHasMore}

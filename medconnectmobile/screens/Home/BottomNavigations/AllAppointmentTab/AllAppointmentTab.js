@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -20,11 +14,13 @@ import {
 
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 import Style from "./Style";
-import Apis, { authApis, endpoint } from "../../../../configs/Apis";
+import { authApis, endpoint } from "../../../../configs/Apis";
 import { UserContext } from "../../../../contexts/UserContext";
 import LoginPanel from "../../../../components/LoginPanel/LoginPanel";
 
@@ -36,8 +32,6 @@ const getInstructionLabel = (val) => {
       return "Sau ăn";
     case "BEFORE_MEAL":
       return "Trước ăn";
-    case "WHEN_PAIN":
-      return "Khi đau";
     default:
       return val || "";
   }
@@ -52,7 +46,6 @@ const AllAppointmentTab = () => {
   const [offset, setOffset] = useState(0);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [doctorModalVisible, setDoctorModalVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [doctorsList, setDoctorsList] = useState([]);
@@ -89,14 +82,11 @@ const AllAppointmentTab = () => {
 
   const formatDateTime = (isoString) => {
     if (!isoString) return { date: "--/--/----", time: "--:--" };
-    const d = new Date(isoString);
-    const date = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-    let hours = d.getHours();
-    const minutes = String(d.getMinutes()).padStart(2, "0");
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12 || 12;
-    const time = `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
-    return { date, time };
+    const d = dayjs.utc(isoString);
+    return {
+      date: d.format("DD/MM/YYYY"),
+      time: d.format("hh:mm A"),
+    };
   };
 
   const displaySelectedDate = (dateStr) => {
@@ -106,9 +96,7 @@ const AllAppointmentTab = () => {
   };
 
   const onDateChange = (event, selected) => {
-    if (Platform.OS === "android") {
-      setShowDatePicker(false);
-    }
+    setShowDatePicker(false);
 
     if (event.type === "set" && selected) {
       const year = selected.getFullYear();
@@ -130,26 +118,14 @@ const AllAppointmentTab = () => {
       );
       Alert.alert("Thành công!", "Hủy lịch khám thành công!");
       handleRefresh();
-    } catch (err) {
-      Alert.alert("Lỗi hủy lịch!", err.message);
-    }
-  };
-
-  const loadDoctorsList = async () => {
-    if (!user?.access_token || isDoctorMode) return;
-    try {
-      const res = await authApis(user.access_token).get(
-        `${endpoint.appointment}/doctors/`,
-      );
-      setDoctorsList(res.data);
     } catch (error) {
-      console.log("Lỗi tải danh sách bác sĩ:", error);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     }
   };
-
-  useEffect(() => {
-    loadDoctorsList();
-  }, [user]);
 
   const loadAppointment = async (isLoadMore = false) => {
     if (isLoadingRef.current || (!hasMore && isLoadMore) || !user?.access_token)
@@ -158,29 +134,23 @@ const AllAppointmentTab = () => {
     if (!refreshing) setLoading(true);
     try {
       const statusParam = activeFilter === "ALL" ? "" : activeFilter;
-      const dateParam = selectedDate ? `&from_date=${selectedDate}` : "";
+      const dateParam = selectedDate ? `&start__date=${selectedDate}` : "";
       const doctorParam = selectedDoctor
         ? `&doctor_id=${selectedDoctor.id}`
         : "";
 
       const res = await authApis(user.access_token).get(
-        `${endpoint.appointment}?offset=${offset}&kw=${kw}&status=${statusParam}${dateParam}${doctorParam}`,
+        `${endpoint.appointment}?offset=${offset}&search=${kw}&status=${statusParam}${dateParam}${doctorParam}`,
       );
       const newData = res.data.results || [];
       if (isLoadMore) {
-        setAppointment((prev) => {
-          const existingIds = new Set(prev.map((item) => item.id));
-          return [
-            ...prev,
-            ...newData.filter((item) => !existingIds.has(item.id)),
-          ];
-        });
+        setAppointment((prev) => [...prev, ...newData]);
       } else {
         setAppointment(newData);
       }
-      setHasMore(!(!res.data.next || newData.length === 0));
+      setHasMore(res.data.next !== null && newData.length > 0);
     } catch (error) {
-      console.error("Lỗi load appointment:", error);
+      setHasMore(false);
     } finally {
       isLoadingRef.current = false;
       setLoading(false);
@@ -200,7 +170,7 @@ const AllAppointmentTab = () => {
     setHasMore(true);
     if (offset === 0) loadAppointment(false);
     else setOffset(0);
-  }, [user, kw, activeFilter, selectedDate, selectedDoctor]);
+  }, [user, kw, activeFilter, selectedDate]);
 
   useEffect(() => {
     if (!user) return;
@@ -216,10 +186,11 @@ const AllAppointmentTab = () => {
         nav.navigate("ChatStream", { appointmentId, status });
       }
     } catch (error) {
-      const errorMsg = error.response
-        ? `Status: ${error.response.status}`
-        : error.message;
-      Alert.alert("Lỗi phòng chat", `Không thể kết nối: ${errorMsg}`);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     }
   };
 
@@ -234,9 +205,12 @@ const AllAppointmentTab = () => {
         endpoint.appointmentDetails(item.id),
       );
       setDetailData(res.data);
-    } catch (err) {
-      console.error("Lỗi tải chi tiết: ", err.status);
-      Alert.alert("Lỗi", "Không thể tải chi tiết lịch khám.");
+    } catch (error) {
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoadingDetail(false);
     }
@@ -277,8 +251,6 @@ const AllAppointmentTab = () => {
     }
 
     if (!detailData) return null;
-
-    // Mapping new data structure
     const services = detailData.services || [];
     const medicines = (detailData.prescriptions || []).flatMap(
       (p) => p.details || [],
@@ -449,7 +421,7 @@ const AllAppointmentTab = () => {
           <Feather name="search" size={20} color="#9CA3AF" />
           <TextInput
             style={Style.searchInput}
-            placeholder="Tên bác sĩ, triệu chứng, tên bệnh..."
+            placeholder="Tên bác sĩ, triệu chứng, tên bệnh"
             placeholderTextColor="#9CA3AF"
             value={searchTxt}
             onChangeText={setSearchTxt}
@@ -473,6 +445,7 @@ const AllAppointmentTab = () => {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
+                    justifyContent: "center",
                     paddingHorizontal: 10,
                     flex: 1,
                   }}
@@ -503,46 +476,6 @@ const AllAppointmentTab = () => {
                   </TouchableOpacity>
                 )}
               </View>
-
-              <TouchableOpacity
-                style={[
-                  Style.dropdownBtn,
-                  selectedDoctor && {
-                    backgroundColor: "#EBF4FF",
-                    borderColor: "#0066FF",
-                  },
-                ]}
-                onPress={() => setDoctorModalVisible(true)}
-              >
-                <MaterialCommunityIcons
-                  name="stethoscope"
-                  size={16}
-                  color={selectedDoctor ? "#0066FF" : "#4B5563"}
-                />
-                <Text
-                  style={[
-                    Style.dropdownText,
-                    selectedDoctor && { color: "#0066FF", fontWeight: "600" },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {selectedDoctor
-                    ? `${selectedDoctor.first_name || ""} ${selectedDoctor.last_name || ""}`.trim()
-                    : "Chọn Bác sĩ"}
-                </Text>
-
-                {selectedDoctor && (
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      setSelectedDoctor(null);
-                    }}
-                    style={{ marginLeft: 4 }}
-                  >
-                    <Feather name="x-circle" size={16} color="#0066FF" />
-                  </TouchableOpacity>
-                )}
-              </TouchableOpacity>
             </View>
             <ScrollView
               horizontal
@@ -715,178 +648,10 @@ const AllAppointmentTab = () => {
         <DateTimePicker
           value={selectedDate ? new Date(selectedDate) : new Date()}
           mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
+          display="default"
           onChange={onDateChange}
         />
       )}
-
-      <Modal
-        visible={doctorModalVisible}
-        animationType="slide"
-        transparent={true}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            justifyContent: "flex-end",
-          }}
-        >
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            activeOpacity={1}
-            onPress={() => setDoctorModalVisible(false)}
-          />
-
-          <View
-            style={{
-              backgroundColor: "#FFFFFF",
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              paddingHorizontal: 20,
-              paddingTop: 12,
-              paddingBottom: Platform.OS === "ios" ? 32 : 20,
-              maxHeight: "80%",
-            }}
-          >
-            <View
-              style={{
-                alignSelf: "center",
-                width: 48,
-                height: 5,
-                backgroundColor: "#E5E7EB",
-                borderRadius: 3,
-                marginBottom: 16,
-              }}
-            />
-
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 20,
-              }}
-            >
-              <View>
-                <Text
-                  style={{ fontSize: 20, fontWeight: "bold", color: "#111827" }}
-                >
-                  Chọn Bác sĩ
-                </Text>
-                <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
-                  Lọc lịch hẹn theo bác sĩ phụ trách
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setDoctorModalVisible(false)}
-                style={{
-                  backgroundColor: "#F3F4F6",
-                  padding: 8,
-                  borderRadius: 20,
-                }}
-              >
-                <Feather name="x" size={20} color="#4B5563" />
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={[
-                { id: null, first_name: "Tất cả", last_name: "Bác sĩ" },
-                ...doctorsList,
-              ]}
-              keyExtractor={(item) => (item.id ? item.id.toString() : "all")}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => {
-                const isSelected = selectedDoctor?.id === item.id;
-                const isAllOption = item.id === null;
-                const name = isAllOption
-                  ? "Tất cả bác sĩ"
-                  : `Bs. ${item.first_name} ${item.last_name}`;
-
-                return (
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      padding: 16,
-                      marginBottom: 12,
-                      borderRadius: 16,
-                      borderWidth: 1.5,
-                      borderColor: isSelected ? "#0066FF" : "#F3F4F6",
-                      backgroundColor: isSelected ? "#F5F9FF" : "#FFFFFF",
-                    }}
-                    onPress={() => {
-                      setSelectedDoctor(isAllOption ? null : item);
-                      setDoctorModalVisible(false);
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 50,
-                        height: 50,
-                        borderRadius: 25,
-                        backgroundColor: isAllOption ? "#E8FBF4" : "#EBF4FF",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        marginRight: 16,
-                      }}
-                    >
-                      {isAllOption ? (
-                        <MaterialCommunityIcons
-                          name="account-group"
-                          size={24}
-                          color="#00D084"
-                        />
-                      ) : (
-                        <MaterialCommunityIcons
-                          name="stethoscope"
-                          size={24}
-                          color="#0066FF"
-                        />
-                      )}
-                    </View>
-
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          fontSize: 16,
-                          fontWeight: isSelected ? "700" : "600",
-                          color: isSelected ? "#0066FF" : "#1F2937",
-                          marginBottom: 4,
-                        }}
-                      >
-                        {name}
-                      </Text>
-                      <Text style={{ fontSize: 13, color: "#6B7280" }}>
-                        {isAllOption
-                          ? "Hiển thị lịch hẹn của mọi bác sĩ"
-                          : item.specialty || "Chuyên khoa chung"}
-                      </Text>
-                    </View>
-
-                    {isSelected && (
-                      <View
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          backgroundColor: "#0066FF",
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Feather name="check" size={14} color="#FFFFFF" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
 
       <Modal
         visible={detailModalVisible}

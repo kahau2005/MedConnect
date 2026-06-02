@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,10 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  Alert,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { modalStyles, medicineStyles as styles } from "./Style";
 import { UserContext } from "../../contexts/UserContext";
 import { authApis, endpoint } from "../../configs/Apis";
@@ -19,6 +21,7 @@ import { authApis, endpoint } from "../../configs/Apis";
 const MedicineSearchModal = ({
   visible,
   selectedPrescription,
+  setSelectedPrescription,
   onClose,
   onBack,
   onOpenInputForm,
@@ -30,41 +33,126 @@ const MedicineSearchModal = ({
   const [categories, setCategories] = useState([]);
   const [searchKw, setSearchKw] = useState("");
   const [activeCategory, setActiveCategory] = useState("ALL");
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+
+  useEffect(() => {
+    setOffset(0);
+    setMedicines([]);
+    setLoading(true);
+  }, [activeCategory, searchKw]);
 
   useEffect(() => {
     if (visible && user) {
-      fetchMedicineData();
+      fetchCategories();
     }
   }, [visible]);
 
-  const fetchMedicineData = async () => {
+  useEffect(() => {
+    if (visible && user) {
+      const delayDebounceFn = setTimeout(() => {
+        fetchMedicines(activeCategory, searchKw, offset);
+      }, 500);
+
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [visible, activeCategory, searchKw, offset]);
+
+  const fetchCategories = async () => {
     try {
-      setLoading(true);
-      const [resMeds, resCats] = await Promise.all([
-        authApis(user.access_token).get(endpoint.medicines),
-        authApis(user.access_token).get(endpoint.medicine_categories),
-      ]);
-      setMedicines(resMeds.data || []);
+      const resCats = await authApis(user.access_token).get(
+        endpoint.medicine_categories,
+      );
       setCategories([{ id: "ALL", name: "Tất cả" }, ...(resCats.data || [])]);
     } catch (error) {
-      console.error("Lỗi tải danh mục thuốc:", error);
+      const errData = error?.response?.data?.err;
+
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (!loading && hasMore && medicines.length > 0) {
+      setOffset(medicines.length);
+    }
+  };
+
+  const fetchMedicines = async (categoryId, kw = "", currentOffset = 0) => {
+    if (loading && currentOffset > 0) return;
+    if (currentOffset > 0 && !hasMore) return;
+
+    try {
+      setLoading(true);
+
+      let url = `${endpoint.medicines}?offset=${currentOffset}`;
+      if (categoryId !== "ALL") {
+        url += `&category_id=${categoryId}`;
+      }
+      if (kw.trim() !== "") {
+        url += `&search=${encodeURIComponent(kw.trim())}`;
+      }
+
+      const resMeds = await authApis(user.access_token).get(url);
+      const newData = resMeds.data.results || [];
+
+      if (currentOffset === 0) {
+        setMedicines(newData);
+      } else {
+        setMedicines((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const filteredNewData = newData.filter((m) => !existingIds.has(m.id));
+          return [...prev, ...filteredNewData];
+        });
+      }
+
+      setHasMore(resMeds.data.next !== null);
+    } catch (error) {
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
   };
+  const handleDeleteMedicine = (detailId) => {
+    Alert.alert(
+      "Xác nhận xóa",
+      "Bạn có chắc chắn muốn xóa thuốc này khỏi đơn không?",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await authApis(user.access_token).delete(
+                endpoint.delete_medicine(detailId),
+              );
 
-  const filteredMedicines = useMemo(() => {
-    let result = medicines;
-    if (activeCategory !== "ALL") {
-      result = result.filter((m) => m.category === activeCategory);
-    }
-    if (searchKw.trim() !== "") {
-      result = result.filter((m) =>
-        m.name.toLowerCase().includes(searchKw.toLowerCase()),
-      );
-    }
-    return result;
-  }, [medicines, searchKw, activeCategory]);
+              const res = await authApis(user.access_token).get(
+                endpoint.medicines_in_prescription(selectedPrescription.id),
+              );
+              setSelectedPrescription(res.data);
+            } catch (error) {
+              const errData = error?.response?.data?.err;
+              const errorMessage = Array.isArray(errData)
+                ? errData[0]
+                : errData || "Không xác định!";
+              Alert.alert("Lỗi", errorMessage);
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const getInstructionLabel = (enumValue) => {
     switch (enumValue) {
@@ -72,8 +160,6 @@ const MedicineSearchModal = ({
         return "Sau ăn";
       case "BEFORE_MEAL":
         return "Trước ăn";
-      case "WHEN_PAIN":
-        return "Khi đau";
       default:
         return enumValue || "Chưa có cách dùng";
     }
@@ -89,14 +175,7 @@ const MedicineSearchModal = ({
             Đã thêm ({addedMedicines.length})
           </Text>
           {addedMedicines.map((m, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={styles.addedMedItem}
-              activeOpacity={0.7}
-              onPress={() =>
-                onOpenInputForm({ ...m, detailId: m.id, id: m.medicine?.id })
-              }
-            >
+            <View key={idx} style={styles.addedMedItem}>
               <View style={{ flex: 1, paddingRight: 8 }}>
                 <Text style={styles.addedMedName}>
                   {m.medicine?.name || "Thuốc không rõ tên"}
@@ -105,18 +184,22 @@ const MedicineSearchModal = ({
                   {getInstructionLabel(m.instruction)}
                 </Text>
               </View>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={styles.addedMedQtyBox}>
-                  <Text style={styles.addedMedQtyText}>SL: {m.quantity}</Text>
-                </View>
-                <Feather
-                  name="edit-2"
-                  size={16}
-                  color="#9CA3AF"
-                  style={{ marginLeft: 8 }}
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 4,
+                  paddingLeft: 8,
+                }}
+                onPress={() => handleDeleteMedicine(m.id)}
+              >
+                <MaterialIcons
+                  name="delete-outline"
+                  size={20}
+                  color="#d62424ff"
                 />
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
           ))}
         </View>
       )}
@@ -125,7 +208,7 @@ const MedicineSearchModal = ({
         <Feather name="search" size={20} color="#9CA3AF" />
         <TextInput
           style={styles.searchInput}
-          placeholder="Tìm tên thuốc, thành phần..."
+          placeholder="Tìm tên thuốc"
           placeholderTextColor="#9CA3AF"
           value={searchKw}
           onChangeText={setSearchKw}
@@ -197,79 +280,86 @@ const MedicineSearchModal = ({
               </TouchableOpacity>
               <View style={{ flex: 1 }}>
                 <Text style={modalStyles.formTitle}>Thêm thuốc vào đơn</Text>
-                <Text style={modalStyles.headerSubtitle} numberOfLines={1}>
-                  CĐ: {selectedPrescription?.diagnosis}
-                </Text>
               </View>
             </View>
           </View>
 
-          {loading ? (
-            <View
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <ActivityIndicator size="large" color="#0066FF" />
-              <Text style={{ marginTop: 12, color: "#6B7280" }}>
-                Đang tải danh mục thuốc...
-              </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={filteredMedicines}
-              keyExtractor={(item) => item.id.toString()}
-              ListHeaderComponent={renderHeader}
-              contentContainerStyle={{ paddingBottom: 40 }}
-              ListEmptyComponent={() => (
-                <View style={{ alignItems: "center", marginTop: 40 }}>
-                  <MaterialCommunityIcons
-                    name="pill"
-                    size={48}
-                    color="#D1D5DB"
-                  />
-                  <Text style={{ color: "#6B7280", marginTop: 12 }}>
-                    Không tìm thấy loại thuốc nào.
-                  </Text>
+          <FlatList
+            data={medicines}
+            keyExtractor={(item) => item.id.toString()}
+            ListHeaderComponent={renderHeader()}
+            contentContainerStyle={{ paddingBottom: 40 }}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.2}
+            ListFooterComponent={
+              loading && medicines.length > 0 ? (
+                <View style={{ paddingVertical: 20 }}>
+                  <ActivityIndicator size="small" color="#0066FF" />
                 </View>
-              )}
-              renderItem={({ item }) => {
-                const isAdded = addedMedicines.some(
-                  (m) => Number(m.medicine?.id) === Number(item.id),
-                );
-                return (
-                  <View style={styles.medCard}>
-                    <View style={{ flex: 1, marginRight: 12 }}>
-                      <Text style={styles.medName}>{item.name}</Text>
-                      <Text style={styles.medUnit}>
-                        Kho: {item.stock} | Giá:{" "}
-                        {parseInt(item.unit_price || 0).toLocaleString("vi-VN")}
-                        đ
-                      </Text>
-                    </View>
+              ) : null
+            }
+            ListEmptyComponent={() => (
+              <View style={{ alignItems: "center", marginTop: 40 }}>
+                {loading ? (
+                  <>
+                    <ActivityIndicator size="large" color="#0066FF" />
+                    <Text style={{ marginTop: 12, color: "#6B7280" }}>
+                      Đang tải danh mục thuốc...
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <MaterialCommunityIcons
+                      name="pill"
+                      size={48}
+                      color="#D1D5DB"
+                    />
+                    <Text style={{ color: "#6B7280", marginTop: 12 }}>
+                      Không tìm thấy loại thuốc nào.
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
+            renderItem={({ item }) => {
+              const addedMed = addedMedicines.find(
+                (m) => Number(m.medicine?.id) === Number(item.id),
+              );
+              return (
+                <View style={styles.medCard}>
+                  <View style={{ flex: 1, marginRight: 12 }}>
+                    <Text style={styles.medName}>{item.name}</Text>
+                    <Text style={styles.medUnit}>
+                      Kho: {item.stock} | Giá:{" "}
+                      {parseInt(item.unit_price || 0).toLocaleString("vi-VN")}đ
+                    </Text>
+                  </View>
+                  {addedMed ? (
                     <TouchableOpacity
                       style={[
                         styles.addMedBtn,
-                        isAdded && { backgroundColor: "#F3F4F6" },
+                        { backgroundColor: "#FEE2E2", borderColor: "#FEE2E2" },
                       ]}
-                      onPress={() => onOpenInputForm(item)}
+                      onPress={() => handleDeleteMedicine(addedMed.id)}
                     >
                       <Text
-                        style={[
-                          styles.addMedBtnText,
-                          isAdded && { color: "#6B7280" },
-                        ]}
+                        style={[styles.addMedBtnText, { color: "#DC2626" }]}
                       >
-                        {isAdded ? "Chỉnh sửa" : "+ Chọn"}
+                        Xóa
                       </Text>
                     </TouchableOpacity>
-                  </View>
-                );
-              }}
-            />
-          )}
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.addMedBtn}
+                      onPress={() => onOpenInputForm(item)}
+                    >
+                      <Text style={styles.addMedBtnText}>Chọn</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            }}
+          />
         </View>
       </KeyboardAvoidingView>
     </Modal>

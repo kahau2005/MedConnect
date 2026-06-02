@@ -14,7 +14,6 @@ const CallAction = ({ title, subtitle }) => {
         style={CallActionStyles.button}
         icon="chevron-right"
         size={32}
-        onPress={() => console.log("Pressed")}
       />
     </View>
   );

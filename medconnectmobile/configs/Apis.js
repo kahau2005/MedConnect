@@ -5,21 +5,18 @@ export const endpoint = {
   doctors: "/doctors/",
   popular_dotor: "/doctors/popular/",
   services: "/services/",
-  test: "/tests/payment/?amount=1000",
   login: "/o/token/",
   register: "/users/",
-  current_user: "/users/current-user/",
+  currentUser: "/users/current-user/",
   patient_profile: "/users/current-user/patient-profile/",
   appointment: "/appointments/",
-  appointment_status: (appointmentId) =>
-    `/appointments/${appointmentId}/status/`,
   update_appointment: (appointmentId) => `/appointments/${appointmentId}/`,
   streamToken: "/stream/token/",
   chat_room: (appointmentId) => `/appointments/${appointmentId}/chat-rooms/`,
   medicines: "/medicines/",
   medicine_categories: "/medicine-categories/",
   add_medicine: (prescriptionId) => `/prescriptions/${prescriptionId}/details/`,
-  update_medicine: (prescriptionId) =>
+  delete_medicine: (prescriptionId) =>
     `/prescription-details/${prescriptionId}/`,
   prescription: (appointmentId) =>
     `/appointments/${appointmentId}/prescriptions/`,
@@ -29,6 +26,8 @@ export const endpoint = {
   appointmentDetails: (appointmentId) => `/appointments/${appointmentId}/`,
   zalopay: (paymentId) => `/payments/${paymentId}/zalopay/`,
   registerDevice: "/users/register-device/",
+  medicines_in_prescription: (prescriptionId) =>
+    `/prescriptions/${prescriptionId}/`,
 };
 
 export const STREAM_API = process.env.EXPO_PUBLIC_STREAM_API_KEY;

@@ -9,6 +9,7 @@ import {
   Platform,
   Modal,
   Image,
+  Alert,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -53,7 +54,7 @@ const PatientProfileTab = () => {
   ];
 
   const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(Platform.OS === "ios");
+    setShowDatePicker(false);
     if (selectedDate) {
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
@@ -93,10 +94,8 @@ const PatientProfileTab = () => {
         });
       }
     } catch (err) {
-      if (err.response?.status === 404 || err.status === 404) {
-        setHasProfile(false);
-        setFormData(initialFormData);
-      }
+      setHasProfile(false);
+      setFormData(initialFormData);
     } finally {
       setLoading(false);
     }
@@ -136,11 +135,11 @@ const PatientProfileTab = () => {
       setHasProfile(true);
       setIsEditing(false);
     } catch (error) {
-      console.error(
-        "Lỗi khi lưu hồ sơ:",
-        error.response?.data || error.message,
-      );
-      alert("Có lỗi xảy ra khi lưu hồ sơ. Vui lòng kiểm tra lại thông tin!");
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -458,9 +457,7 @@ const PatientProfileTab = () => {
             <Image
               source={{
                 uri: user.avatar
-                  ? user.avatar.includes("http")
-                    ? user.avatar
-                    : `https://res.cloudinary.com/dsc8rzpbg/${user.avatar}`
+                  ? user.avatar
                   : `https://ui-avatars.com/api/?name=${user.first_name || "User"}&background=0066FF&color=fff`,
               }}
               style={Style.avatar}
@@ -472,11 +469,7 @@ const PatientProfileTab = () => {
               : user.username || "Người dùng mới"}
           </Text>
           <Text style={Style.userEmail}>
-            {user.phone
-              ? `SĐT: ${user.phone}`
-              : user.email
-                ? `Email: ${user.email}`
-                : "Chưa có số điện thoại"}
+            {user.phone ? `SĐT: ${user.phone}` : "Chưa có số điện thoại"}
           </Text>
         </View>
 
@@ -512,9 +505,7 @@ const PatientProfileTab = () => {
           ) : (
             <View style={Style.profileDataCard}>
               <View style={Style.profileDataHeader}>
-                <Text style={Style.profileDataTitle}>
-                  Hồ sơ bệnh nhân
-                </Text>
+                <Text style={Style.profileDataTitle}>Hồ sơ bệnh nhân</Text>
                 <TouchableOpacity
                   onPress={() => setIsEditing(true)}
                   style={Style.editBtn}
@@ -548,7 +539,7 @@ const PatientProfileTab = () => {
                 <View style={Style.dataItem}>
                   <Text style={Style.dataLabel}>Thể trạng</Text>
                   <Text style={Style.dataValue}>
-                    {formData.height}cm / {formData.weight}kg
+                    {formData.height}cm {formData.weight}kg
                   </Text>
                 </View>
               </View>
@@ -566,7 +557,7 @@ const PatientProfileTab = () => {
                 </Text>
               </View>
               <View style={Style.dataRowFull}>
-                <Text style={Style.dataLabel}>Bệnh lý nền (Mạn tính)</Text>
+                <Text style={Style.dataLabel}>Bệnh nền</Text>
                 <Text style={Style.dataValueFull}>
                   {formData.chronic_diseases || "Không có"}
                 </Text>

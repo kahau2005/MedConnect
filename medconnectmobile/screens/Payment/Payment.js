@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -98,8 +98,12 @@ const Payment = () => {
         endpoint.checkout(appointmentId),
       );
       setPaymentData(res.data);
-    } catch (err) {
-      Alert.alert("Lỗi", "Không thể tải thông tin thanh toán.");
+    } catch (error) {
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoadingData(false);
     }
@@ -115,7 +119,6 @@ const Payment = () => {
       const res = await authApis(user.access_token).post(
         endpoint.zalopay(paymentData.id),
       );
-      console.log(res.data);
       const zpTransToken = res.data.zp_trans_token;
 
       if (!zpTransToken) {
@@ -133,8 +136,11 @@ const Payment = () => {
       if (error.code === "CANCELED") {
         Alert.alert("Thông báo", "Bạn đã huỷ quá trình thanh toán.");
       } else {
-        console.error("Lỗi thanh toán:", error);
-        Alert.alert("Lỗi", error.message || "Không thể hoàn tất thanh toán.");
+        const errData = error?.response?.data?.err;
+        const errorMessage = Array.isArray(errData)
+          ? errData[0]
+          : errData || "Không xác định!";
+        Alert.alert("Lỗi", errorMessage);
       }
     } finally {
       setLoadingPay(false);

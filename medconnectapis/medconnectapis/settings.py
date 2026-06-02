@@ -30,8 +30,8 @@ INSTALLED_APPS = [
     "ckeditor_uploader",
     "rest_framework",
     "drf_yasg",
-    "oauth2_provider",
     "django_filters",
+    "oauth2_provider",
     "medconnectapp.apps.MedconnectappConfig",
     "corsheaders",
     "django_celery_beat",
@@ -57,11 +57,10 @@ REST_FRAMEWORK = {
         "appointment_services_action": "20/m",
         "appointment_review": "20/m",
         "appointment_chat_rooms": "20/m",
-        "appointment_service": "10/m",
+        "appointment_service": "20/m",
         "appointment": "20/m",
         "prescription": "10/m",
-        "prescription_details": "5/m",
-        "disease_category": "20/m",
+        "prescription_details": "20/m",
         "disease": "20/m",
         "specialty": "20/m",
         "service": "20/m",
@@ -69,7 +68,7 @@ REST_FRAMEWORK = {
         "medicine": "20/m",
         "doctor": "20/m",
         "doctor_schedule": "20/m",
-        "report": "10/m",
+        "report": "20/m",
     },
 }
 
@@ -192,23 +191,6 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
-        },
-    },
-    "loggers": {
-        "django.db.backends": {
-            "level": "DEBUG",
-            "handlers": ["console"],
-            "propagate": False,
-        },
-    },
-}
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 

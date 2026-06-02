@@ -56,8 +56,12 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
       setRows([{ id: Date.now().toString(), key: "", value: "" }]);
       setConclusion("");
       setIsReadOnly(false);
-    } catch (err) {
-      console.error("Lỗi tải dịch vụ chỉ định:", err);
+    } catch (error) {
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -134,9 +138,12 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
 
       Alert.alert("Thành công", "Đã lưu kết quả xét nghiệm.");
       onClose();
-    } catch (err) {
-      const msg = err.response?.data?.error || "Không thể lưu kết quả.";
-      Alert.alert("Lỗi", msg);
+    } catch (error) {
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -211,7 +218,7 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                   >
                     {selectedService
                       ? selectedService.service.name
-                      : "— Chọn dịch vụ xét nghiệm —"}
+                      : "Chọn dịch vụ xét nghiệm"}
                   </Text>
                   <Feather name="chevron-down" size={20} color="#0066FF" />
                 </TouchableOpacity>
@@ -316,7 +323,8 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                             color: isReadOnly ? "#6B7280" : "#111827",
                             marginRight: 6,
                           }}
-                          placeholder="Chỉ số (VD: Đường huyết)"
+                          placeholder="Chỉ số"
+                          placeholderTextColor={"#6B7280"}
                           value={row.key}
                           onChangeText={(t) => updateRow(row.id, "key", t)}
                           editable={!isReadOnly}
@@ -333,7 +341,8 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                             color: isReadOnly ? "#6B7280" : "#111827",
                             marginRight: isReadOnly ? 0 : 10,
                           }}
-                          placeholder="Giá trị (VD: 16.5)"
+                          placeholder="Giá trị"
+                          placeholderTextColor={"#6B7280"}
                           value={row.value}
                           onChangeText={(t) => updateRow(row.id, "value", t)}
                           editable={!isReadOnly}
@@ -402,6 +411,7 @@ const ResultModal = ({ visible, onClose, appointmentId }) => {
                         textAlignVertical: "top",
                       }}
                       placeholder="Nhập kết luận chuyên môn..."
+                      placeholderTextColor={"#6B7280"}
                       multiline
                       value={conclusion}
                       onChangeText={setConclusion}

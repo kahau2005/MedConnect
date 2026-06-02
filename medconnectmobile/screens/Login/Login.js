@@ -1,4 +1,4 @@
-import React, { useContext, useReducer, useState } from "react";
+import { useContext, useState } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Image,
   TouchableWithoutFeedback,
   Keyboard,
   Alert,
@@ -28,10 +27,10 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [user, dispatch] = useContext(UserContext);
+  const [, dispatch] = useContext(UserContext);
 
   const getCurrentUserInfo = async (token) => {
-    const res = await authApis(token).get(endpoint.current_user);
+    const res = await authApis(token).get(endpoint.currentUser);
     return res.data;
   };
 
@@ -43,7 +42,6 @@ const Login = () => {
         password: password,
         grant_type: "password",
       });
-      console.log(res.data);
       const currentUser = await getCurrentUserInfo(res.data.access_token);
       const userData = {
         ...currentUser,
@@ -56,11 +54,12 @@ const Login = () => {
       });
       nav.navigate("HomeScreen");
       requestUserPermission(res.data.access_token);
-    } catch (err) {
-      Alert.alert(
-        "Đăng nhập thất bại",
-        "Tên đăng nhập hoặc mật khẩu không chính xác!",
-      );
+    } catch (error) {
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }

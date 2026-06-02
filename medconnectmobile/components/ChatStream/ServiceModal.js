@@ -48,7 +48,11 @@ const ServiceModal = ({ visible, onClose, appointmentId }) => {
       setAssignedServices(resAssigned.data);
       setShowList(resAssigned.data.length === 0);
     } catch (error) {
-      console.error("Lỗi tải danh mục dịch vụ:", error);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -81,7 +85,11 @@ const ServiceModal = ({ visible, onClose, appointmentId }) => {
       fetchData();
       setShowList(false);
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể thêm dịch vụ.");
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -367,6 +375,7 @@ const ServiceModal = ({ visible, onClose, appointmentId }) => {
                     color: "#111827",
                   }}
                   placeholder="Tìm tên dịch vụ..."
+                  placeholderTextColor="#9CA3AF"
                   value={searchKw}
                   onChangeText={setSearchKw}
                 />

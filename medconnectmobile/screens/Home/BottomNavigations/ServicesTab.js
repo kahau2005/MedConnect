@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+import { View, Text, Alert } from "react-native";
 import HorizontalItemsView from "../../../components/HorizontalItemsView/HorizontalItemsView";
 import { List } from "react-native-paper";
 import ListItemView from "../../../components/ListItemView/ListItemView";
@@ -14,20 +14,24 @@ const ServicesTab = () => {
       let res = await Apis.get(endpoint.services);
       setServices(res.data.results);
     } catch (error) {
-      console.error("Error fetching services:", error);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     }
   };
 
   const fetchPopularServices = async () => {
     try {
       let res = await Apis.get(`${endpoint.services}popular`);
-      console.log(
-        "API response for popular services:",
-        res.data[0]?.image || "Không có",
-      );
       setPopularServices(PopularServiceItemMapper(res.data));
     } catch (error) {
-      console.error("Error fetching popular services:", error);
+      const errData = error?.response?.data?.err;
+      const errorMessage = Array.isArray(errData)
+        ? errData[0]
+        : errData || "Không xác định!";
+      Alert.alert("Lỗi", errorMessage);
     }
   };
 
