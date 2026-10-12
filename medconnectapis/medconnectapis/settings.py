@@ -121,9 +121,7 @@ DATABASES = {
         "PASSWORD": os.environ.get("DB_PASSWORD", "root"),
         "HOST": os.environ.get("DB_HOST", ""),
         "PORT": "3306",
-        "OPTIONS": {
-            "ssl": {"ssl-mode": "REQUIRED"},
-        },
+        "OPTIONS": {},
     }
 }
 SECRET_KEY = os.environ.get("SECRET_KEY")
@@ -197,3 +195,19 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 CSRF_TRUSTED_ORIGINS = [
     "https://medconnect-aca.icydesert-d50d1a9e.southeastasia.azurecontainerapps.io"
 ]
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        },
+    },
+}

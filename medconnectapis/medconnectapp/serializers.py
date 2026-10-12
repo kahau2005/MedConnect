@@ -2,7 +2,7 @@ import re
 from datetime import timedelta
 
 import nh3
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 from PIL import Image
 from rest_framework import serializers
@@ -61,26 +61,38 @@ class PrescriptionDetailSerializer(ModelSerializer):
                 {"err": "Trạng thái lịch khám không hợp lệ"}
             )
 
-        medicine = (
-            Medicine.objects.select_for_update()
-            .filter(id=validated_data.get("medicine").id)
-            .first()
-        )
+        medicine = validated_data["medicine"]
+        quantity = validated_data["quantity"]
+        quote = connection.ops.quote_name
+        table = quote(Medicine._meta.db_table)
 
-        if not medicine:
-            raise serializers.ValidationError({"err": "Không tìm thấy thuốc"})
+        def column(name):
+            return quote(Medicine._meta.get_field(name).column)
 
-        if validated_data.get("quantity") > medicine.stock:
+        updated_at = connection.ops.adapt_datetimefield_value(timezone.now())
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"UPDATE {table} SET {column('stock')} = {column('stock')} - %s, "
+                f"{column('updated_at')} = %s "
+                f"WHERE {column('id')} = %s AND {column('stock')} >= %s "
+                f"RETURNING {column('unit_price')}",
+                [quantity, updated_at, medicine.pk, quantity],
+            )
+            row = cursor.fetchone()
+
+        if row is None:
+            if not Medicine.objects.filter(id=medicine.id).exists():
+                raise serializers.ValidationError({"err": "Không tìm thấy thuốc"})
             raise serializers.ValidationError({"err": "Không đủ số lượng tồn kho"})
 
-        medicine.stock -= validated_data.get("quantity")
-        medicine.save()
+        medicine.unit_price = row[0]
 
         return PrescriptionDetail.objects.create(
             prescription=prescription,
             medicine=medicine,
             unit_price=medicine.unit_price,
-            quantity=validated_data.get("quantity"),
+            quantity=quantity,
             dose=validated_data.get("dose"),
             frequency=validated_data.get("frequency"),
             duration_day=validated_data.get("duration_day"),
